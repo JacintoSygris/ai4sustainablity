@@ -1,0 +1,43 @@
+task:
+  name: ESRS E2
+  description: Pollution
+  themes:
+    - name: Air pollution
+      description: |
+        Reported data about the following substances:
+        - Nitrogen oxides (NOx), sulfur oxides (SOx)
+        - Particulate matter (PM2.5, PM10), Volatile organic compounds (VOCs)
+        - Heavy metals (e.g., lead, mercury), Ozone-depleting substances (CFCs, HCFCs).
+    - name: Soil pollution
+      description: |
+        Reported data about the following substances:
+        - Heavy metals, pesticides
+        - Hazardous waste disposal
+        - Land contamination from industrial activities.
+    - name: Water pollution
+      description: |
+        Reported data about the following:
+        - Discharge of hazardous substances into water bodies,
+        - Chemical oxygen demand (COD), biological oxygen demand (BOD)
+        - Oil spills and microplastic contamination
+    - name: Susbtances of concern
+      description: |
+        Reported data about the following:
+        - Persistent organic pollutants (POPs), Long-lasting chemicals
+        - Carcinogenic, mutagenic, or toxic to reproduction (CMRs)
+        - Endocrine disruptors, Nanomaterials
+    - name: Substances of very high concern
+      description: |
+        Reported data about the following:
+        - PFAS and other long-lasting industry chemicals
+        - Acidifying substances (SOx, NOx, ammonia),
+        - Eutrophication agents (phosphates, nitrates),
+        - Ozone-depleting substances, heavy metals
+    - name: Impact on ecosystems and Human Health
+      description: |
+        Reported data about the following:
+        - Health effects (e.g., toxicity, respiratory issues)
+        - Ecosystem effects (e.g., biodiversity loss, deforestation)
+        - Community exposure risks
+    - name: Microplastics
+      description: Microplastics

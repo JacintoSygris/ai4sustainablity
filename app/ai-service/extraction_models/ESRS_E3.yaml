@@ -1,0 +1,28 @@
+task:
+  name: ESRS E3
+  description: Water and Marine Resources
+  themes:
+    - name: Water Withdrawal
+      description: Amount of water withdrawn from various sources (e.g., rivers, lakes, groundwater, oceans)
+      extractContext: False
+      format: str
+    - name: Water Consumption
+      description: Amount of water used and not returned to the environment (e.g., through evaporation or product absorption)
+      extractContext: False
+      format: str
+    - name: Water Discharge
+      description: Amount of water discharged back into the environment (excluding oceans)
+      extractContext: False
+      format: str
+    - name: Water Discharge into Oceans
+      description: Amount of water discharged specifically into seas or oceans
+      extractContext: False
+      format: str
+    - name: Extraction and Use of Marine Resources
+      description: Impacts on rivers, lakes, oceans, marine biodiversity, ecosystems
+      extractContext: False
+      format: str
+    - name: Other Issues Related to ESRS E3
+      description: Any other disclosed data or qualitative information explicitly related to ESRS E3 that does not fit in the categories above
+      extractContext: False
+      format: str

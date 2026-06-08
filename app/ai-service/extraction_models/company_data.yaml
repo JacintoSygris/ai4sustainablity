@@ -1,0 +1,121 @@
+task:
+  active: False
+  name: company_data
+  description: Company data
+  summaryField: False
+  fields:
+    - name: company name
+      description: |
+        The full legal name of the company
+      extractContext: False
+      format: str
+    - name: sector
+      description: |
+        Industry sector(s) the company operates in. Choose EXACTLY ONE of the categories below. Return the letter of the category:
+        (A) – Agriculture, Forestry, Livestock and Fishing
+        (B) – Mining and Quarrying
+        (C) – Manufacturing
+        (D) – Electricity, Gas, Steam and Air Conditioning Supply
+        (E) – Water Supply; Sewerage, Waste Management and Remediation Activities
+        (F) – Construction
+        (G) – Wholesale and Retail Trade
+        (H) – Transportation and Storage
+        (I) – Accommodation and Food Service Activities
+        (J) – Publishing, Broadcasting, and Motion Picture, Video, and Sound Production and Distribution
+        (K) – Telecommunications; Computer Programming, Consultancy, IT Infrastructure and Other Information Services
+        (L) – Financial and Insurance Activities
+        (M) – Real Estate Activities
+        (N) – Professional, Scientific and Technical Activities
+        (O) – Administrative and Support Service Activities
+        (P) – Public Administration and Defense; Compulsory Social Security
+        (Q) – Education
+        (R) – Human Health and Social Work Activities
+        (S) – Arts, Entertainment and Recreation
+        (T) – Other Service Activities
+        (U) – Activities of Households as Employers of Domestic Personnel; Undifferentiated Production of Goods and Services for Own Use
+        (V) – Activities of Extraterritorial Organizations and Bodies
+      extractContext: False
+      format: str
+    - name: products_services
+      description: |
+        Products or services that the company offers. Choose one or more among the following. Return a comma-separated
+        list with the letters of the products/services that apply. If none apply, return L. Respond only with those
+        products or services explicitly mentioned in the document.
+        (A) Manufacturing of physical products
+        (B) Distribution, logistics, or transportation
+        (C) Wholesale or retail trade
+        (D) Professional or technical services (consulting, architecture, engineering, design, etc.)
+        (E) Administrative or financial services (accounting, insurance, etc.)
+        (F) Scientific or technological activities (R&D, laboratories, innovation)
+        (G) Installation, maintenance, or repair services
+        (H) Hospitality, catering, or tourism
+        (I) Training, education, or social services
+        (J) Agricultural, livestock, or forestry activities
+        (K) Energy, water, or waste management
+        (L) None of the above
+      extractContext: False
+      format: str
+    - name: headquarters_country
+      description: Country where the company’s headquarters is located
+      extractContext: False
+      format: str
+    - name: subsidiaries_countries
+      description: |
+        World areas where the company has presence, as reported in the document. Choose one or more among the following. Return a comma-separated
+        list with the letters of the regions that apply. Respond only with those regions explicitly mentioned in the document.
+        (NA) North America, including United States, Canada, Mexico.
+        (LATAM) Central America, South America, and the Caribbean.
+        (EU) Europe.
+        (MENA) North African and Middle Eastern countries (Morocco, Egypt, Saudi Arabia, UAE, etc.).
+        (SSA) Sub-Saharan Africa: All African countries south of the Sahara.
+        (APAC) Asia-Pacific: including East Asia (China, Japan, Korea), Southeast Asia (Thailand, Vietnam, Indonesia, etc.), South Asia (India, Pakistan, Bangladesh), Oceania (Australia, New Zealand)
+      extractContext: False
+      format: str
+    - name: company_size
+      description: |
+        Company size, depending on the total number of employees of the company, as reported in the document. Choose
+        exactly one of the options below:
+        (MICRO) From 1 to 9 employees
+        (SMALL) From 10 to 49 employees
+        (MEDIUM) From 50 to 249 employees
+        (LARGE) From 250 employees to 5000 employees
+        (HUGE) From 5000 to 20000 employees
+        (ULTRA) More than 20000 employees
+        (NA) Number of employees not reported in document
+      extractContext: False
+      format: str
+    - name: juridic_form
+      description: |
+        Juridic form of the company, as reported in the document. Choose exactly one of the options below:
+        (ST) Sole Trader / Self-Employed
+        (LLC) Limited Liability Company (LLC)
+        (SLLC) Single-Member Limited Liability Company
+        (PLC) Public Limited Company (PLC) / Corporation
+        (SPLC) Single-Member Public Limited Company
+        (CP) Civil Partnership
+        (JO) Joint Ownership / Co-ownership Partnership
+        (CS) Cooperative Society
+        (WOC) Worker-Owned Company (Limited Liability or Public Limited)
+        (LP) Limited Partnership
+        (PLS) Partnership Limited by Shares
+        (NPA) Non-Profit Association
+        (F) Foundation
+        (NA) None of the above
+      extractContext: False
+      format: str
+    - name: annual_turnover
+      description: |
+        The most recent annual turnover figure. Express in million euros if possible. If in another currency,
+        include the amount and currency. If the turnover is not explicitly mentioned in the document, return None.
+      extractContext: False
+      format: str
+    - name: stock_listed
+      description: true or false — is the company publicly traded?. If the information is not available return None.
+      extractContext: False
+      format: bool
+    - name: reporting_currency
+      description: |
+        Currency used in financial figures throughout the report. Use ISO 4217 Codes, like USD, EUR, GBP, etc. If the
+        information is not available return None.
+      extractContext: False
+      format: str

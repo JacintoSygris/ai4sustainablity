@@ -1,0 +1,35 @@
+task:
+  name: ESRS S3
+  description: Affected Communities
+  themes:
+    - name: economic rights
+      description: Economic, Social and Cultural Rights of Affected Groups
+      subthemes:
+        - name: communities housing
+          description: Adequate housing
+        - name: communities food
+          description: Adequate food
+        - name: communities water
+          description: Water and sanitation
+        - name: communities land incidents
+          description: Land-related incidents (e.g., displacement, land access or ownership conflict)
+        - name: communities security incidents
+          description: Security-related incidents (e.g., threats, violence, presence of security forces)
+    - name: civil rights
+      description: Collective Civil and Political Rights
+      subthemes:
+        - name: expression
+          description: Freedom of expression
+        - name: assembly
+          description: Freedom of assembly
+        - name: human rights
+          description: Incidents involving human rights defenders (e.g., retaliation, threats)
+    - name: indigenous rights
+      description: Rights of Indigenous Peoples
+      subthemes:
+        - name: consent
+          description: Free, prior, and informed consent
+        - name: self determination
+          description: Right to self-determination
+        - name: cultural rights
+          description: Cultural rights (e.g., access to sacred sites, protection of cultural heritage)

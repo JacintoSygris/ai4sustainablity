@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Framework build output
+.next/
+out/
+dist/
+build/
+public/build/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+keys.properties
+*.pem
+*.key
+*.crt
+*.p12
+
+# Local databases, logs, and runtime state
+*.sqlite
+*.sqlite3
+*.db
+*.log
+storage/logs/
+bootstrap/cache/*.php
+
+# Local/private AI artifacts and training data
+app/ai-service/data/company_data.csv
+app/ai-service/data/company_esrs.csv
+app/ai-service/data/*.pkl
+app/ai-service/trained_classifier/
+app/ai-service/training_data/
+app/ai-service/training_output/
+
+# Local working material and operator metadata
+/.antigravity.md
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/RUNBOOK.md
+/STATUS.md
+/.agents/
+/.antigravity/
+/.claude/
+/.codex/
+/.gemini/
+/.playwright-mcp/
+/archive/
+/deliverables/
+/docs/
+/workspace/
+/private/
+**/archive/
+**/artifacts/

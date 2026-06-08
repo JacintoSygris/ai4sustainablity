@@ -1,0 +1,23 @@
+task:
+  name: ESRS G1
+  description: Business Conduct (corporate behaviour)
+  themes:
+    - name: corporate conduct
+      description: Governance of Corporate Conduct, corporate culture (values, tone at the top, behavioral expectations)
+    - name: whistleblower
+      description: Whistleblower protection systems
+    - name: animal welfare
+      description: Ethical Practices and Social Responsibility related to Animal welfare (including policies and practices)
+    - name: lobbying activities
+      description: Political engagement and lobbying activities (e.g., advocacy, political contributions)
+    - name: supply chain conduct
+      description: Supplier relationship management, including payment terms and performance expectations
+    - name: anti corruption
+      description: Anti-Corruption and Integrity
+      subthemes:
+        - name: prevention
+          description: |
+            Corruption and bribery: prevention and detection (e.g., policies, training)
+        - name: incidents
+          description: |
+            Corruption and bribery: incidents, legal cases or confirmed breaches

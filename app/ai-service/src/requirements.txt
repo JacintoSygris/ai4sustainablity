@@ -1,0 +1,2 @@
+# Canonical AI-service dependencies live one directory above this source tree.
+-r ../requirements.txt

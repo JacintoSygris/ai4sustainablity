@@ -1,0 +1,1172 @@
+{
+  "version": "v0",
+  "status": "runtime-approved-for-candidate-suggestions",
+  "candidate_topics": [
+    {
+      "ar16_topic_id": 1,
+      "web_esrs": "E1",
+      "web_label_en": "Adaptation to climate change",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Adaptation to climate change",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e1_adaptation_to_climate_change"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 2,
+      "web_esrs": "E1",
+      "web_label_en": "Climate change mitigation",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Climate change mitigation",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e1_mitigation_of_climate_change"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 3,
+      "web_esrs": "E1",
+      "web_label_en": "Energy",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Energy",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e1_energy_use"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 4,
+      "web_esrs": "E2",
+      "web_label_en": "air pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "air pollution",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_pollution_air_pollution"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 5,
+      "web_esrs": "E2",
+      "web_label_en": "Water pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Water pollution",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_pollution_water_pollution"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 6,
+      "web_esrs": "E2",
+      "web_label_en": "Soil pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Soil pollution",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_pollution_soil_pollution"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 7,
+      "web_esrs": "E2",
+      "web_label_en": "Contamination of living organisms and food resources",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Contamination of living organisms and food resources",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_impact_on_ecosystems_and_Human_Health"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 8,
+      "web_esrs": "E2",
+      "web_label_en": "Substances of concern",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Substances of concern",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_substances_of_concern"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 9,
+      "web_esrs": "E2",
+      "web_label_en": "Substances of extremely high concern",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Substances of extremely high concern",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_substances_of_very_high_concern"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 10,
+      "web_esrs": "E2",
+      "web_label_en": "Microplastics",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Microplastics",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e2_pollution_microplastics"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 11,
+      "web_esrs": "E3",
+      "web_label_en": "Water consumption",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water consumption",
+      "python_esrs_keys": [
+        "esrs_e3_Water_Consumption"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 12,
+      "web_esrs": "E3",
+      "web_label_en": "Water extractions",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water extractions",
+      "python_esrs_keys": [
+        "esrs_e3_Water_Withdrawal"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 13,
+      "web_esrs": "E3",
+      "web_label_en": "water spills",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "water spills",
+      "python_esrs_keys": [
+        "esrs_e3_Water_Discharge"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 14,
+      "web_esrs": "E3",
+      "web_label_en": "Water spills into the oceans",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water spills into the oceans",
+      "python_esrs_keys": [
+        "esrs_e3_Water_Discharge_into_oceans"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 15,
+      "web_esrs": "E3",
+      "web_label_en": "Extraction and use of marine resources",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Marine resources",
+      "web_subtopic_en": "Extraction and use of marine resources",
+      "python_esrs_keys": [
+        "esrs_e3_Extraction_and_use_of_marine_resources"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 16,
+      "web_esrs": "E4",
+      "web_label_en": "Climate change",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Climate change",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_loss_climate_change"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 17,
+      "web_esrs": "E4",
+      "web_label_en": "Land use change, freshwater use change and sea use change",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Land use change, freshwater use change and sea use change",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_loss_change_land_use_freshwater_sea_use"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 18,
+      "web_esrs": "E4",
+      "web_label_en": "Direct exploitation",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Direct exploitation",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_loss_direct_exploitation"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 19,
+      "web_esrs": "E4",
+      "web_label_en": "Invasive alien species",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Invasive alien species",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_exotic_invading_species"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 20,
+      "web_esrs": "E4",
+      "web_label_en": "Pollution",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Pollution",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_pollution"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 21,
+      "web_esrs": "E4",
+      "web_label_en": "Others",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Others",
+      "python_esrs_keys": [
+        "esrs_e4_direct_impact_biodiversity_others"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 22,
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the status of the species",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the status of the species",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e4_impact_on_status_species_size_of_species_population",
+        "esrs_e4_impact_on_status_species_extinction_risk_species"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 23,
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the extent and state of ecosystems",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the extent and state of ecosystems",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e4_impact_extension_status_ecosystems_soil_degradation",
+        "esrs_e4_impact_extension_status_ecosystems_desertification",
+        "esrs_e4_impact_extension_status_ecosystems_soil_sealing"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 24,
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on ecosystem services and dependencies on these services",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on ecosystem services and dependencies on these services",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e4_impacts_dependencies_services_ecosystems"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 25,
+      "web_esrs": "E5",
+      "web_label_en": "Resource inputs, including resource utilization",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Resource inputs, including resource utilization",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e5_resource_use_circular_economy_resource_input"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 26,
+      "web_esrs": "E5",
+      "web_label_en": "Resource outflows related to products and services",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Resource outflows related to products and services",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e5_resource_use_circular_economy_resource_output"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 27,
+      "web_esrs": "E5",
+      "web_label_en": "Waste",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Waste",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_e5_resource_use_circular_economy_waste_management"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 28,
+      "web_esrs": "S1",
+      "web_label_en": "Secure employment",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Secure employment",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_safe_employment"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 29,
+      "web_esrs": "S1",
+      "web_label_en": "Working time",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Working time",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_working_time"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 30,
+      "web_esrs": "S1",
+      "web_label_en": "Adequate salaries",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Adequate salaries",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_fair_salary"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 31,
+      "web_esrs": "S1",
+      "web_label_en": "Social dialogue",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Social dialogue",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_social_dialogue"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 32,
+      "web_esrs": "S1",
+      "web_label_en": "Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_association_freedom_works_council_information_rights"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 33,
+      "web_esrs": "S1",
+      "web_label_en": "Collective bargaining, including the proportion of workers covered by collective agreements",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Collective bargaining, including the proportion of workers covered by collective agreements",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_collective_negotiation_collective_agreement"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 34,
+      "web_esrs": "S1",
+      "web_label_en": "Work conciliation",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Work conciliation",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_reconciling_work_family_life"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 35,
+      "web_esrs": "S1",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Health and safety",
+      "python_esrs_keys": [
+        "esrs_s1_workforce_working_conditions_health_safety"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 36,
+      "web_esrs": "S1",
+      "web_label_en": "Gender equality and equal pay for work of equal value",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Gender equality and equal pay for work of equal value",
+      "python_esrs_keys": [
+        "esrs_s1_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 37,
+      "web_esrs": "S1",
+      "web_label_en": "Training and capacity development",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Training and capacity development",
+      "python_esrs_keys": [
+        "esrs_s1_equal_treatment_opportunities_training_competence_development"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 38,
+      "web_esrs": "S1",
+      "web_label_en": "Employment and inclusion of people with disabilities",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Employment and inclusion of people with disabilities",
+      "python_esrs_keys": [
+        "esrs_s1_equal_treatment_opportunities_employment_inclusion_people_disabilities"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 39,
+      "web_esrs": "S1",
+      "web_label_en": "Measures against violence and harassment in the workplace",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Measures against violence and harassment in the workplace",
+      "python_esrs_keys": [
+        "esrs_s1_equal_treatment_opportunities_measures_against_violence_harassment_workplace"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 40,
+      "web_esrs": "S1",
+      "web_label_en": "Diversity",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Diversity",
+      "python_esrs_keys": [
+        "esrs_s1_equal_treatment_opportunities_diversity"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 41,
+      "web_esrs": "S1",
+      "web_label_en": "child labor",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "child labor",
+      "python_esrs_keys": [
+        "esrs_s1_other_labour_rights_child_labour"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 42,
+      "web_esrs": "S1",
+      "web_label_en": "Forced labor",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Forced labor",
+      "python_esrs_keys": [
+        "esrs_s1_other_labour_rights_forced_labour"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 43,
+      "web_esrs": "S1",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Adequate housing",
+      "python_esrs_keys": [
+        "esrs_s1_other_labour_rights_adequate_housing"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 44,
+      "web_esrs": "S1",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Privacy",
+      "python_esrs_keys": [
+        "esrs_s1_other_labour_rights_privacity"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 45,
+      "web_esrs": "S2",
+      "web_label_en": "Secure employment",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Secure employment",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_safe_employment"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 46,
+      "web_esrs": "S2",
+      "web_label_en": "Working time",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Working time",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_working_time"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 47,
+      "web_esrs": "S2",
+      "web_label_en": "Adequate salaries",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Adequate salaries",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_fair_salary"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 48,
+      "web_esrs": "S2",
+      "web_label_en": "Social dialogue",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Social dialogue",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_social_dialogue"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 49,
+      "web_esrs": "S2",
+      "web_label_en": "Freedom of association, including the existence of works councils",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Freedom of association, including the existence of works councils",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_association_freedom_works_council_information_rights"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 50,
+      "web_esrs": "S2",
+      "web_label_en": "Collective bargaining",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Collective bargaining",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_collective_negotiation_collective_agreement"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 51,
+      "web_esrs": "S2",
+      "web_label_en": "Work conciliation",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Work conciliation",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_reconciling_work_family_life"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 52,
+      "web_esrs": "S2",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Health and safety",
+      "python_esrs_keys": [
+        "esrs_s2_workers_value_chain_working_conditions_health_safety"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 53,
+      "web_esrs": "S2",
+      "web_label_en": "Gender equality and equal pay for work of equal value",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Gender equality and equal pay for work of equal value",
+      "python_esrs_keys": [
+        "esrs_s2_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 54,
+      "web_esrs": "S2",
+      "web_label_en": "Training and capacity development",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Training and capacity development",
+      "python_esrs_keys": [
+        "esrs_s2_equal_treatment_opportunities_training_competence_development"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 55,
+      "web_esrs": "S2",
+      "web_label_en": "Employment and inclusion of people with disabilities",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Employment and inclusion of people with disabilities",
+      "python_esrs_keys": [
+        "esrs_s2_equal_treatment_opportunities_employment_inclusion_people_disabilities"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 56,
+      "web_esrs": "S2",
+      "web_label_en": "Measures against violence and harassment in the workplace",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Measures against violence and harassment in the workplace",
+      "python_esrs_keys": [
+        "esrs_s2_equal_treatment_opportunities_measures_against_violence_harassment_workplace"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 57,
+      "web_esrs": "S2",
+      "web_label_en": "Diversity",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Diversity",
+      "python_esrs_keys": [
+        "esrs_s2_equal_treatment_opportunities_diversity"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 58,
+      "web_esrs": "S2",
+      "web_label_en": "child labor",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "child labor",
+      "python_esrs_keys": [
+        "esrs_s2_other_labour_rights_child_labour"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 59,
+      "web_esrs": "S2",
+      "web_label_en": "Forced labor",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Forced labor",
+      "python_esrs_keys": [
+        "esrs_s2_other_labour_rights_forced_labour"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 60,
+      "web_esrs": "S2",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Adequate housing",
+      "python_esrs_keys": [
+        "esrs_s2_other_labour_rights_adequate_housing"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 61,
+      "web_esrs": "S2",
+      "web_label_en": "Water and sanitation",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Water and sanitation",
+      "python_esrs_keys": [
+        "esrs_s2_other_labour_rights_water_sanitation"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 62,
+      "web_esrs": "S2",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Privacy",
+      "python_esrs_keys": [
+        "esrs_s2_other_labour_rights_privacity"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 63,
+      "web_esrs": "S3",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Adequate housing",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_adequate_housing"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 64,
+      "web_esrs": "S3",
+      "web_label_en": "Proper nutrition",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Proper nutrition",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_adequate_food"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 65,
+      "web_esrs": "S3",
+      "web_label_en": "Water and sanitation",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Water and sanitation",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_water_sanitation"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 66,
+      "web_esrs": "S3",
+      "web_label_en": "Land-related incidents",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Land-related incidents",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_land_incidents"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 67,
+      "web_esrs": "S3",
+      "web_label_en": "Security-related incidents",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Security-related incidents",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_security_incidents"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 68,
+      "web_esrs": "S3",
+      "web_label_en": "Freedom of expression",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Freedom of expression",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_expression_freedom"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 69,
+      "web_esrs": "S3",
+      "web_label_en": "Freedom of assembly",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Freedom of assembly",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_assembly_freedom"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 70,
+      "web_esrs": "S3",
+      "web_label_en": "Incidents on human rights defenders",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Incidents on human rights defenders",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_indicence_human_rights"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 71,
+      "web_esrs": "S3",
+      "web_label_en": "Free, prior and informed consent",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Free, prior and informed consent",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_consent"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 72,
+      "web_esrs": "S3",
+      "web_label_en": "Self-determination",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Self-determination",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_self_determination"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 73,
+      "web_esrs": "S3",
+      "web_label_en": "Cultural rights",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Cultural rights",
+      "python_esrs_keys": [
+        "esrs_s3_affected_groups_cultural_rights"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 74,
+      "web_esrs": "S4",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Privacy",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_incidents_privacity"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 75,
+      "web_esrs": "S4",
+      "web_label_en": "Freedom of expression",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Freedom of expression",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_incidents_expression_freedom"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 76,
+      "web_esrs": "S4",
+      "web_label_en": "Access to information (quality)",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Access to information (quality)",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_incidents_information_access"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 77,
+      "web_esrs": "S4",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Health and safety",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_safety_health"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 78,
+      "web_esrs": "S4",
+      "web_label_en": "Safety of a person",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Safety of a person",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_safety_security"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 79,
+      "web_esrs": "S4",
+      "web_label_en": "Protection of children",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Protection of children",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_safety_child_protection"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 80,
+      "web_esrs": "S4",
+      "web_label_en": "Non-discrimination",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Non-discrimination",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_inclusion_non_discrimination"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 81,
+      "web_esrs": "S4",
+      "web_label_en": "Access to products and services",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Access to products and services",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_inclusion_access_products"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 82,
+      "web_esrs": "S4",
+      "web_label_en": "Responsible marketing practices",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Responsible marketing practices",
+      "python_esrs_keys": [
+        "esrs_s4_consumers_inclusion_responsible_marketing"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 83,
+      "web_esrs": "G1",
+      "web_label_en": "Corporate culture",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corporate culture",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_culture"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 84,
+      "web_esrs": "G1",
+      "web_label_en": "Protection of whistleblowers",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Protection of whistleblowers",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_whistleblower_protection"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 85,
+      "web_esrs": "G1",
+      "web_label_en": "animal welfare",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "animal welfare",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_animal_welfare"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 86,
+      "web_esrs": "G1",
+      "web_label_en": "Political commitment and pressure group activities",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Political commitment and pressure group activities",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_political_engagement"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 87,
+      "web_esrs": "G1",
+      "web_label_en": "Supplier relationship management, including payment practices",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Supplier relationship management, including payment practices",
+      "web_subtopic_en": null,
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_supplier_relationship"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 88,
+      "web_esrs": "G1",
+      "web_label_en": "Prevention and detection, including training",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corruption and bribery",
+      "web_subtopic_en": "Prevention and detection, including training",
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_corruption_prevention"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    },
+    {
+      "ar16_topic_id": 89,
+      "web_esrs": "G1",
+      "web_label_en": "Cases",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corruption and bribery",
+      "web_subtopic_en": "Cases",
+      "python_esrs_keys": [
+        "esrs_g1_corporate_behaviour_corruption_incidents"
+      ],
+      "mapping_status": "approved",
+      "notes": ""
+    }
+  ],
+  "python_key_statuses": {
+    "esrs_e1_climate_change": "aggregate_only",
+    "esrs_e2_pollution": "aggregate_only",
+    "esrs_e3_water_and_marine_resources": "aggregate_only",
+    "esrs_e3_other": "review_only"
+  }
+}

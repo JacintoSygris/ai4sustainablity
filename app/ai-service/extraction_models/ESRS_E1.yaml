@@ -1,0 +1,27 @@
+task:
+  name: ESRS E1
+  description: Climate Change
+  themes:
+    - name: Climate Change Adaptation
+      description: |
+        Include data such as:
+        - Physical risk assessments (chronic and acute risks)
+        - Adaptation strategies and actions
+        - Climate resilience of assets, operations, and value chain
+        - Investments in adaptation measures
+    - name: Climate Change Mitigation
+      description: |
+        Include
+        - GHG reduction targets
+        - Policies and actions for GHG reduction
+        - Decarbonization initiatives and levers
+        - Use of renewable energy and energy efficiency measures
+        - Scope 1, 2, and 3 GHG emissions (with breakdowns and methodologies)
+        - Use of internal carbon pricing (if any)
+    - name: Energy Use
+      description: |
+        Include:
+        - Total energy consumption (direct and indirect)
+        - Share of renewable vs. non-renewable energy
+        - Energy efficiency initiatives
+        - Energy intensity ratios (e.g., per product, per revenue)

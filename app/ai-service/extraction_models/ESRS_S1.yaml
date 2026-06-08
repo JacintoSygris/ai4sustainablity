@@ -1,0 +1,47 @@
+task:
+  name: ESRS S1
+  description: Own Workforce
+  themes:
+    - name: own working conditions
+      description: Workforce Working Conditions
+      subthemes:
+        - name: own safe employment
+          description: Safe employment
+        - name: own working time
+          description: Working time
+        - name: own fair salary
+          description: fair salary
+        - name: own social dialogue
+          description: Social dialogue
+        - name: own association
+          description: Freedom of association, works councils, and participation rights
+        - name: own bargaining
+          description: Collective bargaining (including % covered by agreements)
+        - name: own reconciling
+          description: Reconciling work and family life
+        - name: own health safety
+          description: Health and safety
+    - name: own equality
+      description: Equal Treatment and Opportunities for All
+      subthemes:
+        - name: own gender equality
+          description: Gender equality and equal pay for work of equal value
+        - name: own training
+          description: Training and competence development
+        - name: own disabilities
+          description: Employment and inclusion of people with disabilities
+        - name: own harassment
+          description: Measures against violence and harassment in the workplace
+        - name: own diversity
+          description: Workforce diversity
+    - name: own other rights
+      description: Other Labour Rights
+      subthemes:
+        - name: own child labour
+          description: Child labour
+        - name: own forced labour
+          description: Forced labour
+        - name: own housing
+          description: Adequate housing
+        - name: own privacy
+          description: Privacy

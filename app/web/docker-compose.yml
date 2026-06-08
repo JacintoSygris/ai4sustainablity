@@ -1,0 +1,97 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./vendor/laravel/sail/runtimes/8.4/Dockerfile
+      args:
+        WWWGROUP: "${WWWGROUP:-1000}"
+    image: ia4sustainability-app
+    container_name: ia4sustainability-app
+    restart: unless-stopped
+    depends_on:
+      - pgsql
+      - redis
+      - mailpit
+    environment:
+      WWWUSER: "${WWWUSER:-1000}"
+      LARAVEL_SAIL: 1
+      APP_SERVICE: "app"
+      XDEBUG_MODE: "${SAIL_XDEBUG_MODE:-off}"
+      XDEBUG_CONFIG: "${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}"
+    volumes:
+      - ./:/var/www/html
+    ports:
+      - "${APP_PORT:-8000}:8000"
+      - "${VITE_PORT:-5173}:${VITE_PORT:-5173}"
+    command: >
+      bash -lc "php artisan serve --host=0.0.0.0 --port=8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ia4sustainability
+
+  queue:
+    extends:
+      service: app
+    container_name: ia4sustainability-queue
+    command: >
+      bash -lc "php artisan queue:work --tries=1 --verbose"
+    ports: []
+
+  scheduler:
+    extends:
+      service: app
+    container_name: ia4sustainability-scheduler
+    command: >
+      bash -lc "php artisan schedule:work"
+    ports: []
+
+  pgsql:
+    image: postgres:16-alpine
+    container_name: ia4sustainability-pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-ia4sustainability}"
+      POSTGRES_USER: "${DB_USERNAME:-sail}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-password}"
+    volumes:
+      - pgsql-data:/var/lib/postgresql/data
+      - ./vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    networks:
+      - ia4sustainability
+
+  redis:
+    image: redis:7-alpine
+    container_name: ia4sustainability-redis
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ia4sustainability
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ia4sustainability-mailpit
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_MAILPIT_PORT:-1025}:1025"
+      - "${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025"
+    networks:
+      - ia4sustainability
+
+networks:
+  ia4sustainability:
+    driver: bridge
+
+volumes:
+  pgsql-data:
+    driver: local
+  redis-data:
+    driver: local

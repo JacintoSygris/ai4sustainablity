@@ -1,0 +1,49 @@
+task:
+  name: ESRS S2
+  description: Workers in the Value Chain
+  themes:
+    - name: chain working conditions
+      description: Workforce Working Conditions
+      subthemes:
+        - name: chain safe employment
+          description: Safe employment
+        - name: chain working time
+          description: Working time
+        - name: chain fair salary
+          description: fair salary
+        - name: chain social dialogue
+          description: Social dialogue
+        - name: chain association
+          description: Freedom of association, works councils, and participation rights
+        - name: chain bargaining
+          description: Collective bargaining (including % covered by agreements)
+        - name: chain reconciling
+          description: Reconciling work and family life
+        - name: chain health safety
+          description: Health and safety
+    - name: chain equality
+      description: Equal Treatment and Opportunities for All
+      subthemes:
+        - name: chain gender equality
+          description: Gender equality and equal pay for work of equal value
+        - name: chain training
+          description: Training and competence development
+        - name: chain disabilities
+          description: Employment and inclusion of people with disabilities
+        - name: chain harassment
+          description: Measures against violence and harassment in the workplace
+        - name: chain diversity
+          description: Workforce diversity
+    - name: chain other rights
+      description: Other Labour Rights
+      subthemes:
+        - name: chain child labour
+          description: Child labour
+        - name: chain forced labour
+          description: Forced labour
+        - name: chain housing
+          description: Adequate housing
+        - name: chain water sanitation
+          description: Water and sanitation
+        - name: chain privacy
+          description: Privacy

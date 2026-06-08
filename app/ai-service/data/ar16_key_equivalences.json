@@ -1,0 +1,735 @@
+{
+  "version": "v0",
+  "status": "draft-reviewable",
+  "purpose": "Explicit AR16/Python/YAML key equivalences for offline extraction reconciliation. This file does not rename data silently and is not used by the runtime classifier.",
+  "equivalences": [
+    {
+      "source_surface": "company_esrs",
+      "source_key": "esrs_e1_climate_change",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E1 summary column, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "company_esrs",
+      "source_key": "esrs_e2_pollution",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E2 summary column, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "company_esrs",
+      "source_key": "esrs_e3_water_and_marine_resources",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E3 summary column, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "company_esrs",
+      "source_key": "esrs_e3_other",
+      "target_key": null,
+      "status": "review_only_non_ar16",
+      "basis": "Residual E3 review-only bucket already treated outside AR16 candidate-topic mapping."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_e1_climate_change",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E1 summary field, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_e2_pollution",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E2 summary field, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_e3_water_and_marine_resources",
+      "target_key": null,
+      "status": "known_non_ar16_summary",
+      "basis": "Standard-level E3 summary field, not an AR16 matter/submatter key."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_e3_other",
+      "target_key": null,
+      "status": "review_only_non_ar16",
+      "basis": "Residual E3 review-only field already treated outside AR16 candidate-topic mapping."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_e2_impact_ecosystems_and_Human_Health",
+      "target_key": "esrs_e2_impact_on_ecosystems_and_Human_Health",
+      "status": "equivalent",
+      "basis": "Same E2 AR16 topic; feature_description omits the word 'on'."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_s1_other_labour_rights_privacy",
+      "target_key": "esrs_s1_other_labour_rights_privacity",
+      "status": "equivalent",
+      "basis": "Same S1 privacy topic; AR16/Python runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_s2_other_labour_rights_privacy",
+      "target_key": "esrs_s2_other_labour_rights_privacity",
+      "status": "equivalent",
+      "basis": "Same S2 privacy topic; AR16/Python runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "feature_description",
+      "source_key": "esrs_s4_consumers_incidents_privacy",
+      "target_key": "esrs_s4_consumers_incidents_privacity",
+      "status": "equivalent",
+      "basis": "Same S4 privacy topic; AR16/Python runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e1_climate_change_adaptation",
+      "target_key": "esrs_e1_adaptation_to_climate_change",
+      "status": "equivalent",
+      "basis": "Same E1 adaptation AR16 topic with shorter YAML naming."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e1_climate_change_mitigation",
+      "target_key": "esrs_e1_mitigation_of_climate_change",
+      "status": "equivalent",
+      "basis": "Same E1 mitigation AR16 topic with shorter YAML naming."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_air_pollution",
+      "target_key": "esrs_e2_pollution_air_pollution",
+      "status": "equivalent",
+      "basis": "Same E2 air pollution AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_soil_pollution",
+      "target_key": "esrs_e2_pollution_soil_pollution",
+      "status": "equivalent",
+      "basis": "Same E2 soil pollution AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_water_pollution",
+      "target_key": "esrs_e2_pollution_water_pollution",
+      "status": "equivalent",
+      "basis": "Same E2 water pollution AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_susbtances_of_concern",
+      "target_key": "esrs_e2_substances_of_concern",
+      "status": "equivalent",
+      "basis": "Same E2 substances of concern topic; YAML has the typo 'susbtances'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_substances_of_very_high_concern",
+      "target_key": "esrs_e2_substances_of_very_high_concern",
+      "status": "equivalent",
+      "basis": "Same E2 substances of very high concern AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_impact_on_ecosystems_and_human_health",
+      "target_key": "esrs_e2_impact_on_ecosystems_and_Human_Health",
+      "status": "equivalent",
+      "basis": "Same E2 contamination/health topic; YAML lowercases Human Health."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e2_microplastics",
+      "target_key": "esrs_e2_pollution_microplastics",
+      "status": "equivalent",
+      "basis": "Same E2 microplastics AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_water_withdrawal",
+      "target_key": "esrs_e3_Water_Withdrawal",
+      "status": "equivalent",
+      "basis": "Same E3 water withdrawal/extractions AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_water_consumption",
+      "target_key": "esrs_e3_Water_Consumption",
+      "status": "equivalent",
+      "basis": "Same E3 water consumption AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_water_discharge",
+      "target_key": "esrs_e3_Water_Discharge",
+      "status": "equivalent",
+      "basis": "Same E3 water discharge/spills AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_water_discharge_into_oceans",
+      "target_key": "esrs_e3_Water_Discharge_into_oceans",
+      "status": "equivalent",
+      "basis": "Same E3 water discharge into oceans AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_extraction_and_use_of_marine_resources",
+      "target_key": "esrs_e3_Extraction_and_use_of_marine_resources",
+      "status": "equivalent",
+      "basis": "Same E3 marine resources AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e3_other_issues_related_to_esrs_e3",
+      "target_key": null,
+      "status": "review_only_non_ar16",
+      "basis": "Residual E3 YAML bucket, not an AR16 matter/submatter candidate."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_climate_change",
+      "target_key": "esrs_e4_direct_impact_biodiversity_loss_climate_change",
+      "status": "equivalent",
+      "basis": "Same E4 direct-impact climate change AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_land_and_water_use_change",
+      "target_key": "esrs_e4_direct_impact_biodiversity_loss_change_land_use_freshwater_sea_use",
+      "status": "equivalent",
+      "basis": "Same E4 land/freshwater/sea use change AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_direct_exploitation",
+      "target_key": "esrs_e4_direct_impact_biodiversity_loss_direct_exploitation",
+      "status": "equivalent",
+      "basis": "Same E4 direct exploitation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_exotic_species",
+      "target_key": "esrs_e4_direct_impact_biodiversity_exotic_invading_species",
+      "status": "equivalent",
+      "basis": "Same E4 invasive alien species AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_pollution",
+      "target_key": "esrs_e4_direct_impact_biodiversity_pollution",
+      "status": "equivalent",
+      "basis": "Same E4 pollution AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_direct_impact_on_biodiversity_loss_other_factors",
+      "target_key": "esrs_e4_direct_impact_biodiversity_others",
+      "status": "equivalent",
+      "basis": "Same E4 other direct-impact factors AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_status_of_species_species_population",
+      "target_key": "esrs_e4_impact_on_status_species_size_of_species_population",
+      "status": "equivalent",
+      "basis": "Same E4 species population AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_status_of_species_extintion_risk",
+      "target_key": "esrs_e4_impact_on_status_species_extinction_risk_species",
+      "status": "equivalent",
+      "basis": "Same E4 extinction risk AR16 topic; YAML has the typo 'extintion'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_status_of_ecosystems_soil_degradation",
+      "target_key": "esrs_e4_impact_extension_status_ecosystems_soil_degradation",
+      "status": "equivalent",
+      "basis": "Same E4 soil degradation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_status_of_ecosystems_desertification",
+      "target_key": "esrs_e4_impact_extension_status_ecosystems_desertification",
+      "status": "equivalent",
+      "basis": "Same E4 desertification AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_status_of_ecosystems_soil_sealing",
+      "target_key": "esrs_e4_impact_extension_status_ecosystems_soil_sealing",
+      "status": "equivalent",
+      "basis": "Same E4 soil sealing AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e4_impacts_ecosystem_services",
+      "target_key": "esrs_e4_impacts_dependencies_services_ecosystems",
+      "status": "equivalent",
+      "basis": "Same E4 ecosystem services/dependencies AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e5_resource_input",
+      "target_key": "esrs_e5_resource_use_circular_economy_resource_input",
+      "status": "equivalent",
+      "basis": "Same E5 resource inputs AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e5_resource_output",
+      "target_key": "esrs_e5_resource_use_circular_economy_resource_output",
+      "status": "equivalent",
+      "basis": "Same E5 resource outflows AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_e5_waste_management",
+      "target_key": "esrs_e5_resource_use_circular_economy_waste_management",
+      "status": "equivalent",
+      "basis": "Same E5 waste AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_corporate_conduct",
+      "target_key": "esrs_g1_corporate_behaviour_culture",
+      "status": "equivalent",
+      "basis": "Same G1 corporate culture/conduct AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_whistleblower",
+      "target_key": "esrs_g1_corporate_behaviour_whistleblower_protection",
+      "status": "equivalent",
+      "basis": "Same G1 whistleblower protection AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_animal_welfare",
+      "target_key": "esrs_g1_corporate_behaviour_animal_welfare",
+      "status": "equivalent",
+      "basis": "Same G1 animal welfare AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_lobbying_activities",
+      "target_key": "esrs_g1_corporate_behaviour_political_engagement",
+      "status": "equivalent",
+      "basis": "Same G1 political engagement/lobbying AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_supply_chain_conduct",
+      "target_key": "esrs_g1_corporate_behaviour_supplier_relationship",
+      "status": "equivalent",
+      "basis": "Same G1 supplier relationship AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_anti_corruption_prevention",
+      "target_key": "esrs_g1_corporate_behaviour_corruption_prevention",
+      "status": "equivalent",
+      "basis": "Same G1 corruption prevention/detection AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_g1_anti_corruption_incidents",
+      "target_key": "esrs_g1_corporate_behaviour_corruption_incidents",
+      "status": "equivalent",
+      "basis": "Same G1 corruption incidents AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_safe_employment",
+      "target_key": "esrs_s1_workforce_working_conditions_safe_employment",
+      "status": "equivalent",
+      "basis": "Same S1 secure employment AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_working_time",
+      "target_key": "esrs_s1_workforce_working_conditions_working_time",
+      "status": "equivalent",
+      "basis": "Same S1 working time AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_fair_salary",
+      "target_key": "esrs_s1_workforce_working_conditions_fair_salary",
+      "status": "equivalent",
+      "basis": "Same S1 adequate salaries AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_social_dialogue",
+      "target_key": "esrs_s1_workforce_working_conditions_social_dialogue",
+      "status": "equivalent",
+      "basis": "Same S1 social dialogue AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_association",
+      "target_key": "esrs_s1_workforce_working_conditions_association_freedom_works_council_information_rights",
+      "status": "equivalent",
+      "basis": "Same S1 freedom of association/works councils AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_bargaining",
+      "target_key": "esrs_s1_workforce_working_conditions_collective_negotiation_collective_agreement",
+      "status": "equivalent",
+      "basis": "Same S1 collective bargaining AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_reconciling",
+      "target_key": "esrs_s1_workforce_working_conditions_reconciling_work_family_life",
+      "status": "equivalent",
+      "basis": "Same S1 work/family reconciliation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_working_conditions_own_health_safety",
+      "target_key": "esrs_s1_workforce_working_conditions_health_safety",
+      "status": "equivalent",
+      "basis": "Same S1 health and safety AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_equality_own_gender_equality",
+      "target_key": "esrs_s1_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value",
+      "status": "equivalent",
+      "basis": "Same S1 gender equality/equal pay AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_equality_own_training",
+      "target_key": "esrs_s1_equal_treatment_opportunities_training_competence_development",
+      "status": "equivalent",
+      "basis": "Same S1 training and skills development AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_equality_own_disabilities",
+      "target_key": "esrs_s1_equal_treatment_opportunities_employment_inclusion_people_disabilities",
+      "status": "equivalent",
+      "basis": "Same S1 employment/inclusion of people with disabilities AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_equality_own_harassment",
+      "target_key": "esrs_s1_equal_treatment_opportunities_measures_against_violence_harassment_workplace",
+      "status": "equivalent",
+      "basis": "Same S1 workplace violence/harassment AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_equality_own_diversity",
+      "target_key": "esrs_s1_equal_treatment_opportunities_diversity",
+      "status": "equivalent",
+      "basis": "Same S1 diversity AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_other_rights_own_child_labour",
+      "target_key": "esrs_s1_other_labour_rights_child_labour",
+      "status": "equivalent",
+      "basis": "Same S1 child labour AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_other_rights_own_forced_labour",
+      "target_key": "esrs_s1_other_labour_rights_forced_labour",
+      "status": "equivalent",
+      "basis": "Same S1 forced labour AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_other_rights_own_housing",
+      "target_key": "esrs_s1_other_labour_rights_adequate_housing",
+      "status": "equivalent",
+      "basis": "Same S1 adequate housing AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s1_own_other_rights_own_privacy",
+      "target_key": "esrs_s1_other_labour_rights_privacity",
+      "status": "equivalent",
+      "basis": "Same S1 privacy AR16 topic; runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_safe_employment",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_safe_employment",
+      "status": "equivalent",
+      "basis": "Same S2 secure employment AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_working_time",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_working_time",
+      "status": "equivalent",
+      "basis": "Same S2 working time AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_fair_salary",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_fair_salary",
+      "status": "equivalent",
+      "basis": "Same S2 adequate salaries AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_social_dialogue",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_social_dialogue",
+      "status": "equivalent",
+      "basis": "Same S2 social dialogue AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_association",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_association_freedom_works_council_information_rights",
+      "status": "equivalent",
+      "basis": "Same S2 freedom of association/works councils AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_bargaining",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_collective_negotiation_collective_agreement",
+      "status": "equivalent",
+      "basis": "Same S2 collective bargaining AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_reconciling",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_reconciling_work_family_life",
+      "status": "equivalent",
+      "basis": "Same S2 work/family reconciliation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_working_conditions_chain_health_safety",
+      "target_key": "esrs_s2_workers_value_chain_working_conditions_health_safety",
+      "status": "equivalent",
+      "basis": "Same S2 health and safety AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_equality_chain_gender_equality",
+      "target_key": "esrs_s2_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value",
+      "status": "equivalent",
+      "basis": "Same S2 gender equality/equal pay AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_equality_chain_training",
+      "target_key": "esrs_s2_equal_treatment_opportunities_training_competence_development",
+      "status": "equivalent",
+      "basis": "Same S2 training and skills development AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_equality_chain_disabilities",
+      "target_key": "esrs_s2_equal_treatment_opportunities_employment_inclusion_people_disabilities",
+      "status": "equivalent",
+      "basis": "Same S2 employment/inclusion of people with disabilities AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_equality_chain_harassment",
+      "target_key": "esrs_s2_equal_treatment_opportunities_measures_against_violence_harassment_workplace",
+      "status": "equivalent",
+      "basis": "Same S2 workplace violence/harassment AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_equality_chain_diversity",
+      "target_key": "esrs_s2_equal_treatment_opportunities_diversity",
+      "status": "equivalent",
+      "basis": "Same S2 diversity AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_other_rights_chain_child_labour",
+      "target_key": "esrs_s2_other_labour_rights_child_labour",
+      "status": "equivalent",
+      "basis": "Same S2 child labour AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_other_rights_chain_forced_labour",
+      "target_key": "esrs_s2_other_labour_rights_forced_labour",
+      "status": "equivalent",
+      "basis": "Same S2 forced labour AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_other_rights_chain_housing",
+      "target_key": "esrs_s2_other_labour_rights_adequate_housing",
+      "status": "equivalent",
+      "basis": "Same S2 adequate housing AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_other_rights_chain_water_sanitation",
+      "target_key": "esrs_s2_other_labour_rights_water_sanitation",
+      "status": "equivalent",
+      "basis": "Same S2 water and sanitation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s2_chain_other_rights_chain_privacy",
+      "target_key": "esrs_s2_other_labour_rights_privacity",
+      "status": "equivalent",
+      "basis": "Same S2 privacy AR16 topic; runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_economic_rights_communities_housing",
+      "target_key": "esrs_s3_affected_groups_adequate_housing",
+      "status": "equivalent",
+      "basis": "Same S3 adequate housing AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_economic_rights_communities_food",
+      "target_key": "esrs_s3_affected_groups_adequate_food",
+      "status": "equivalent",
+      "basis": "Same S3 adequate food/nutrition AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_economic_rights_communities_water",
+      "target_key": "esrs_s3_affected_groups_water_sanitation",
+      "status": "equivalent",
+      "basis": "Same S3 water and sanitation AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_economic_rights_communities_land_incidents",
+      "target_key": "esrs_s3_affected_groups_land_incidents",
+      "status": "equivalent",
+      "basis": "Same S3 land-related incidents AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_economic_rights_communities_security_incidents",
+      "target_key": "esrs_s3_affected_groups_security_incidents",
+      "status": "equivalent",
+      "basis": "Same S3 security-related incidents AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_civil_rights_expression",
+      "target_key": "esrs_s3_affected_groups_expression_freedom",
+      "status": "equivalent",
+      "basis": "Same S3 freedom of expression AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_civil_rights_assembly",
+      "target_key": "esrs_s3_affected_groups_assembly_freedom",
+      "status": "equivalent",
+      "basis": "Same S3 freedom of assembly AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_civil_rights_human_rights",
+      "target_key": "esrs_s3_affected_groups_indicence_human_rights",
+      "status": "equivalent",
+      "basis": "Same S3 incidents on human rights defenders AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_indigenous_rights_consent",
+      "target_key": "esrs_s3_affected_groups_consent",
+      "status": "equivalent",
+      "basis": "Same S3 free, prior and informed consent AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_indigenous_rights_self_determination",
+      "target_key": "esrs_s3_affected_groups_self_determination",
+      "status": "equivalent",
+      "basis": "Same S3 self-determination AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s3_indigenous_rights_cultural_rights",
+      "target_key": "esrs_s3_affected_groups_cultural_rights",
+      "status": "equivalent",
+      "basis": "Same S3 cultural rights AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_consumer_information_privacy",
+      "target_key": "esrs_s4_consumers_incidents_privacity",
+      "status": "equivalent",
+      "basis": "Same S4 privacy AR16 topic; runtime mapping currently uses 'privacity'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_consumer_information_freedom_expression",
+      "target_key": "esrs_s4_consumers_incidents_expression_freedom",
+      "status": "equivalent",
+      "basis": "Same S4 freedom of expression AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_consumer_information_access_information",
+      "target_key": "esrs_s4_consumers_incidents_information_access",
+      "status": "equivalent",
+      "basis": "Same S4 access to information AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_personal_safety_health_safety_products",
+      "target_key": "esrs_s4_consumers_safety_health",
+      "status": "equivalent",
+      "basis": "Same S4 health and safety AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_personal_safety_security_individals",
+      "target_key": "esrs_s4_consumers_safety_security",
+      "status": "equivalent",
+      "basis": "Same S4 security of individuals AR16 topic; YAML has the typo 'individals'."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_personal_safety_child_protection",
+      "target_key": "esrs_s4_consumers_safety_child_protection",
+      "status": "equivalent",
+      "basis": "Same S4 child protection AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_social_inclusion_non_discrimination",
+      "target_key": "esrs_s4_consumers_inclusion_non_discrimination",
+      "status": "equivalent",
+      "basis": "Same S4 non-discrimination AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_social_inclusion_access_products",
+      "target_key": "esrs_s4_consumers_inclusion_access_products",
+      "status": "equivalent",
+      "basis": "Same S4 access to products and services AR16 topic."
+    },
+    {
+      "source_surface": "yaml",
+      "source_key": "esrs_s4_social_inclusion_marketing",
+      "target_key": "esrs_s4_consumers_inclusion_responsible_marketing",
+      "status": "equivalent",
+      "basis": "Same S4 responsible marketing AR16 topic."
+    }
+  ]
+}

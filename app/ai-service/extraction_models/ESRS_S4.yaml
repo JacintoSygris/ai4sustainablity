@@ -1,0 +1,31 @@
+task:
+  name: ESRS S4
+  description: Consumers and End-Users
+  themes:
+    - name: consumer information
+      description: Incidents Related to Consumer or End-User Information
+      subthemes:
+        - name: privacy
+          description: Privacy (e.g., breaches of personal data)
+        - name: freedom expression
+          description: Freedom of expression (e.g., suppression or interference)
+        - name: access information
+          description: Access to quality information (e.g., transparency, accuracy)
+    - name: personal safety
+      description: Personal Safety of Consumers or End-Users
+      subthemes:
+        - name: health safety products
+          description: Health and safety impacts of products and services
+        - name: security individals
+          description: Security of individuals (e.g., product-related physical threats)
+        - name: child protection
+          description: Child protection (e.g., age-appropriate services, harmful content)
+    - name: social inclusion
+      description: Social Inclusion of Consumers or End-Users
+      subthemes:
+        - name: non discrimination
+          description: Non-discrimination (e.g., based on gender, ethnicity, disability)
+        - name: access products
+          description: Access to essential products and services (e.g., affordability, availability)
+        - name: marketing
+          description: Responsible marketing practices (e.g., advertising ethics, deceptive claims)

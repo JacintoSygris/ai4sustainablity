@@ -1,0 +1,22 @@
+task:
+  name: ESRS E5
+  description: Resource Use and Circular Economy
+  themes:
+    - name: resource input
+      description: |
+        Resource Input, including usage of resources.
+        Sustainable sourcing of materials.
+        Resource consumption and efficiency improvements
+        Dependency on virgin raw materials
+        Use of secondary (recycled) materials
+    - name: resource output
+      description: |
+        Resource Output Related to Products and Services.
+        Information on resource use embedded in outputs such as goods or services.
+    - name: Waste Management
+      description: |
+        Waste management, including:
+        Waste generation (hazardous and non-hazardous)
+        Waste prevention, reuse, and recycling strategies
+        Waste diversion from landfill and incineration
+        Industrial symbiosis and by-product valorization

@@ -1,0 +1,37 @@
+# Local environments and generated dependency folders
+web/.env
+web/.env.*
+!web/.env.example
+!web/.env.production.example
+web/vendor/
+web/node_modules/
+web/public/build/
+web/public/hot
+web/storage/*.key
+web/storage/pail/
+web/database/database.sqlite
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/node_modules/
+frontend/.next/
+frontend/.turbo/
+frontend/.vercel/
+frontend/out/
+
+ai-service/.env
+ai-service/.env.*
+ai-service/.venv/
+ai-service/venv/
+ai-service/**/__pycache__/
+ai-service/**/*.py[cod]
+ai-service/.pytest_cache/
+
+# Large AI/data snapshots remain available locally after ZIP extraction.
+# Decide Git LFS vs external artifact storage before committing them.
+ai-service/data/*.pkl
+ai-service/trained_classifier/
+ai-service/extracted_data/
+ai-service/training_data/
+ai-service/models-data.xlsx

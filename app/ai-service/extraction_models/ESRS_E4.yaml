@@ -1,0 +1,37 @@
+task:
+  name: ESRS E4
+  description: Biodiversity and Ecosystems
+  themes:
+    - name: Direct Impact on Biodiversity Loss
+      description: Direct Impact on Biodiversity Loss
+      subthemes:
+        - name: Climate change
+          description: Climate change
+        - name: Land and water use change
+          description: Change in land use, freshwater use, and sea use
+        - name: Direct exploitation
+          description: Direct exploitation of natural resources
+        - name: exotic species
+          description: Introduction or spread of exotic/invasive species
+        - name: pollution
+          description: Pollution
+        - name: other factors
+          description: Other factors
+    - name: status of species
+      description: Impact on the Status of Species
+      subthemes:
+        - name: species population
+          description: Changes in population size of species
+        - name: extintion risk
+          description: Extinction risk of species
+    - name: status of ecosystems
+      description: Impact on the Extension and Status of Ecosystems
+      subthemes:
+        - name: soil degradation
+          description: Soil degradation
+        - name: desertification
+          description: Desertification
+        - name: soil sealing
+          description: Soil sealing
+    - name: impacts ecosystem services
+      description: Impacts and Dependencies on Ecosystem Services. Any dependencies or effects on services provided by ecosystems (e.g., pollination, flood regulation, carbon sequestration)
