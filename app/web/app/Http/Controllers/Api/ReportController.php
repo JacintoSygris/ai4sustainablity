@@ -512,7 +512,7 @@ class ReportController extends Controller
         if (Arr::get($corpus, 'generation.matter_to_dr_mapping_status') !== 'loaded') {
             $limitations[] = [
                 'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                'message' => 'P9 currently uses the documented standard-level partial fallback.',
+                'message' => 'P9 does not include topical datapoints until a fully covering approved AR16 matter to Disclosure Requirement map is configured.',
             ];
         }
 

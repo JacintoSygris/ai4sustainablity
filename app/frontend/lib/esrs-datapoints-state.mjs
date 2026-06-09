@@ -9,6 +9,44 @@ export const RESPONSE_STATUS_LABELS = {
   not_applicable: "No aplica",
 }
 
+export const P9_MAPPING_STATUS_LABELS = {
+  loaded: "Mapa aprobado cargado",
+  partial: "Mapa incompleto",
+  pending: "Mapa pendiente",
+}
+
+export const P9_COVERAGE_STATUS_LABELS = {
+  dr_level: "Filtrado por Disclosure Requirement",
+  topical_mapping_required: "Falta mapa AR16 a DR",
+  standard_level_partial: "Cobertura parcial por estándar",
+}
+
+export const P9_FILTER_LABELS = {
+  mapped_disclosure_requirements: "Disclosure Requirements mapeados",
+  topical_blocked_until_dr_mapping: "Bloqueado hasta mapear AR16 a DR",
+  activated_esrs_standard: "Estándar ESRS activado",
+}
+
+export const P9_GRANULARITY_LABELS = {
+  disclosure_requirement_level: "Nivel Disclosure Requirement",
+  disclosure_requirement_mapping_required: "Requiere mapa a Disclosure Requirement",
+  standard_level: "Nivel estándar",
+}
+
+export const COMPLETION_STATUS_LABELS = {
+  blocked: "Bloqueado",
+  conditional: "Condicional",
+  not_applicable: "No aplica",
+  ready: "Listo",
+  satisfied: "Satisfecho",
+}
+
+export const APPLICABILITY_MAPPING_BASIS_LABELS = {
+  always_required: "Siempre requerido",
+  conditional_mdr_for_material_topics: "MDR condicional por temas materiales",
+  mapped_disclosure_requirements: "Disclosure Requirement mapeado",
+}
+
 export function flattenCorpus(corpus) {
   if (!corpus) {
     return []
@@ -58,17 +96,23 @@ export function p9ExportLinks() {
 export function p9MappingSummary(corpus) {
   const generation = objectValue(corpus?.generation)
   const matterMapping = objectValue(corpus?.matter_mapping)
+  const coverageStatus = stringValue(matterMapping.coverage_status ?? generation.coverage_status)
+  const mappingStatus = stringValue(matterMapping.status ?? generation.matter_to_dr_mapping_status)
   const limitations = [
     ...arrayValue(generation.limitations),
     matterMapping.limitation,
   ].filter((value, index, values) => typeof value === "string" && value.trim() && values.indexOf(value) === index)
 
   return {
-    coverageStatus: stringValue(matterMapping.coverage_status ?? generation.coverage_status),
+    coverageStatus,
+    coverageStatusLabel: labelFor(P9_COVERAGE_STATUS_LABELS, coverageStatus),
     currentFilter: stringValue(matterMapping.current_filter),
+    currentFilterLabel: labelFor(P9_FILTER_LABELS, matterMapping.current_filter),
     mappingGranularity: stringValue(generation.mapping_granularity),
-    mappingStatus: stringValue(matterMapping.status ?? generation.matter_to_dr_mapping_status),
-    limitations,
+    mappingGranularityLabel: labelFor(P9_GRANULARITY_LABELS, generation.mapping_granularity),
+    mappingStatus,
+    mappingStatusLabel: labelFor(P9_MAPPING_STATUS_LABELS, mappingStatus),
+    limitations: localizeMappingLimitations(limitations, coverageStatus, mappingStatus),
   }
 }
 
@@ -96,6 +140,7 @@ export function completionPlanItems(corpus) {
     key: stringValue(phase?.key),
     title: stringValue(phase?.title),
     status: stringValue(phase?.status),
+    statusLabel: labelFor(COMPLETION_STATUS_LABELS, phase?.status),
     datapointCount: numberValue(phase?.datapoint_count),
   }))
 }
@@ -108,6 +153,7 @@ export function datapointApplicabilitySummary(datapoint) {
     reason: stringValue(applicability.reason),
     reasonCode: stringValue(applicability.reason_code),
     mappingBasis: stringValue(applicability.mapping_basis),
+    mappingBasisLabel: labelFor(APPLICABILITY_MAPPING_BASIS_LABELS, applicability.mapping_basis),
     limitations: arrayValue(applicability.limitations).filter((limitation) => typeof limitation === "string" && limitation.trim()),
     phaseInLessThan750: stringValue(phaseIn.less_than_750),
     phaseInAllUndertakings: stringValue(phaseIn.all_undertakings),
@@ -132,4 +178,26 @@ function stringValue(value) {
 
 function numberValue(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
+
+function labelFor(labels, value) {
+  const key = stringValue(value)
+
+  return key ? labels[key] ?? key : ""
+}
+
+function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) {
+  if (coverageStatus !== "topical_mapping_required") {
+    return limitations
+  }
+
+  if (mappingStatus === "partial") {
+    return [
+      "El mapa AR16 a DR configurado está incompleto o no es válido para todos los temas confirmados. P9 bloquea los datapoints tópicos hasta corregirlo.",
+    ]
+  }
+
+  return [
+    "Falta el mapa aprobado AR16 a DR. P9 no incluirá datapoints tópicos para evitar convertir un tema material en todo el estándar ESRS.",
+  ]
 }

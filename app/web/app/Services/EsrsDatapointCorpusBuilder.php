@@ -75,8 +75,8 @@ class EsrsDatapointCorpusBuilder
                 ],
                 'topical' => [
                     'key' => 'topical',
-                    'title' => 'Topical standard datapoints for confirmed material standards',
-                    'applies' => $activatedStandards !== [],
+                    'title' => 'Topical datapoints for mapped material Disclosure Requirements',
+                    'applies' => $topical !== [],
                     'standards' => $activatedStandards,
                     'datapoint_count' => count($topical),
                     'disclosure_requirements' => $this->disclosureRequirementDtos($topical),
@@ -244,7 +244,7 @@ class EsrsDatapointCorpusBuilder
                     return [
                         ...$topicPayload,
                         'mapping_status' => 'pending_explicit_dr_mapping',
-                        'current_filter' => 'standard_level',
+                        'current_filter' => $matterDrMappingState['current_filter'],
                         'standard_level_disclosure_requirement_count' => $coverage['disclosure_requirement_count'],
                         'standard_level_datapoint_count' => $coverage['datapoint_count'],
                     ];
@@ -275,10 +275,10 @@ class EsrsDatapointCorpusBuilder
         if ($approvedMatterDrMapping === null) {
             return [
                 'status' => 'pending',
-                'mapping_granularity' => 'standard_level',
-                'coverage_status' => 'standard_level_partial',
-                'current_filter' => 'activated_esrs_standard',
-                'limitation' => 'No approved AR16 matter to Disclosure Requirement mapping is loaded yet; topical datapoints are included at activated-standard level.',
+                'mapping_granularity' => 'disclosure_requirement_mapping_required',
+                'coverage_status' => 'topical_mapping_required',
+                'current_filter' => 'topical_blocked_until_dr_mapping',
+                'limitation' => 'No approved AR16 matter to Disclosure Requirement mapping is loaded yet; topical datapoints are not included to avoid assigning full ESRS standards from materiality alone.',
             ];
         }
 
@@ -304,14 +304,14 @@ class EsrsDatapointCorpusBuilder
 
         return [
             'status' => 'partial',
-            'mapping_granularity' => 'standard_level',
-            'coverage_status' => 'standard_level_partial',
-            'current_filter' => 'activated_esrs_standard',
+            'mapping_granularity' => 'disclosure_requirement_mapping_required',
+            'coverage_status' => 'topical_mapping_required',
+            'current_filter' => 'topical_blocked_until_dr_mapping',
             'source' => $approvedMatterDrMapping['source'],
             'limitation' => match (true) {
-                $hasDuplicateMappingErrors => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but duplicate mappings affect one or more selected material topics; topical datapoints remain included at activated-standard level.',
-                $hasValidationErrors => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but one or more selected material topic mappings are missing or invalid; topical datapoints remain included at activated-standard level.',
-                default => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but it does not cover every selected material topic; topical datapoints remain included at activated-standard level.',
+                $hasDuplicateMappingErrors => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but duplicate mappings affect one or more selected material topics; topical datapoints are not included until the mapping is unambiguous.',
+                $hasValidationErrors => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but one or more selected material topic mappings are missing or invalid; topical datapoints are not included until every selected matter has a valid Disclosure Requirement mapping.',
+                default => 'An approved AR16 matter to Disclosure Requirement mapping is configured, but it does not cover every selected material topic; topical datapoints are not included until coverage is complete.',
             },
         ];
     }
@@ -469,6 +469,10 @@ class EsrsDatapointCorpusBuilder
         ?array $approvedMatterDrMapping,
         array $matterDrMappingState,
     ): array {
+        if ($matterDrMappingState['coverage_status'] !== 'dr_level') {
+            return [];
+        }
+
         $allowedDisclosureRequirementPairs = $matterDrMappingState['coverage_status'] === 'dr_level'
             ? collect($materialTopicIds)
                 ->map(fn (int $topicId) => $approvedMatterDrMapping['by_topic_id'][$topicId] ?? null)
@@ -495,10 +499,7 @@ class EsrsDatapointCorpusBuilder
             $datapoints,
             fn (array $datapoint) => $datapoint['inclusion_type'] === 'materiality_based'
                 && in_array($datapoint['esrs'], $activatedStandards, true)
-                && (
-                    $allowedDisclosureRequirementPairs === []
-                    || isset($allowedDisclosureRequirementPairs[$datapoint['esrs']][trim((string) $datapoint['dr'])])
-                )
+                && isset($allowedDisclosureRequirementPairs[$datapoint['esrs']][trim((string) $datapoint['dr'])])
         ));
     }
 
@@ -657,12 +658,16 @@ class EsrsDatapointCorpusBuilder
                 [
                     'sequence' => 2,
                     'key' => 'topical',
-                    'title' => 'Complete topical datapoints for material standards',
+                    'title' => 'Complete topical datapoints for mapped material matters',
                     'block_key' => 'topical',
-                    'applies' => $activatedStandards !== [],
+                    'applies' => $summary['topical_datapoint_count'] > 0,
                     'standards' => $activatedStandards,
                     'datapoint_count' => $summary['topical_datapoint_count'],
-                    'status' => $activatedStandards === [] ? 'not_applicable' : 'ready',
+                    'status' => match (true) {
+                        $activatedStandards === [] => 'not_applicable',
+                        $matterDrMappingState['coverage_status'] === 'dr_level' => 'ready',
+                        default => 'blocked',
+                    },
                     'coverage_status' => $matterDrMappingState['coverage_status'],
                 ],
                 [
@@ -723,8 +728,8 @@ class EsrsDatapointCorpusBuilder
         $dr = trim((string) $datapoint['dr']);
         $limitations = [];
 
-        if ($blockKey === 'topical' && $mappingBasis === 'activated_esrs_standard') {
-            $limitations[] = 'Included at activated ESRS standard level because no fully covering approved AR16 matter to Disclosure Requirement map is configured.';
+        if ($blockKey === 'topical' && $mappingBasis !== 'mapped_disclosure_requirements') {
+            $limitations[] = 'Topical datapoints require a fully covering approved AR16 matter to Disclosure Requirement map.';
         }
 
         return [
@@ -739,7 +744,7 @@ class EsrsDatapointCorpusBuilder
                 'always_required' => 'ESRS 2 general disclosure datapoints are included as the baseline sustainability statement corpus.',
                 'topical' => $mappingBasis === 'mapped_disclosure_requirements'
                     ? 'This topical datapoint belongs to a mapped Disclosure Requirement for the confirmed material matter.'
-                    : 'This topical datapoint belongs to an ESRS standard activated by the confirmed final materiality.',
+                    : 'This topical datapoint requires a mapped Disclosure Requirement for the confirmed material matter.',
                 'minimum_disclosure_requirements' => 'ESRS 2 MDR datapoints are included as a conditional review block for confirmed material matters.',
                 default => 'This datapoint is included by the current P9 corpus rules.',
             },

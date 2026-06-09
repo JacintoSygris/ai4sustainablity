@@ -16,6 +16,7 @@ class FrontendWorkflowManifest
                 'presence' => 'present',
                 'integration_status' => 'integrated_laravel_api_runtime',
                 'workspace' => 'app/frontend',
+                'source_zip_filename' => 'airis-main.zip',
                 'target_backend_owner' => 'Laravel',
                 'current_runtime' => [
                     'framework' => 'Next 16.1.4',
@@ -26,12 +27,14 @@ class FrontendWorkflowManifest
                 'secrets' => [
                     'example_file' => 'app/frontend/.env.example',
                     'real_env_files_committed' => false,
+                    'deployment_secret_delivery' => 'private_operator_handoff',
                     'required_private_values' => [],
                     'optional_private_values' => [],
                 ],
-                'integration_notes' => [
-                    'The active P5-P10 workflow is Laravel-owned.',
-                    'Local Next backend routes are not authoritative IA4S workflow APIs.',
+                'handoff_warnings' => [
+                    'The received Next /api/wizard/* routes are historical source behavior and are not authoritative IA4S workflow APIs.',
+                    'Step 2 and Step 3 use client-supplied reportId without userId ownership checks in the received source.',
+                    'Imported Better Auth and Turso/libSQL modules remain historical source-snapshot code; the current integrated runtime is Laravel-owned.',
                 ],
                 'quality_gates' => [
                     'build' => [
@@ -117,6 +120,7 @@ class FrontendWorkflowManifest
                 ),
             ],
             'capabilities' => [
+                'private_dev_auto_login' => false,
                 'characterization_gateway' => [
                     'default' => 'mock',
                     'python_smoke_command' => 'php artisan characterization:smoke-api-gateway --base-url=http://127.0.0.1:8001',
@@ -133,7 +137,7 @@ class FrontendWorkflowManifest
                     'e1_non_material_explanation_required_when_removed' => true,
                 ],
                 'p9' => [
-                    'granularity' => 'standard_level_partial',
+                    'granularity' => 'disclosure_requirement_mapping_required',
                     'disclosure_requirement_grouping' => true,
                     'completion_plan' => true,
                     'phase_in_assessment' => true,
@@ -159,11 +163,15 @@ class FrontendWorkflowManifest
                 ],
                 [
                     'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                    'message' => 'P9 currently filters topical datapoints at ESRS standard level; exact AR16 matter to Disclosure Requirement mapping is still pending.',
+                    'message' => 'P9 does not include topical datapoints until a fully covering approved AR16 matter to Disclosure Requirement map is configured.',
                 ],
                 [
                     'key' => 'final_report_generation_pending',
                     'message' => 'The backend exposes report-package readiness and supporting downloads, but final AI report/XBRL generation is not implemented in this release.',
+                ],
+                [
+                    'key' => 'auth_boundary',
+                    'message' => 'The live VPS uses Laravel Auth/session for user access; Apache Basic Auth is not part of the current runtime boundary.',
                 ],
             ],
         ];

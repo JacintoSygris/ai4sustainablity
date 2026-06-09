@@ -17,7 +17,8 @@ wrapper_models = {
 
 splitters = {
     'iterative' : IterativeSplitter,
-    'normal' : StandardSplitter
+    'normal' : StandardSplitter,
+    'group' : GroupShuffleSplitter
 }
 
 optimisers = {

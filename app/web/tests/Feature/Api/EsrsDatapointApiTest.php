@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -65,6 +67,19 @@ it('returns not found when exporting datapoints without a characterization', fun
 });
 
 it('stores frontend ESRS datapoint responses for the current corpus', function () {
+    $mappingPath = configureApprovedMatterDrMap([
+        [
+            'ar16_topic_id' => $this->e2Topic->id,
+            'esrs_code' => 'E2',
+            'disclosure_requirements' => ['E2.IRO-1'],
+        ],
+        [
+            'ar16_topic_id' => $this->s1Topic->id,
+            'esrs_code' => 'S1',
+            'disclosure_requirements' => ['S1.SBM-3'],
+        ],
+    ]);
+
     $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -121,6 +136,8 @@ it('stores frontend ESRS datapoint responses for the current corpus', function (
         ->assertOk()
         ->assertJsonPath('data.summary.response_count', 2)
         ->assertJsonPath('data.responses.BP-1_01.evidence_reference', 'Finance pack 2025');
+
+    @unlink($mappingPath);
 });
 
 it('rejects duplicate canonical datapoint response ids after trimming', function () {
@@ -158,6 +175,14 @@ it('rejects duplicate canonical datapoint response ids after trimming', function
 });
 
 it('accepts trimmed response ids and explicit full-replacement clear semantics', function () {
+    $mappingPath = configureApprovedMatterDrMap([
+        [
+            'ar16_topic_id' => $this->e2Topic->id,
+            'esrs_code' => 'E2',
+            'disclosure_requirements' => ['E2.IRO-1'],
+        ],
+    ]);
+
     $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -220,6 +245,8 @@ it('accepts trimmed response ids and explicit full-replacement clear semantics',
 
     expect($characterization->fresh()->form_data['esrs_datapoint_responses']['responses'])
         ->toBe([]);
+
+    @unlink($mappingPath);
 });
 
 it('rejects responses for datapoints outside the current corpus', function () {
@@ -249,6 +276,14 @@ it('rejects responses for datapoints outside the current corpus', function () {
 });
 
 it('filters stale response ids from response state csv exports and report handoff', function () {
+    $mappingPath = configureApprovedMatterDrMap([
+        [
+            'ar16_topic_id' => $this->e2Topic->id,
+            'esrs_code' => 'E2',
+            'disclosure_requirements' => ['E2.IRO-1'],
+        ],
+    ]);
+
     $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -329,9 +364,19 @@ it('filters stale response ids from response state csv exports and report handof
         ->assertOk()
         ->assertJsonPath('data.datapoints.response_count', 2)
         ->assertJsonPath('data.datapoints.completed_count', 1);
+
+    @unlink($mappingPath);
 });
 
 it('downloads frontend ESRS datapoint responses with corpus context as csv', function () {
+    $mappingPath = configureApprovedMatterDrMap([
+        [
+            'ar16_topic_id' => $this->e2Topic->id,
+            'esrs_code' => 'E2',
+            'disclosure_requirements' => ['E2.IRO-1'],
+        ],
+    ]);
+
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -409,9 +454,11 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
         ->toBe("Prepared on a consolidated basis, with commas\nand a \"quoted\" note.");
     expect($rowsByDatapoint->get('E2.IRO-1_01'))
         ->toContain('completed', 'Reviewed with operations lead.');
+
+    @unlink($mappingPath);
 });
 
-it('generates a deterministic standard-level datapoint corpus from final materiality', function () {
+it('fails closed without an approved AR16 matter to Disclosure Requirement map', function () {
     $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -434,11 +481,13 @@ it('generates a deterministic standard-level datapoint corpus from final materia
         ->assertJsonPath('data.material_topic_ids', [$this->e2Topic->id, $this->s1Topic->id])
         ->assertJsonPath('data.activated_esrs_standards', ['E2', 'S1'])
         ->assertJsonPath('data.generation.source_name', 'EFRAG IG 3 List of ESRS Data Points')
-        ->assertJsonPath('data.generation.mapping_granularity', 'standard_level')
+        ->assertJsonPath('data.generation.mapping_granularity', 'disclosure_requirement_mapping_required')
         ->assertJsonPath('data.generation.matter_to_dr_mapping_status', 'pending')
+        ->assertJsonPath('data.generation.coverage_status', 'topical_mapping_required')
         ->assertJsonPath('data.matter_mapping.status', 'pending')
         ->assertJsonPath('data.matter_mapping.scope', 'ar16_matter_to_disclosure_requirement')
-        ->assertJsonPath('data.matter_mapping.coverage_status', 'standard_level_partial')
+        ->assertJsonPath('data.matter_mapping.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.matter_mapping.current_filter', 'topical_blocked_until_dr_mapping')
         ->assertJsonPath('data.phase_in_assessment.status', 'eligible_less_than_750')
         ->assertJsonPath('data.phase_in_assessment.employee_count.source', 'employee_count_range')
         ->assertJsonPath('data.phase_in_assessment.employee_count.range', '50_249')
@@ -446,27 +495,34 @@ it('generates a deterministic standard-level datapoint corpus from final materia
         ->assertJsonPath('data.phase_in_assessment.employee_count.less_than_750', true)
         ->assertJsonPath('data.blocks.always_required.standards', ['ESRS 2'])
         ->assertJsonPath('data.blocks.topical.standards', ['E2', 'S1'])
+        ->assertJsonPath('data.blocks.topical.applies', false)
+        ->assertJsonPath('data.blocks.topical.datapoint_count', 0)
         ->assertJsonPath('data.blocks.e1_not_material_explanation.applies', true)
         ->assertJsonPath('data.completion_plan.strategy', 'baseline_then_material_topics')
         ->assertJsonPath('data.completion_plan.phases.0.key', 'always_required')
         ->assertJsonPath('data.completion_plan.phases.1.key', 'topical')
+        ->assertJsonPath('data.completion_plan.phases.1.status', 'blocked')
+        ->assertJsonPath('data.completion_plan.phases.1.coverage_status', 'topical_mapping_required')
         ->assertJsonPath('data.completion_plan.phases.2.key', 'minimum_disclosure_requirements')
         ->assertJsonPath('data.completion_plan.phases.3.key', 'e1_not_material_explanation')
         ->assertJsonPath('data.completion_plan.phases.3.status', 'satisfied')
         ->assertJsonPath('data.blocks.e1_not_material_explanation.explanation', 'Climate impacts are below the documented ADM threshold.');
 
     expect($response->json('data.summary.always_required_datapoint_count'))->toBeGreaterThan(0);
-    expect($response->json('data.summary.topical_datapoint_count'))->toBeGreaterThan(0);
+    expect($response->json('data.summary.topical_datapoint_count'))->toBe(0);
     expect($response->json('data.summary.total_datapoint_count'))->toBeGreaterThan(0);
+    expect($response->json('data.summary.total_datapoint_count'))->toBeLessThan(300);
     expect($response->json('data.phase_in_assessment.counts.less_than_750_relief_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.phase_in_assessment.counts.applicable_phase_in_datapoint_count'))->toBeGreaterThan(0);
+    expect($response->json('data.generation.limitations.0'))
+        ->toContain('topical datapoints are not included');
 
     expect(collect($response->json('data.blocks.always_required.datapoints'))->pluck('id'))
         ->toContain('BP-1_01');
     expect(collect($response->json('data.blocks.always_required.disclosure_requirements'))->pluck('key'))
         ->toContain('BP-1');
     expect(collect($response->json('data.blocks.topical.datapoints'))->pluck('id'))
-        ->toContain('E2.IRO-1_01', 'S1.SBM-3_01');
+        ->not->toContain('E2.IRO-1_01', 'S1.SBM-3_01');
 
     expect($response->json('data.completion_plan.phases.0.datapoint_count'))
         ->toBe($response->json('data.summary.always_required_datapoint_count'));
@@ -481,9 +537,9 @@ it('generates a deterministic standard-level datapoint corpus from final materia
 
     $e2MatterMapping = $matterMappingTopics->firstWhere('topic_id', $this->e2Topic->id);
 
-    expect($e2MatterMapping['current_filter'])->toBe('standard_level');
-    expect($e2MatterMapping['standard_level_disclosure_requirement_count'])->toBeGreaterThan(0);
-    expect($e2MatterMapping['standard_level_datapoint_count'])->toBeGreaterThan(0);
+    expect($e2MatterMapping['current_filter'])->toBe('topical_blocked_until_dr_mapping');
+    expect($e2MatterMapping['standard_level_disclosure_requirement_count'])->toBe(0);
+    expect($e2MatterMapping['standard_level_datapoint_count'])->toBe(0);
 
     $topicalDisclosureRequirements = collect($response->json('data.blocks.topical.disclosure_requirements'));
     $alwaysRequiredDatapoints = collect($response->json('data.blocks.always_required.datapoints'))->keyBy('id');
@@ -500,26 +556,8 @@ it('generates a deterministic standard-level datapoint corpus from final materia
         ],
     ]);
 
-    expect($topicalDatapoints->get('E2.IRO-1_01')['applicability'])->toMatchArray([
-        'block_key' => 'topical',
-        'reason_code' => 'material_esrs_standard',
-        'mapping_basis' => 'activated_esrs_standard',
-        'source_chain' => [
-            'source_dataset' => 'EFRAG IG 3 List of ESRS Data Points',
-            'esrs_standard' => 'E2',
-            'disclosure_requirement' => 'E2.IRO-1',
-            'datapoint_id' => 'E2.IRO-1_01',
-        ],
-    ]);
-
     expect($topicalDisclosureRequirements->pluck('key'))
-        ->toContain('E2.IRO-1', 'S1.SBM-3');
-
-    expect($topicalDisclosureRequirements->firstWhere('key', 'E2.IRO-1')['datapoint_ids'])
-        ->toContain('E2.IRO-1_01');
-
-    expect($topicalDisclosureRequirements->firstWhere('key', 'S1.SBM-3')['datapoint_ids'])
-        ->toContain('S1.SBM-3_01');
+        ->toBeEmpty();
 });
 
 it('uses an approved AR16 matter to Disclosure Requirement map when configured', function () {
@@ -707,10 +745,11 @@ it('fails closed when an approved matter map duplicates a selected topic', funct
     $response = $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints')
         ->assertOk()
-        ->assertJsonPath('data.generation.mapping_granularity', 'standard_level')
+        ->assertJsonPath('data.generation.mapping_granularity', 'disclosure_requirement_mapping_required')
         ->assertJsonPath('data.generation.matter_to_dr_mapping_status', 'partial')
-        ->assertJsonPath('data.generation.coverage_status', 'standard_level_partial')
-        ->assertJsonPath('data.matter_mapping.coverage_status', 'standard_level_partial');
+        ->assertJsonPath('data.generation.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.matter_mapping.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.blocks.topical.datapoint_count', 0);
 
     expect($response->json('data.generation.limitations.0'))
         ->toContain('duplicate');
@@ -757,24 +796,25 @@ it('fails closed when a full approved AR16 matter map has invalid DR keys', func
     $response = $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints')
         ->assertOk()
-        ->assertJsonPath('data.generation.mapping_granularity', 'standard_level')
+        ->assertJsonPath('data.generation.mapping_granularity', 'disclosure_requirement_mapping_required')
         ->assertJsonPath('data.generation.matter_to_dr_mapping_status', 'partial')
-        ->assertJsonPath('data.generation.coverage_status', 'standard_level_partial')
+        ->assertJsonPath('data.generation.coverage_status', 'topical_mapping_required')
         ->assertJsonPath('data.matter_mapping.status', 'partial')
-        ->assertJsonPath('data.matter_mapping.coverage_status', 'standard_level_partial')
-        ->assertJsonPath('data.completion_plan.phases.1.coverage_status', 'standard_level_partial');
+        ->assertJsonPath('data.matter_mapping.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.completion_plan.phases.1.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.blocks.topical.datapoint_count', 0);
 
     expect($response->json('data.generation.limitations.0'))
         ->toContain('missing or invalid');
     expect(collect($response->json('data.blocks.topical.disclosure_requirements'))->pluck('key'))
-        ->toContain('E2.IRO-1', 'S1.SBM-3');
+        ->toBeEmpty();
 
     $matterMappingTopics = collect($response->json('data.matter_mapping.material_topics'));
 
     expect($matterMappingTopics->pluck('mapping_status')->unique()->values()->all())
         ->toBe(['pending_explicit_dr_mapping']);
     expect($matterMappingTopics->pluck('current_filter')->unique()->values()->all())
-        ->toBe(['standard_level']);
+        ->toBe(['topical_blocked_until_dr_mapping']);
 
     @unlink($mappingPath);
 });
@@ -813,23 +853,37 @@ it('does not advertise per-topic DR filtering while an approved matter map is pa
     $response = $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints')
         ->assertOk()
-        ->assertJsonPath('data.generation.mapping_granularity', 'standard_level')
+        ->assertJsonPath('data.generation.mapping_granularity', 'disclosure_requirement_mapping_required')
         ->assertJsonPath('data.generation.matter_to_dr_mapping_status', 'partial')
-        ->assertJsonPath('data.matter_mapping.coverage_status', 'standard_level_partial');
+        ->assertJsonPath('data.matter_mapping.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.blocks.topical.datapoint_count', 0);
 
     $matterMappingTopics = collect($response->json('data.matter_mapping.material_topics'));
 
     expect($matterMappingTopics->pluck('mapping_status')->unique()->values()->all())
         ->toBe(['pending_explicit_dr_mapping']);
     expect($matterMappingTopics->pluck('current_filter')->unique()->values()->all())
-        ->toBe(['standard_level']);
+        ->toBe(['topical_blocked_until_dr_mapping']);
     expect(collect($response->json('data.blocks.topical.disclosure_requirements'))->pluck('key'))
-        ->toContain('E2.IRO-1', 'S1.SBM-3');
+        ->toBeEmpty();
 
     @unlink($mappingPath);
 });
 
 it('downloads the deterministic datapoint corpus as csv', function () {
+    $mappingPath = configureApprovedMatterDrMap([
+        [
+            'ar16_topic_id' => $this->e2Topic->id,
+            'esrs_code' => 'E2',
+            'disclosure_requirements' => ['E2.IRO-1'],
+        ],
+        [
+            'ar16_topic_id' => $this->s1Topic->id,
+            'esrs_code' => 'S1',
+            'disclosure_requirements' => ['S1.SBM-3'],
+        ],
+    ]);
+
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -881,7 +935,27 @@ it('downloads the deterministic datapoint corpus as csv', function () {
     expect(collect($rows)->every(fn (array $row): bool => count($row) === count($header)))->toBeTrue();
     expect(collect($rows)->pluck($datapointIdColumn)->all())
         ->toContain('BP-1_01', 'E2.IRO-1_01', 'S1.SBM-3_01');
+
+    @unlink($mappingPath);
 });
+
+function configureApprovedMatterDrMap(array $mappings): string
+{
+    $mappingPath = tempnam(sys_get_temp_dir(), 'i4s-dr-map-');
+
+    file_put_contents($mappingPath, json_encode([
+        'version' => 'v0',
+        'source' => [
+            'name' => 'Approved test AR16 matter to DR map',
+            'status' => 'approved',
+        ],
+        'mappings' => $mappings,
+    ], JSON_THROW_ON_ERROR));
+
+    config(['services.esrs_datapoints.matter_dr_mapping_path' => $mappingPath]);
+
+    return $mappingPath;
+}
 
 function csvRows(string $csv): array
 {

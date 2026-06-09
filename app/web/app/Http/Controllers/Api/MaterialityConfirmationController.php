@@ -346,7 +346,7 @@ class MaterialityConfirmationController extends Controller
             'material_topic_count' => count($corpus['material_topic_ids']),
             'activated_esrs_standards' => $corpus['activated_esrs_standards'],
             'datapoint_estimate' => [
-                'label' => 'Orientative standard-level estimate',
+                'label' => 'Materiality-filtered P9 corpus estimate',
                 'always_required_datapoint_count' => $summary['always_required_datapoint_count'],
                 'topical_datapoint_count' => $summary['topical_datapoint_count'],
                 'minimum_disclosure_requirement_datapoint_count' => $summary['minimum_disclosure_requirement_datapoint_count'],

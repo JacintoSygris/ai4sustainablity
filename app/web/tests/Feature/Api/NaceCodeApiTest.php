@@ -76,3 +76,17 @@ it('searches Spanish CNAE labels without requiring accents', function () {
     expect($plainCodes)->toContain('K62');
     expect($plainCodes)->toBe($accentedCodes);
 });
+
+it('can auto authenticate the private dev technical user for NACE catalog requests', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev-nace@example.test',
+        'services.private_dev.user_name' => 'I4S NACE Dev',
+    ]);
+
+    $this->getJson('/api/nace-codes?per_page=5')
+        ->assertOk()
+        ->assertJsonCount(5, 'data');
+
+    expect(User::where('email', 'i4sdev-nace@example.test')->exists())->toBeTrue();
+});

@@ -38,10 +38,10 @@ return [
     'characterization' => [
         'driver' => env('CHARACTERIZATION_GATEWAY', 'mock'),
         'mock_outcome' => env('CHARACTERIZATION_MOCK_OUTCOME', 'success'),
-        'prediction_mapping_path' => env(
-            'CHARACTERIZATION_PREDICTION_MAPPING_PATH',
-            base_path('data/ar16_to_python_esrs_mapping.json')
-        ),
+        'prediction_mapping_path' => env('CHARACTERIZATION_PREDICTION_MAPPING_PATH')
+            ?: (str_starts_with((string) env('CHARACTERIZATION_AI_MODEL_PROFILE', ''), 'new_format_732_v1_')
+                ? base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json')
+                : base_path('data/ar16_to_python_esrs_mapping.json')),
         'defaults' => [
             'company_name' => env('CHARACTERIZATION_DEFAULT_COMPANY_NAME', 'Unknown company'),
             'headquarters_country' => env('CHARACTERIZATION_DEFAULT_HEADQUARTERS_COUNTRY', 'Spain'),
@@ -51,7 +51,14 @@ return [
             'base_url' => env('CHARACTERIZATION_API_BASE_URL'),
             'token' => env('CHARACTERIZATION_API_TOKEN'),
             'timeout' => env('CHARACTERIZATION_API_TIMEOUT', 30),
+            'model_profile' => env('CHARACTERIZATION_AI_MODEL_PROFILE'),
         ],
+    ],
+
+    'private_dev' => [
+        'auto_login' => env('PRIVATE_DEV_AUTO_LOGIN', false),
+        'user_email' => env('PRIVATE_DEV_USER_EMAIL', 'i4sdev@i4s.local'),
+        'user_name' => env('PRIVATE_DEV_USER_NAME', 'I4S Dev'),
     ],
 
     'esrs_datapoints' => [

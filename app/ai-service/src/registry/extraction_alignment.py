@@ -135,18 +135,18 @@ def _mapping_keys(mapping_path: Path) -> list[str]:
 
 def _yaml_equivalence_index(
     equivalences: list[Ar16KeyEquivalence],
-) -> dict[str, Ar16KeyEquivalence]:
-    return {
-        equivalence.source_key: equivalence
-        for equivalence in equivalences
-        if equivalence.source_surface == "yaml"
-    }
+) -> dict[str, list[Ar16KeyEquivalence]]:
+    index: dict[str, list[Ar16KeyEquivalence]] = {}
+    for equivalence in equivalences:
+        if equivalence.source_surface == "yaml":
+            index.setdefault(equivalence.source_key, []).append(equivalence)
+    return index
 
 
 def _classify_source_key(
     source_key: str,
     mapping_keys: list[str],
-    equivalences: dict[str, Ar16KeyEquivalence],
+    equivalences: dict[str, list[Ar16KeyEquivalence]],
 ) -> dict[str, Any]:
     if source_key.endswith("_summary"):
         return {
@@ -163,9 +163,35 @@ def _classify_source_key(
             "basis": "Source key already matches approved AR16/Python key.",
         }
 
-    equivalence = equivalences.get(source_key)
-    if equivalence is not None:
+    source_equivalences = equivalences.get(source_key, [])
+    if len(source_equivalences) > 1:
+        return {
+            "target_key": None,
+            "status": "duplicate_source_equivalence",
+            "review_required": True,
+            "basis": (
+                "Multiple YAML equivalences exist for this source key; "
+                "no aligned target was selected automatically."
+            ),
+        }
+
+    if source_equivalences:
+        equivalence = source_equivalences[0]
         if equivalence.status == "equivalent":
+            if not equivalence.target_key:
+                return {
+                    "target_key": None,
+                    "status": "invalid_equivalence_target:missing",
+                    "review_required": True,
+                    "basis": equivalence.basis,
+                }
+            if equivalence.target_key not in mapping_keys:
+                return {
+                    "target_key": None,
+                    "status": "invalid_equivalence_target:not_in_mapping",
+                    "review_required": True,
+                    "basis": equivalence.basis,
+                }
             return {
                 "target_key": equivalence.target_key,
                 "status": "equivalent",

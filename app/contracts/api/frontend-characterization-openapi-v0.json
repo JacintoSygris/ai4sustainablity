@@ -1,0 +1,3725 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IA4S Frontend Characterization API",
+    "version": "0.1.0",
+    "description": "Machine-readable v0 contract for the separate original Airis frontend. Laravel owns persistence, validation, job dispatch, and Python adapter calls; the frontend must not call the Python service directly."
+  },
+  "servers": [
+    {
+      "url": "https://i4s.ueporreres.com",
+      "description": "Private development VPS using Laravel auth"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Catalogs",
+      "description": "Read-only option catalogs used by the frontend."
+    },
+    {
+      "name": "Workflow",
+      "description": "Read-only workflow and capability manifest for the separate frontend."
+    },
+    {
+      "name": "Characterization",
+      "description": "Authenticated characterization state, options, draft save, and submit endpoints."
+    },
+    {
+      "name": "Datapoints",
+      "description": "Deterministic P9 ESRS datapoint corpus, CSV export, and editable frontend response state."
+    },
+    {
+      "name": "Report",
+      "description": "Report-package readiness for the original frontend's final Informe step."
+    }
+  ],
+  "paths": {
+    "/api/workflow": {
+      "get": {
+        "tags": ["Workflow"],
+        "summary": "Get frontend workflow manifest",
+        "description": "Returns the P5-P10 workflow order, source-present/pending-integration frontend metadata, primary endpoints, supported backend capabilities, gate status, and explicit limitations for the separate original Airis frontend. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow and capability manifest.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowManifestEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/nace-codes": {
+      "get": {
+        "tags": ["Catalogs"],
+        "summary": "List NACE codes",
+        "description": "Returns a paginated list of NACE codes. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          {
+            "name": "parent_code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 200,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated NACE code list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNaceCodes"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/esrs-topics": {
+      "get": {
+        "tags": ["Catalogs"],
+        "summary": "List ESRS topics",
+        "description": "Returns a paginated list of AR16/ESRS topic candidates. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "esrs_code",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 200,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated ESRS topic list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedEsrsTopics"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/characterization/options": {
+      "get": {
+        "tags": ["Characterization"],
+        "summary": "Get controlled characterization options",
+        "description": "Returns Level A/B/C progressive-disclosure dictionaries. The frontend should consume these keys instead of hardcoding backend option values.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Controlled option metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterizationOptionsEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/characterization": {
+      "get": {
+        "tags": ["Characterization"],
+        "summary": "Get current characterization",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current characterization for the authenticated user, or null when none exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterizationEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Characterization"],
+        "summary": "Create or update draft characterization",
+        "description": "Saves draft state without dispatching the processing job. Partial step payloads are accepted where Laravel validation allows them.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CharacterizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterizationEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/characterization/submit": {
+      "post": {
+        "tags": ["Characterization"],
+        "summary": "Submit characterization for processing",
+        "description": "Creates or updates the current user's characterization, marks it submitted, resets retry metadata, clears stale results, sets submitted_at, and dispatches SubmitCharacterizationJob. The endpoint defaults action=submit and step=review. For JSON API submits, esrs_topic_ids is optional so the frontend can request an AI P6 proposal from the P5 company/operations profile. If the current characterization is already submitted, waiting, or processing, submit is idempotent: Laravel returns the current state with retry metadata intact and does not dispatch a duplicate job or mutate the in-flight payload. When the job completes with result_data.candidate_topics, Laravel persists candidate ar16_topic_id values into esrs_topic_ids and form_data.esg_focus.topic_ids.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CharacterizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Submitted and queued for processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterizationEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/materiality-proposal": {
+      "get": {
+        "tags": ["Materiality"],
+        "summary": "Get normalized P6 AI materiality proposal",
+        "description": "Returns the current user's P6 materiality proposal for the separate frontend. The endpoint does not call Python; it reads persisted esrs_topic_ids, topic summaries, stored proposal review actions, AI candidate_topics, manual-review prediction keys, and readiness for P8 confirmation.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current P6 proposal state, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialityProposalEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Materiality"],
+        "summary": "Store P6 proposal review actions",
+        "description": "Stores Phase 2 review traceability for the current completed P6 proposal. The characterization must be completed and must have at least one proposal topic; otherwise Laravel returns HTTP 422 with a validation error keyed by characterization. This does not overwrite the final P8 materiality confirmation.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialityProposalReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "P6 proposal review saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialityProposalEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/double-materiality-guide": {
+      "get": {
+        "tags": ["Materiality"],
+        "summary": "Get P7 double materiality guide",
+        "description": "Returns a static structured JSON guide for the external double materiality assessment between P6 and P8. The endpoint avoids Markdown, does not call Python, and does not decide materiality.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "P7 double materiality guide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoubleMaterialityGuideEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/double-materiality-guide/templates/{template}.csv": {
+      "get": {
+        "tags": ["Materiality"],
+        "summary": "Download P7 ADM template CSV",
+        "description": "Returns a header-only CSV template for off-app ADM work. The endpoint is deterministic, authenticated, does not call Python, and supports the same template keys returned by the guide payload.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["iro_register", "stakeholder_consultation_log"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Header-only CSV template.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Attachment filename for the selected template."
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "iro_register": {
+                    "value": "ar16_topic_id,ar16_topic_label,iro_description,iro_type,value_chain_location,stakeholder_or_financial_channel,impact_materiality_score,financial_materiality_score,threshold_result,evidence_reference\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Template key not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["message"],
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": ["Template not found."]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materiality-confirmation": {
+      "get": {
+        "tags": ["Materiality"],
+        "summary": "Get final materiality confirmation state",
+        "description": "Returns the current user's P8 confirmation state. If no P8 confirmation has been stored yet, confirmed_topic_ids defaults to the P6 proposed esrs_topic_ids and confirmation_status is defaulted_from_p6. An explicit stored empty confirmed_topic_ids array is confirmation_status=confirmed.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current P8 confirmation state, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialityConfirmationEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Materiality"],
+        "summary": "Store final materiality confirmation",
+        "description": "Stores the user's final P8 material topic set, delta reasons, and optional notes in the current characterization form_data. Requires a completed P6 characterization with at least one proposed topic. confirmed_topic_ids must be present and may be empty. change_reasons/change_reason_notes keys must be canonical positive topic-id strings from the current P6/P8 topic union. If P6 proposed E1 and final P8 removes all E1 topics, e1_not_material_explanation is required.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialityConfirmationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Final materiality confirmation saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialityConfirmationEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/materiality-confirmation/decision-sheet": {
+      "get": {
+        "tags": ["Materiality"],
+        "summary": "Get P8 materiality decision sheet",
+        "description": "Returns a frontend-ready P8 decision sheet summary for the current user's characterization. It packages confirmation status, P6 vs P8 delta, change reasons, optional E1 explanation, and orientative P9 preview. When confirmation_status is defaulted_from_p6, the sheet is preview-only and must not be treated as final external ADM evidence. The endpoint does not generate a PDF and does not call Python.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current P8 decision sheet, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialityDecisionSheetEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints": {
+      "get": {
+        "tags": ["Datapoints"],
+        "summary": "Get deterministic ESRS datapoint corpus",
+        "description": "Returns the P9 datapoint corpus for the current user's characterization. The corpus is built from final P8 topic IDs when available, otherwise P6 proposed topic IDs, and uses EFRAG IG 3 at standard-level granularity.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current deterministic P9 datapoint corpus, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EsrsDatapointCorpusEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints/responses": {
+      "get": {
+        "tags": ["Datapoints"],
+        "summary": "Get editable P9 datapoint response state",
+        "description": "Returns frontend-entered P9 datapoint responses for the current user's characterization, filtered to the current deterministic corpus. The endpoint does not call Python.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current P9 response state, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EsrsDatapointResponsesEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Datapoints"],
+        "summary": "Persist editable P9 datapoint responses",
+        "description": "Stores frontend-entered response state under the current characterization form_data. Every submitted datapoint_id must belong to the current deterministic P9 corpus. The endpoint does not call Python.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EsrsDatapointResponsesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated P9 response state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EsrsDatapointResponsesEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No characterization exists for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["message"],
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": ["No characterization found."]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints/responses/export.csv": {
+      "get": {
+        "tags": ["Datapoints"],
+        "summary": "Download editable P9 datapoint responses CSV",
+        "description": "Returns the current P9 corpus plus frontend-entered response state as a flattened CSV attachment. The export includes every currently applicable datapoint, response fields when present, and applicability why fields. The endpoint does not call Python.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flattened P9 datapoint response-state CSV.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Attachment filename for the response CSV export."
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "header": {
+                    "value": "block_key,disclosure_requirement_key,datapoint_id,standard,dr,name,applicability_reason_code,applicability_reason,applicability_mapping_basis,applicability_limitations,response_status,response_value,evidence_reference,note,response_updated_at\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No characterization exists for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["message"],
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": ["No characterization found."]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints/export.csv": {
+      "get": {
+        "tags": ["Datapoints"],
+        "summary": "Download deterministic ESRS datapoint corpus CSV",
+        "description": "Returns the current P9 datapoint corpus as a flattened CSV attachment. It uses the same deterministic builder as GET /api/esrs-datapoints, does not call Python, and shares the same current mapping granularity.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flattened P9 datapoint CSV.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Attachment filename for the CSV export."
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "header": {
+                    "value": "block_key,block_title,disclosure_requirement_key,datapoint_id,standard,dr,paragraph,related_ar,name,data_type,conditional_or_alternative,may_disclose,appendix_b,phase_in_less_than_750,phase_in_all_undertakings\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No characterization exists for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["message"],
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": ["No characterization found."]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/report": {
+      "get": {
+        "tags": ["Report"],
+        "summary": "Get report-package readiness",
+        "description": "Returns report-package readiness for the final Informe step. The endpoint does not generate the final AI report, does not call Python, and exposes available support/download endpoints plus remaining blockers.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report-package readiness, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportReadinessEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/report/draft": {
+      "get": {
+        "tags": ["Report"],
+        "summary": "Get frontend-renderable report draft data",
+        "description": "Returns deterministic report draft data for the final Informe step. The endpoint does not generate the final AI report or XBRL package; the separate frontend renders the draft from this JSON.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report draft data, or null when no characterization exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDraftEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "laravelSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "laravel_session",
+        "description": "Laravel authenticated user. In private-dev mode, PRIVATE_DEV_AUTO_LOGIN can satisfy this for private dev verification without showing a Laravel login screen."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Unauthenticated request."
+      },
+      "ValidationError": {
+        "description": "Laravel validation error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "LocalizedText": {
+        "type": "object",
+        "required": ["en", "es"],
+        "properties": {
+          "en": {
+            "type": ["string", "null"]
+          },
+          "es": {
+            "type": ["string", "null"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "NaceCode": {
+        "type": "object",
+        "required": ["code", "level", "parent_code", "title"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "parent_code": {
+            "type": ["string", "null"]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsTopic": {
+        "type": "object",
+        "required": ["id", "esrs_code", "theme", "subtheme", "subtopic", "examples", "tags", "consolidated"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "esrs_code": {
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtheme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtopic": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "examples": {
+            "type": "object",
+            "required": ["en", "es"],
+            "properties": {
+              "en": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "es": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "tags": {
+            "type": "object",
+            "properties": {
+              "competencies": {
+                "$ref": "#/components/schemas/BooleanTagGroup"
+              },
+              "regulations": {
+                "$ref": "#/components/schemas/BooleanTagGroup"
+              },
+              "internal": {
+                "type": "object",
+                "properties": {
+                  "strategy": {
+                    "type": "boolean"
+                  },
+                  "activities": {
+                    "type": "boolean"
+                  },
+                  "policies": {
+                    "type": "boolean"
+                  },
+                  "regulations": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "consolidated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BooleanTagGroup": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        }
+      },
+      "PaginationLinks": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "required": ["current_page", "per_page", "total"],
+        "properties": {
+          "current_page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PaginatedNaceCodes": {
+        "type": "object",
+        "required": ["data", "links", "meta"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NaceCode"
+            }
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
+        }
+      },
+      "PaginatedEsrsTopics": {
+        "type": "object",
+        "required": ["data", "links", "meta"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EsrsTopic"
+            }
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
+        }
+      },
+      "ReportReadinessEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportReadiness"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "ReportReadiness": {
+        "type": "object",
+        "required": ["type", "version", "characterization_id", "status", "sections", "downloads", "next_actions", "limitations"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["report_package_readiness"]
+          },
+          "version": {
+            "type": "string",
+            "enum": ["v0"]
+          },
+          "characterization_id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["incomplete", "generation_pending"]
+          },
+          "sections": {
+            "type": "object",
+            "description": "Readiness sections keyed by workflow step. materiality_proposal.status is ready only when the current P6 topic list is non-empty. materiality_confirmation.status is ready when confirmed_topic_ids is explicitly present, even if it is an empty array.",
+            "additionalProperties": true
+          },
+          "downloads": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportDownload"
+            }
+          },
+          "next_actions": {
+            "type": "array",
+            "description": "Ordered endpoints for incomplete upstream workflow sections. When all inputs are ready and final generation is still pending, this returns /api/report/draft.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowLimitation"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "ReportDraftEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportDraft"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "ReportDraft": {
+        "type": "object",
+        "required": ["type", "version", "characterization_id", "generation_status", "readiness_status", "company", "materiality", "datapoints", "exports", "limitations"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["report_draft"]
+          },
+          "version": {
+            "type": "string",
+            "enum": ["v0"]
+          },
+          "characterization_id": {
+            "type": "integer"
+          },
+          "generation_status": {
+            "type": "string",
+            "enum": ["frontend_rendered_draft"]
+          },
+          "readiness_status": {
+            "type": "string",
+            "enum": ["incomplete", "generation_pending"]
+          },
+          "company": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "materiality": {
+            "type": "object",
+            "description": "Materiality summary including is_confirmed and confirmation_status. confirmed_topic_count may be 0 for an explicit confirmed no-topical-materiality outcome.",
+            "additionalProperties": true
+          },
+          "datapoints": {
+            "type": "object",
+            "required": ["total_datapoint_count", "response_status", "response_count", "completed_count", "not_applicable_count", "decided_count", "completion_ratio", "coverage_status", "matter_to_dr_mapping_status", "blocks"],
+            "properties": {
+              "total_datapoint_count": {
+                "type": "integer"
+              },
+              "response_status": {
+                "type": "string",
+                "enum": ["not_started", "in_progress", "complete"]
+              },
+              "response_count": {
+                "type": "integer"
+              },
+              "completed_count": {
+                "type": "integer"
+              },
+              "not_applicable_count": {
+                "type": "integer",
+                "description": "Responses marked not_applicable. These count as decided for report readiness."
+              },
+              "decided_count": {
+                "type": "integer",
+                "description": "completed_count + not_applicable_count."
+              },
+              "completion_ratio": {
+                "type": "number",
+                "description": "decided_count divided by total_datapoint_count, rounded to 4 decimals."
+              },
+              "coverage_status": {
+                "type": ["string", "null"]
+              },
+              "matter_to_dr_mapping_status": {
+                "type": ["string", "null"]
+              },
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ReportDraftDatapointBlock"
+                }
+              }
+            },
+            "additionalProperties": true
+          },
+          "exports": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportDownload"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowLimitation"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "ReportDraftDatapointBlock": {
+        "type": "object",
+        "required": ["key", "title", "datapoint_count", "response_count", "completed_count", "not_applicable_count", "decided_count"],
+        "properties": {
+          "key": {
+            "type": ["string", "null"]
+          },
+          "title": {
+            "type": ["string", "null"]
+          },
+          "datapoint_count": {
+            "type": "integer"
+          },
+          "response_count": {
+            "type": "integer"
+          },
+          "completed_count": {
+            "type": "integer"
+          },
+          "not_applicable_count": {
+            "type": "integer"
+          },
+          "decided_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ReportDownload": {
+        "type": "object",
+        "required": ["endpoint", "content_type", "status", "depends_on", "blocking_sections"],
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ready", "incomplete", "blocked"],
+            "description": "Readiness of the downloadable/support artifact for report use. The endpoint may exist even when status is incomplete or blocked."
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocking_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "WorkflowManifestEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WorkflowManifest"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowManifest": {
+        "type": "object",
+        "required": ["type", "version", "frontend_source", "workflow", "capabilities", "limitations"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["frontend_workflow_manifest"]
+          },
+          "version": {
+            "type": "string",
+            "enum": ["v0"]
+          },
+          "frontend_source": {
+            "$ref": "#/components/schemas/WorkflowFrontendSource"
+          },
+          "workflow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowPhase"
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "required": ["private_dev_auto_login", "characterization_gateway", "p6", "p7", "p8", "p9", "report"],
+            "properties": {
+              "private_dev_auto_login": {
+                "type": "boolean"
+              },
+              "characterization_gateway": {
+                "type": "object",
+                "required": ["default"],
+                "properties": {
+                  "default": {
+                    "type": "string",
+                    "enum": ["mock", "api"]
+                  },
+                  "python_smoke_command": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "p6": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "p7": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "p8": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "p9": {
+                "type": "object",
+                "required": ["granularity", "matter_mapping_status"],
+                "properties": {
+                  "granularity": {
+                    "type": "string",
+                    "enum": ["standard_level_partial"]
+                  },
+                  "matter_mapping_status": {
+                    "type": "string",
+                    "enum": ["pending"]
+                  }
+                },
+                "additionalProperties": true
+              },
+              "report": {
+                "type": "object",
+                "required": ["readiness_endpoint", "draft_endpoint", "generation_status"],
+                "properties": {
+                  "readiness_endpoint": {
+                    "type": "string",
+                    "enum": ["/api/report"]
+                  },
+                  "draft_endpoint": {
+                    "type": "string",
+                    "enum": ["/api/report/draft"]
+                  },
+                  "generation_status": {
+                    "type": "string",
+                    "enum": ["not_implemented"]
+                  },
+                  "available_downloads": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": false
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowLimitation"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowFrontendSource": {
+        "type": "object",
+        "required": ["presence", "integration_status", "workspace", "source_zip_filename", "target_backend_owner", "current_runtime", "secrets", "handoff_warnings", "quality_gates"],
+        "properties": {
+          "presence": {
+            "type": "string",
+            "enum": ["present"]
+          },
+          "integration_status": {
+            "type": "string",
+            "enum": ["integrated_laravel_api_runtime"]
+          },
+          "workspace": {
+            "type": "string",
+            "enum": ["app/frontend"]
+          },
+          "source_zip_filename": {
+            "type": "string",
+            "enum": ["airis-main.zip"]
+          },
+          "target_backend_owner": {
+            "type": "string",
+            "enum": ["Laravel"]
+          },
+          "current_runtime": {
+            "type": "object",
+            "required": ["framework", "auth", "database", "api_routes"],
+            "properties": {
+              "framework": {
+                "type": "string",
+                "enum": ["Next 16.1.4"]
+              },
+              "auth": {
+                "type": "string",
+                "enum": ["Laravel web session with private-dev auto-login"]
+              },
+              "database": {
+                "type": "string",
+                "enum": ["Laravel persistence"]
+              },
+              "api_routes": {
+                "type": "string",
+                "enum": ["Laravel API via Next rewrites"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "secrets": {
+            "type": "object",
+            "required": ["example_file", "real_env_files_committed", "deployment_secret_delivery", "required_private_values", "optional_private_values"],
+            "properties": {
+              "example_file": {
+                "type": "string",
+                "enum": ["app/frontend/.env.example"]
+              },
+              "real_env_files_committed": {
+                "type": "boolean",
+                "enum": [false]
+              },
+              "deployment_secret_delivery": {
+                "type": "string",
+                "enum": ["private_operator_handoff"]
+              },
+              "required_private_values": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "optional_private_values": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 128
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "handoff_warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "quality_gates": {
+            "type": "object",
+            "required": ["build", "lint"],
+            "properties": {
+              "build": {
+                "$ref": "#/components/schemas/WorkflowFrontendGate"
+              },
+              "lint": {
+                "$ref": "#/components/schemas/WorkflowFrontendGate"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowFrontendGate": {
+        "type": "object",
+        "required": ["command", "status", "notes"],
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass_smoke", "failing"]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowPhase": {
+        "type": "object",
+        "required": ["phase", "title", "status", "primary_endpoint", "supporting_endpoints", "summary"],
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": ["P5", "P6", "P7", "P8", "P9", "P10"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "primary_endpoint": {
+            "type": "string"
+          },
+          "supporting_endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowLimitation": {
+        "type": "object",
+        "required": ["key", "message"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": ["historical_imported_frontend_source_state", "exact_ar16_matter_to_dr_mapping_pending", "final_report_generation_pending", "private_dev_only"]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CharacterizationOptionsEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["levels"],
+            "properties": {
+              "levels": {
+                "type": "object",
+                "required": ["core", "csrd_orientation", "data_readiness"],
+                "properties": {
+                  "core": {
+                    "type": "object",
+                    "required": ["required_fields", "draft_clearable_fields", "company_profile", "operations"],
+                    "properties": {
+                      "required_fields": {
+                        "type": "array",
+                        "description": "Submit-required characterization fields enforced by the backend validator.",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "draft_clearable_fields": {
+                        "type": "array",
+                        "description": "Fields that may be cleared during draft saves using null or empty arrays.",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "company_profile": {
+                        "type": "object",
+                        "required": ["headquarters_countries", "reporting_scopes", "reporting_currencies", "product_service_types"],
+                        "properties": {
+                          "headquarters_countries": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "reporting_scopes": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "reporting_currencies": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "product_service_types": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "operations": {
+                        "type": "object",
+                        "required": ["regions", "value_chain", "employee_count_ranges", "revenue_ranges", "numeric_estimates"],
+                        "properties": {
+                          "regions": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "value_chain": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "employee_count_ranges": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "revenue_ranges": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "numeric_estimates": {
+                            "type": "object",
+                            "required": ["employee_count", "revenue"],
+                            "properties": {
+                              "employee_count": {
+                                "$ref": "#/components/schemas/CharacterizationNumericEstimateMetadata"
+                              },
+                              "revenue": {
+                                "$ref": "#/components/schemas/CharacterizationNumericEstimateMetadata"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "csrd_orientation": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "data_readiness": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "CharacterizationNumericEstimateMetadata": {
+        "type": "object",
+        "required": ["field", "type", "minimum", "range_field", "range_estimates"],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["integer", "number"]
+          },
+          "minimum": {
+            "type": "number"
+          },
+          "currency_field": {
+            "type": "string"
+          },
+          "range_field": {
+            "type": "string"
+          },
+          "range_estimates": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CharacterizationEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Characterization"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Characterization": {
+        "type": "object",
+        "required": ["id", "status", "nace_code", "esrs_topic_ids", "form_data", "result_data", "last_error", "retry_count", "next_retry_at", "last_job_attempted_at", "submitted_at", "completed_at", "created_at", "updated_at"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CharacterizationStatus"
+          },
+          "nace_code": {
+            "type": ["string", "null"]
+          },
+          "esrs_topic_ids": {
+            "type": "array",
+            "description": "Optional for POST /api/characterization/submit when the frontend is asking Laravel/Python to generate the P6 AI proposal. If provided, values must be existing ESRS topic IDs.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "form_data": {
+            "$ref": "#/components/schemas/CharacterizationFormData"
+          },
+          "result_data": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "last_error": {
+            "type": ["string", "null"]
+          },
+          "retry_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "next_retry_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "last_job_attempted_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "submitted_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CharacterizationStatus": {
+        "type": "string",
+        "enum": ["draft", "submitted", "waiting", "processing", "failed", "timed_out", "completed"]
+      },
+      "CharacterizationRequest": {
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": ["company", "operations", "esg", "review"],
+            "default": "company"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["save_draft", "next", "prev", "submit"],
+            "default": "save_draft"
+          },
+          "nace_code": {
+            "type": ["string", "null"],
+            "maxLength": 50
+          },
+          "esrs_topic_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "form_data": {
+            "$ref": "#/components/schemas/CharacterizationFormData"
+          }
+        },
+        "additionalProperties": true
+      },
+      "CharacterizationFormData": {
+        "type": "object",
+        "properties": {
+          "company_profile": {
+            "$ref": "#/components/schemas/CompanyProfile"
+          },
+          "operations": {
+            "$ref": "#/components/schemas/OperationsProfile"
+          },
+          "csrd_orientation": {
+            "$ref": "#/components/schemas/CsrdOrientation"
+          },
+          "data_readiness": {
+            "$ref": "#/components/schemas/DataReadiness"
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompanyProfile": {
+        "type": "object",
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "headquarters_country": {
+            "type": "string",
+            "enum": ["Spain", "Portugal", "France", "Germany", "Italy", "United Kingdom", "United States", "Other"]
+          },
+          "reporting_year": {
+            "type": "integer",
+            "minimum": 2000
+          },
+          "reporting_scope": {
+            "type": "string",
+            "enum": ["individual", "consolidated_group", "not_sure"]
+          },
+          "num_subsidiaries_countries": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "stock_listed": {
+            "type": ["boolean", "null"]
+          },
+          "reporting_currency": {
+            "type": "string",
+            "enum": ["EUR", "GBP", "USD"]
+          },
+          "product_service_type": {
+            "type": "string",
+            "enum": ["physical_product_manufacturing", "physical_product_retail", "professional_services", "technical_services", "software_digital_services", "construction_installations", "logistics_transport_storage", "finance_insurance", "energy_utilities", "agrifood", "health_life_sciences", "education_training", "hospitality_tourism", "mixed", "not_sure"]
+          }
+        },
+        "additionalProperties": true
+      },
+      "OperationsProfile": {
+        "type": "object",
+        "properties": {
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["eu", "north_america", "latin_america", "asia", "middle_east_africa", "oceania"]
+            }
+          },
+          "value_chain": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["upstream", "direct_operations", "downstream", "services"]
+            }
+          },
+          "employee_count_range": {
+            "type": "string",
+            "enum": ["1_9", "10_49", "50_249", "250_499", "500_999", "1000_plus", "not_sure"]
+          },
+          "revenue_range": {
+            "type": "string",
+            "enum": ["lte_2m", "2m_to_10m", "10m_to_40m", "40m_to_50m", "50m_to_250m", "gt_250m", "not_sure"]
+          },
+          "employee_count": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "revenue": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": true
+      },
+      "CsrdOrientation": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "listed_entity": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "public_interest_entity": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "reports_as_group": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          }
+        },
+        "additionalProperties": true
+      },
+      "DataReadiness": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DataReadinessItem"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "DataReadinessItem": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "year": {
+            "type": ["integer", "null"],
+            "minimum": 2000
+          },
+          "source": {
+            "type": ["string", "null"]
+          },
+          "verified": {
+            "type": ["boolean", "null"]
+          },
+          "traceability": {
+            "type": ["string", "null"],
+            "enum": ["high", "medium", "low", "unknown", null]
+          }
+        },
+        "additionalProperties": true
+      },
+      "YesNoUnknown": {
+        "type": ["string", "null"],
+        "enum": ["yes", "no", "not_sure", null]
+      },
+      "MaterialityProposalEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MaterialityProposalState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityProposalState": {
+        "type": "object",
+        "required": [
+          "characterization_id",
+          "status",
+          "source",
+          "proposal_topic_ids",
+          "proposal_topics",
+          "ready_for_confirmation",
+          "submitted_at",
+          "completed_at",
+          "updated_at",
+          "review",
+          "ai"
+        ],
+        "properties": {
+          "characterization_id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CharacterizationStatus"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["ai_prediction", "stored_topic_ids"]
+          },
+          "proposal_topic_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "proposal_topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityTopicSummary"
+            }
+          },
+          "ready_for_confirmation": {
+            "type": "boolean",
+            "description": "True when a completed characterization has at least one current P6 proposal topic. This is readiness to move into P8 confirmation; it does not mean the P6 review map is complete."
+          },
+          "submitted_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "review": {
+            "$ref": "#/components/schemas/MaterialityProposalReview"
+          },
+          "ai": {
+            "$ref": "#/components/schemas/MaterialityProposalAi"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityProposalReviewRequest": {
+        "type": "object",
+        "description": "Review action write payload. The current characterization must be completed and have at least one current proposal topic before this payload is accepted.",
+        "required": ["topic_actions"],
+        "properties": {
+          "topic_actions": {
+            "type": "object",
+            "description": "Object keyed by canonical positive integer strings for topic ids in the current P6 proposal. Malformed keys such as 4abc, 4.9, 04, 0, or negative values are rejected.",
+            "additionalProperties": {
+              "type": "string",
+              "enum": ["accepted", "rejected", "unsure"]
+            }
+          },
+          "action_reasons": {
+            "type": "object",
+            "description": "Object keyed by canonical positive integer strings for topic ids in the current P6 proposal.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "sector_fit",
+                  "not_relevant",
+                  "threshold",
+                  "stakeholder_input",
+                  "needs_adm",
+                  "other"
+                ]
+              }
+            }
+          },
+          "action_notes": {
+            "type": "object",
+            "description": "Object keyed by canonical positive integer strings for topic ids in the current P6 proposal.",
+            "additionalProperties": {
+              "type": ["string", "null"],
+              "maxLength": 300
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityProposalReview": {
+        "type": "object",
+        "description": "Review state filtered to the current P6 proposal topic ids. Stored actions for stale proposal topics are not returned and do not contribute to review status.",
+        "required": [
+          "status",
+          "topic_actions",
+          "action_reasons",
+          "action_notes",
+          "reviewed_at"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["not_started", "in_progress", "reviewed"]
+          },
+          "topic_actions": {
+            "type": "object",
+            "description": "Current-proposal action map keyed by canonical positive integer topic id strings.",
+            "additionalProperties": {
+              "type": "string",
+              "enum": ["accepted", "rejected", "unsure"]
+            }
+          },
+          "action_reasons": {
+            "type": "object",
+            "description": "Current-proposal reason map keyed by canonical positive integer topic id strings.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "sector_fit",
+                  "not_relevant",
+                  "threshold",
+                  "stakeholder_input",
+                  "needs_adm",
+                  "other"
+                ]
+              }
+            }
+          },
+          "action_notes": {
+            "type": "object",
+            "description": "Current-proposal note map keyed by canonical positive integer topic id strings.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "reviewed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityProposalAi": {
+        "type": "object",
+        "required": [
+          "status",
+          "summary",
+          "candidate_topics",
+          "review_required_prediction_keys",
+          "raw_prediction_key_count"
+        ],
+        "properties": {
+          "status": {
+            "type": ["string", "null"]
+          },
+          "summary": {
+            "type": ["string", "null"]
+          },
+          "candidate_topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityCandidateTopic"
+            }
+          },
+          "review_required_prediction_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "raw_prediction_key_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityCandidateTopic": {
+        "type": "object",
+        "properties": {
+          "ar16_topic_id": {
+            "type": "integer"
+          },
+          "web_esrs": {
+            "type": "string"
+          },
+          "web_label_en": {
+            "type": "string"
+          },
+          "python_esrs_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "score_source": {
+            "type": "string"
+          },
+          "suggested": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "DoubleMaterialityGuideEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DoubleMaterialityGuide"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DoubleMaterialityGuide": {
+        "type": "object",
+        "required": [
+          "type",
+          "phase",
+          "content_format",
+          "warning",
+          "sections",
+          "templates",
+          "handoff"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["double_materiality_guide"]
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["P7"]
+          },
+          "content_format": {
+            "type": "string",
+            "enum": ["structured_json"]
+          },
+          "warning": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoubleMaterialityGuideSection"
+            }
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoubleMaterialityGuideTemplate"
+            }
+          },
+          "handoff": {
+            "$ref": "#/components/schemas/DoubleMaterialityGuideHandoff"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DoubleMaterialityGuideSection": {
+        "type": "object",
+        "required": ["key", "title", "steps"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "prepare_scope",
+              "identify_iros",
+              "assess_materiality",
+              "document_decision",
+              "return_to_p8"
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoubleMaterialityGuideStep"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DoubleMaterialityGuideStep": {
+        "type": "object",
+        "required": ["key", "title", "checks"],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DoubleMaterialityGuideTemplate": {
+        "type": "object",
+        "required": ["key", "title", "columns"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": ["iro_register", "stakeholder_consultation_log"]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DoubleMaterialityGuideHandoff": {
+        "type": "object",
+        "required": ["next_phase", "next_api", "note"],
+        "properties": {
+          "next_phase": {
+            "type": "string",
+            "enum": ["P8"]
+          },
+          "next_api": {
+            "type": "string",
+            "enum": ["/api/materiality-confirmation"]
+          },
+          "note": {
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityConfirmationStatus": {
+        "type": "string",
+        "enum": ["defaulted_from_p6", "confirmed"],
+        "description": "defaulted_from_p6 means no explicit P8 confirmation has been stored and the response defaults to the P6 proposal; confirmed means confirmed_topic_ids was explicitly stored, including an empty array."
+      },
+      "MaterialityConfirmationEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MaterialityConfirmationState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityConfirmationState": {
+        "type": "object",
+        "required": [
+          "characterization_id",
+          "is_confirmed",
+          "confirmation_status",
+          "p6_anchor_date",
+          "p6_topic_ids",
+          "confirmed_topic_ids",
+          "delta",
+          "topics",
+          "confirmation",
+          "preview"
+        ],
+        "properties": {
+          "characterization_id": {
+            "type": "integer"
+          },
+          "is_confirmed": {
+            "type": "boolean",
+            "description": "True only when the user has explicitly stored a final P8 confirmation. Empty confirmed_topic_ids can still be confirmed."
+          },
+          "confirmation_status": {
+            "$ref": "#/components/schemas/MaterialityConfirmationStatus"
+          },
+          "p6_anchor_date": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "p6_topic_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "confirmed_topic_ids": {
+            "type": "array",
+            "description": "Current P8 topic ids. Defaults to P6 proposed topics when confirmation_status is defaulted_from_p6; may be an empty array when confirmation_status is confirmed.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "delta": {
+            "$ref": "#/components/schemas/MaterialityDelta"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityTopicSummary"
+            }
+          },
+          "confirmation": {
+            "$ref": "#/components/schemas/MaterialityConfirmationDetails"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/MaterialityPreview"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDelta": {
+        "type": "object",
+        "required": ["added", "removed", "unchanged"],
+        "properties": {
+          "added": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "unchanged": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityTopicSummary": {
+        "type": "object",
+        "required": ["id", "esrs_code", "theme", "subtheme", "subtopic"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "esrs_code": {
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtheme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtopic": {
+            "$ref": "#/components/schemas/LocalizedText"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityConfirmationDetails": {
+        "type": "object",
+        "required": [
+          "change_reasons",
+          "change_reason_notes",
+          "e1_not_material_explanation",
+          "confirmed_at"
+        ],
+        "properties": {
+          "change_reasons": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$",
+              "description": "Canonical positive ESRS topic id string from the current P6/P8 topic union."
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["new_data", "stakeholders", "scope_change", "threshold", "sector_requirement", "other"]
+              }
+            }
+          },
+          "change_reason_notes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$",
+              "description": "Canonical positive ESRS topic id string from the current P6/P8 topic union."
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 300
+            }
+          },
+          "e1_not_material_explanation": {
+            "type": ["string", "null"],
+            "maxLength": 280
+          },
+          "confirmed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityPreview": {
+        "type": "object",
+        "required": [
+          "material_topic_count",
+          "activated_esrs_standards",
+          "datapoint_estimate",
+          "effort_level",
+          "mapping_granularity",
+          "coverage_status"
+        ],
+        "properties": {
+          "material_topic_count": {
+            "type": "integer"
+          },
+          "activated_esrs_standards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datapoint_estimate": {
+            "$ref": "#/components/schemas/MaterialityDatapointEstimate"
+          },
+          "effort_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "mapping_granularity": {
+            "type": "string",
+            "enum": ["standard_level", "disclosure_requirement_level"]
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": ["standard_level_partial", "dr_level"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDatapointEstimate": {
+        "type": "object",
+        "required": [
+          "label",
+          "always_required_datapoint_count",
+          "topical_datapoint_count",
+          "minimum_disclosure_requirement_datapoint_count",
+          "total_datapoint_count",
+          "voluntary_datapoint_count",
+          "conditional_datapoint_count",
+          "phase_in_datapoint_count"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "always_required_datapoint_count": {
+            "type": "integer"
+          },
+          "topical_datapoint_count": {
+            "type": "integer"
+          },
+          "minimum_disclosure_requirement_datapoint_count": {
+            "type": "integer"
+          },
+          "total_datapoint_count": {
+            "type": "integer"
+          },
+          "voluntary_datapoint_count": {
+            "type": "integer"
+          },
+          "conditional_datapoint_count": {
+            "type": "integer"
+          },
+          "phase_in_datapoint_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityConfirmationRequest": {
+        "type": "object",
+        "description": "Requires a completed P6 characterization with at least one proposed topic. confirmed_topic_ids must be present and may be empty for an explicit no-topical-materiality ADM outcome. change_reasons and change_reason_notes keys must be canonical topic ids from the current P6/P8 union.",
+        "required": ["confirmed_topic_ids"],
+        "properties": {
+          "confirmed_topic_ids": {
+            "type": "array",
+            "description": "Required array of final P8 ESRS topic ids. It may be empty when the final external ADM finds no topical standards material.",
+            "uniqueItems": true,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "change_reasons": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$",
+              "description": "Canonical positive ESRS topic id string from the current P6/P8 topic union."
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["new_data", "stakeholders", "scope_change", "threshold", "sector_requirement", "other"]
+              }
+            }
+          },
+          "change_reason_notes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$",
+              "description": "Canonical positive ESRS topic id string from the current P6/P8 topic union."
+            },
+            "additionalProperties": {
+              "type": ["string", "null"],
+              "maxLength": 300
+            }
+          },
+          "e1_not_material_explanation": {
+            "type": ["string", "null"],
+            "maxLength": 280
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheetEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MaterialityDecisionSheet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheet": {
+        "type": "object",
+        "required": [
+          "type",
+          "characterization_id",
+          "is_confirmed",
+          "confirmation_status",
+          "company",
+          "p6_anchor_date",
+          "confirmed_at",
+          "summary",
+          "changes",
+          "p9_preview",
+          "e1_not_material_explanation",
+          "note"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["p8_decision_sheet"]
+          },
+          "characterization_id": {
+            "type": "integer"
+          },
+          "is_confirmed": {
+            "type": "boolean",
+            "description": "True only when a final P8 confirmation has been stored. False decision sheets are preview-only defaults from P6."
+          },
+          "confirmation_status": {
+            "$ref": "#/components/schemas/MaterialityConfirmationStatus"
+          },
+          "company": {
+            "$ref": "#/components/schemas/MaterialityDecisionSheetCompany"
+          },
+          "p6_anchor_date": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "confirmed_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MaterialityDecisionSheetSummary"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/MaterialityDecisionSheetChanges"
+          },
+          "p9_preview": {
+            "$ref": "#/components/schemas/MaterialityPreview"
+          },
+          "e1_not_material_explanation": {
+            "type": ["string", "null"],
+            "maxLength": 280
+          },
+          "note": {
+            "type": "string",
+            "description": "Confirmed sheets state that selections reflect the external ADM; defaulted_from_p6 sheets state they are preview-only defaults from P6."
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheetCompany": {
+        "type": "object",
+        "required": ["name", "reporting_year", "nace_code"],
+        "properties": {
+          "name": {
+            "type": ["string", "null"]
+          },
+          "reporting_year": {
+            "type": ["integer", "null"]
+          },
+          "nace_code": {
+            "type": ["string", "null"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheetSummary": {
+        "type": "object",
+        "required": [
+          "p6_topic_count",
+          "confirmed_topic_count",
+          "added_count",
+          "removed_count",
+          "unchanged_count",
+          "activated_esrs_standards",
+          "p9_total_datapoint_estimate",
+          "effort_level",
+          "coverage_status"
+        ],
+        "properties": {
+          "p6_topic_count": {
+            "type": "integer"
+          },
+          "confirmed_topic_count": {
+            "type": "integer"
+          },
+          "added_count": {
+            "type": "integer"
+          },
+          "removed_count": {
+            "type": "integer"
+          },
+          "unchanged_count": {
+            "type": "integer"
+          },
+          "activated_esrs_standards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "p9_total_datapoint_estimate": {
+            "type": ["integer", "null"]
+          },
+          "effort_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": ["standard_level_partial", "dr_level"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheetChanges": {
+        "type": "object",
+        "required": ["added", "removed", "unchanged"],
+        "properties": {
+          "added": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityDecisionSheetTopic"
+            }
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityDecisionSheetTopic"
+            }
+          },
+          "unchanged": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityDecisionSheetTopic"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialityDecisionSheetTopic": {
+        "type": "object",
+        "required": [
+          "id",
+          "esrs_code",
+          "theme",
+          "subtheme",
+          "subtopic",
+          "change_reasons",
+          "change_reason_note"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "esrs_code": {
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtheme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtopic": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "change_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["new_data", "stakeholders", "scope_change", "threshold", "sector_requirement", "other"]
+            }
+          },
+          "change_reason_note": {
+            "type": ["string", "null"],
+            "maxLength": 300
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointCorpusEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EsrsDatapointCorpus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponsesEnvelope": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EsrsDatapointResponsesState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponsesRequest": {
+        "type": "object",
+        "required": ["responses"],
+        "properties": {
+          "responses": {
+            "type": "array",
+            "description": "Full replacement list for the current P9 response map. An empty array is valid and clears all stored P9 responses. datapoint_id values are trimmed before membership and duplicate-canonical checks.",
+            "items": {
+              "$ref": "#/components/schemas/EsrsDatapointResponseInput"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponsesState": {
+        "type": "object",
+        "required": [
+          "characterization_id",
+          "schema_version",
+          "updated_at",
+          "responses",
+          "summary"
+        ],
+        "properties": {
+          "characterization_id": {
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "string",
+            "enum": ["v0"]
+          },
+          "updated_at": {
+            "type": ["string", "null"]
+          },
+          "responses": {
+            "type": "object",
+            "description": "Map keyed by ESRS IG3 datapoint id and filtered to the current deterministic corpus. Keys can contain dots, for example E2.IRO-1_01.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EsrsDatapointResponse"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/EsrsDatapointResponseSummary"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponseInput": {
+        "type": "object",
+        "required": ["datapoint_id", "status"],
+        "properties": {
+          "datapoint_id": {
+            "type": "string",
+            "description": "ESRS IG3 datapoint id. Whitespace is trimmed before storage; duplicate canonical ids after trimming return validation 422."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "completed", "not_applicable"]
+          },
+          "value": {
+            "type": ["string", "null"],
+            "maxLength": 5000,
+            "description": "Sparse optional field. Null, empty, or omitted values are omitted from stored response objects and returned/exported as empty."
+          },
+          "evidence_reference": {
+            "type": ["string", "null"],
+            "maxLength": 1000,
+            "description": "Sparse optional field. Null, empty, or omitted values are omitted from stored response objects and returned/exported as empty."
+          },
+          "note": {
+            "type": ["string", "null"],
+            "maxLength": 2000,
+            "description": "Sparse optional field. Null, empty, or omitted values are omitted from stored response objects and returned/exported as empty."
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponse": {
+        "type": "object",
+        "required": ["datapoint_id", "status", "updated_at"],
+        "properties": {
+          "datapoint_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "completed", "not_applicable"]
+          },
+          "value": {
+            "type": ["string", "null"]
+          },
+          "evidence_reference": {
+            "type": ["string", "null"]
+          },
+          "note": {
+            "type": ["string", "null"]
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointResponseSummary": {
+        "type": "object",
+        "required": [
+          "applicable_datapoint_count",
+          "response_count",
+          "completed_count",
+          "draft_count",
+          "not_applicable_count",
+          "completion_ratio",
+          "completion_status"
+        ],
+        "properties": {
+          "applicable_datapoint_count": {
+            "type": "integer"
+          },
+          "response_count": {
+            "type": "integer"
+          },
+          "completed_count": {
+            "type": "integer"
+          },
+          "draft_count": {
+            "type": "integer"
+          },
+          "not_applicable_count": {
+            "type": "integer",
+            "description": "Responses marked not_applicable. These count toward completion_ratio and completion_status."
+          },
+          "completion_ratio": {
+            "type": "number",
+            "description": "Completed plus not_applicable responses divided by applicable_datapoint_count, rounded to 4 decimals."
+          },
+          "completion_status": {
+            "type": "string",
+            "enum": ["not_started", "in_progress", "completed"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointCorpus": {
+        "type": "object",
+        "required": [
+          "characterization_id",
+          "material_topic_ids",
+          "activated_esrs_standards",
+          "material_topics",
+          "generation",
+          "matter_mapping",
+          "phase_in_assessment",
+          "summary",
+          "completion_plan",
+          "blocks"
+        ],
+        "properties": {
+          "characterization_id": {
+            "type": "integer"
+          },
+          "material_topic_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "activated_esrs_standards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "material_topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialityTopicSummary"
+            }
+          },
+          "generation": {
+            "$ref": "#/components/schemas/EsrsDatapointGeneration"
+          },
+          "matter_mapping": {
+            "$ref": "#/components/schemas/EsrsMatterMapping"
+          },
+          "phase_in_assessment": {
+            "$ref": "#/components/schemas/EsrsPhaseInAssessment"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/EsrsDatapointSummary"
+          },
+          "completion_plan": {
+            "$ref": "#/components/schemas/EsrsCompletionPlan"
+          },
+          "blocks": {
+            "$ref": "#/components/schemas/EsrsDatapointBlocks"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointGeneration": {
+        "type": "object",
+        "required": [
+          "source_name",
+          "source_url",
+          "source_sha256",
+          "workbook_version",
+          "downloaded_at",
+          "source_note",
+          "mapping_granularity",
+          "matter_to_dr_mapping_status",
+          "coverage_status",
+          "limitations"
+        ],
+        "properties": {
+          "source_name": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_sha256": {
+            "type": "string"
+          },
+          "workbook_version": {
+            "type": "string"
+          },
+          "downloaded_at": {
+            "type": "string"
+          },
+          "source_note": {
+            "type": "string"
+          },
+          "mapping_granularity": {
+            "type": "string",
+            "enum": ["standard_level", "disclosure_requirement_level"]
+          },
+          "matter_to_dr_mapping_status": {
+            "type": "string",
+            "enum": ["pending", "partial", "loaded"]
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": ["standard_level_partial", "dr_level"]
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matter_dr_mapping_source": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": ["string", "null"]
+              },
+              "status": {
+                "type": ["string", "null"]
+              },
+              "approved_at": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsMatterMapping": {
+        "type": "object",
+        "required": [
+          "status",
+          "scope",
+          "coverage_status",
+          "current_filter",
+          "material_topics"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "partial", "loaded"]
+          },
+          "scope": {
+            "type": "string",
+            "enum": ["ar16_matter_to_disclosure_requirement"]
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": ["standard_level_partial", "dr_level"]
+          },
+          "current_filter": {
+            "type": "string",
+            "enum": ["activated_esrs_standard", "mapped_disclosure_requirements"]
+          },
+          "limitation": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": ["string", "null"]
+              },
+              "status": {
+                "type": ["string", "null"]
+              },
+              "approved_at": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "material_topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EsrsMatterMappingTopic"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsMatterMappingTopic": {
+        "type": "object",
+        "required": [
+          "topic_id",
+          "esrs_code",
+          "theme",
+          "subtheme",
+          "subtopic",
+          "mapping_status",
+          "current_filter"
+        ],
+        "properties": {
+          "topic_id": {
+            "type": "integer"
+          },
+          "esrs_code": {
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtheme": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "subtopic": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "mapping_status": {
+            "type": "string",
+            "enum": ["pending_explicit_dr_mapping", "mapped_to_disclosure_requirements"]
+          },
+          "current_filter": {
+            "type": "string",
+            "enum": ["standard_level", "disclosure_requirement_level"]
+          },
+          "standard_level_disclosure_requirement_count": {
+            "type": "integer"
+          },
+          "standard_level_datapoint_count": {
+            "type": "integer"
+          },
+          "mapped_disclosure_requirement_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mapped_disclosure_requirement_count": {
+            "type": "integer"
+          },
+          "mapped_datapoint_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsPhaseInAssessment": {
+        "type": "object",
+        "required": ["status", "employee_count", "counts", "note"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "eligible_less_than_750",
+              "not_eligible_750_or_more",
+              "unknown_employee_count"
+            ]
+          },
+          "employee_count": {
+            "$ref": "#/components/schemas/EsrsPhaseInEmployeeCount"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/EsrsPhaseInCounts"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsPhaseInEmployeeCount": {
+        "type": "object",
+        "required": ["source", "range", "estimate", "less_than_750"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["employee_count", "employee_count_range", "missing"]
+          },
+          "range": {
+            "type": ["string", "null"]
+          },
+          "estimate": {
+            "type": ["integer", "null"]
+          },
+          "less_than_750": {
+            "type": ["boolean", "null"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsPhaseInCounts": {
+        "type": "object",
+        "required": [
+          "less_than_750_relief_datapoint_count",
+          "all_undertakings_phase_in_datapoint_count",
+          "applicable_phase_in_datapoint_count"
+        ],
+        "properties": {
+          "less_than_750_relief_datapoint_count": {
+            "type": "integer"
+          },
+          "all_undertakings_phase_in_datapoint_count": {
+            "type": "integer"
+          },
+          "applicable_phase_in_datapoint_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointSummary": {
+        "type": "object",
+        "required": [
+          "always_required_datapoint_count",
+          "topical_datapoint_count",
+          "minimum_disclosure_requirement_datapoint_count",
+          "total_datapoint_count",
+          "voluntary_datapoint_count",
+          "conditional_datapoint_count",
+          "phase_in_datapoint_count"
+        ],
+        "properties": {
+          "always_required_datapoint_count": {
+            "type": "integer"
+          },
+          "topical_datapoint_count": {
+            "type": "integer"
+          },
+          "minimum_disclosure_requirement_datapoint_count": {
+            "type": "integer"
+          },
+          "total_datapoint_count": {
+            "type": "integer"
+          },
+          "voluntary_datapoint_count": {
+            "type": "integer"
+          },
+          "conditional_datapoint_count": {
+            "type": "integer"
+          },
+          "phase_in_datapoint_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsCompletionPlan": {
+        "type": "object",
+        "required": ["strategy", "phases"],
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "enum": ["baseline_then_material_topics"]
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EsrsCompletionPhase"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsCompletionPhase": {
+        "type": "object",
+        "required": [
+          "sequence",
+          "key",
+          "title",
+          "block_key",
+          "applies",
+          "standards",
+          "datapoint_count",
+          "status"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string",
+            "enum": [
+              "always_required",
+              "topical",
+              "minimum_disclosure_requirements",
+              "e1_not_material_explanation"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "block_key": {
+            "type": "string"
+          },
+          "applies": {
+            "type": "boolean"
+          },
+          "standards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datapoint_count": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ready", "conditional", "satisfied", "missing", "not_applicable"]
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": ["standard_level_partial", "dr_level"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointBlocks": {
+        "type": "object",
+        "required": [
+          "always_required",
+          "topical",
+          "minimum_disclosure_requirements",
+          "e1_not_material_explanation"
+        ],
+        "properties": {
+          "always_required": {
+            "$ref": "#/components/schemas/EsrsDatapointBlock"
+          },
+          "topical": {
+            "$ref": "#/components/schemas/EsrsDatapointBlock"
+          },
+          "minimum_disclosure_requirements": {
+            "$ref": "#/components/schemas/EsrsDatapointBlock"
+          },
+          "e1_not_material_explanation": {
+            "$ref": "#/components/schemas/E1NotMaterialExplanationBlock"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointBlock": {
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "applies",
+          "standards",
+          "datapoint_count",
+          "disclosure_requirements",
+          "datapoints"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "applies": {
+            "type": "boolean"
+          },
+          "standards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datapoint_count": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "disclosure_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EsrsDisclosureRequirement"
+            }
+          },
+          "datapoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EsrsDatapoint"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDisclosureRequirement": {
+        "type": "object",
+        "required": ["key", "standard", "dr", "datapoint_ids", "datapoint_count"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable DR grouping key. Uses 'unassigned' when the source row has no explicit DR."
+          },
+          "standard": {
+            "type": "string"
+          },
+          "dr": {
+            "type": ["string", "null"]
+          },
+          "datapoint_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datapoint_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapoint": {
+        "type": "object",
+        "required": [
+          "id",
+          "standard",
+          "dr",
+          "paragraph",
+          "related_ar",
+          "name",
+          "data_type",
+          "conditional_or_alternative",
+          "may_disclose",
+          "appendix_b",
+          "phase_in",
+          "applicability"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "standard": {
+            "type": "string"
+          },
+          "dr": {
+            "type": ["string", "null"]
+          },
+          "paragraph": {
+            "type": ["string", "null"]
+          },
+          "related_ar": {
+            "type": ["string", "null"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "data_type": {
+            "type": ["string", "null"]
+          },
+          "conditional_or_alternative": {
+            "type": ["string", "null"]
+          },
+          "may_disclose": {
+            "type": "boolean"
+          },
+          "appendix_b": {
+            "type": ["string", "null"]
+          },
+          "phase_in": {
+            "type": "object",
+            "required": ["less_than_750", "all_undertakings"],
+            "properties": {
+              "less_than_750": {
+                "type": ["string", "null"]
+              },
+              "all_undertakings": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "applicability": {
+            "$ref": "#/components/schemas/EsrsDatapointApplicability"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EsrsDatapointApplicability": {
+        "type": "object",
+        "required": [
+          "block_key",
+          "reason_code",
+          "reason",
+          "mapping_basis",
+          "source_chain",
+          "limitations"
+        ],
+        "properties": {
+          "block_key": {
+            "type": "string",
+            "enum": ["always_required", "topical", "minimum_disclosure_requirements"]
+          },
+          "reason_code": {
+            "type": "string",
+            "enum": [
+              "always_required_esrs_2",
+              "material_esrs_standard",
+              "conditional_esrs_2_mdr",
+              "selected_datapoint"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "mapping_basis": {
+            "type": "string",
+            "enum": [
+              "always_required",
+              "activated_esrs_standard",
+              "mapped_disclosure_requirements",
+              "conditional_mdr_for_material_topics"
+            ]
+          },
+          "source_chain": {
+            "type": "object",
+            "required": [
+              "source_dataset",
+              "esrs_standard",
+              "disclosure_requirement",
+              "datapoint_id"
+            ],
+            "properties": {
+              "source_dataset": {
+                "type": "string"
+              },
+              "esrs_standard": {
+                "type": "string"
+              },
+              "disclosure_requirement": {
+                "type": ["string", "null"]
+              },
+              "datapoint_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "E1NotMaterialExplanationBlock": {
+        "type": "object",
+        "required": ["key", "title", "applies", "status", "explanation"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": ["e1_not_material_explanation"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "applies": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["satisfied", "missing", "not_applicable"]
+          },
+          "explanation": {
+            "type": ["string", "null"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["message", "errors"],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

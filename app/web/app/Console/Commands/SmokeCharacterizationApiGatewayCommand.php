@@ -30,7 +30,7 @@ class SmokeCharacterizationApiGatewayCommand extends Command
         }
 
         if (blank(config('services.characterization.api.base_url'))) {
-            $this->error('missing_base_url=true');
+            $this->error('missing_base_url=true hint=Pass --base-url=http://127.0.0.1:8001 or set CHARACTERIZATION_API_BASE_URL.');
 
             return self::FAILURE;
         }
@@ -38,7 +38,7 @@ class SmokeCharacterizationApiGatewayCommand extends Command
         try {
             $result = $gateway->submit($this->sampleCharacterization());
         } catch (Throwable $exception) {
-            $this->error('smoke_failed='.str_replace(["\r", "\n"], ' ', $exception->getMessage()));
+            $this->error('smoke_failed=true detail='.str_replace(["\r", "\n"], ' ', $exception->getMessage()));
 
             return self::FAILURE;
         }
@@ -56,6 +56,9 @@ class SmokeCharacterizationApiGatewayCommand extends Command
             'candidate_count' => count($candidateTopics),
             'review_required_count' => count($reviewRequiredKeys),
             'review_required_has_e3_other' => in_array('esrs_e3_other', $reviewRequiredKeys, true),
+            'model_profile' => data_get($result, 'model_profile'),
+            'model_key_count' => data_get($result, 'model_key_count'),
+            'mapped_key_count' => data_get($result, 'mapped_key_count'),
             'payload_employees_total' => data_get($result, 'request_payload.employees_total'),
             'payload_turnover_million_euro' => data_get($result, 'request_payload.annual_turnover_million_euro'),
             'summary' => (string) data_get($result, 'summary', ''),

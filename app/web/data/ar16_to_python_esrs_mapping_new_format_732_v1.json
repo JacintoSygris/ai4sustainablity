@@ -1,0 +1,1355 @@
+{
+  "schema_version": "1.0",
+  "mapping_version": "new_format_732_v1",
+  "status": "runtime-approved-for-candidate-suggestions",
+  "model_profiles": [
+    "new_format_732_v1_gpt41",
+    "new_format_732_v1_gpt41_materiality_gold_v4",
+    "new_format_732_v1_gemini"
+  ],
+  "model_key_count": 102,
+  "approved_key_count": 91,
+  "approved_by": "local-ar16-equivalence-crosswalk",
+  "approved_at": "2026-06-08",
+  "approval_basis": "Generated from approved legacy AR16 mapping plus explicit ar16_key_equivalences.json entries; non-AR16 summaries stay aggregate-only.",
+  "keys": [
+    {
+      "python_esrs_key": "esrs_e1_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_e1_climate_change_adaptation",
+      "status": "approved",
+      "ar16_topic_ids": [
+        1
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e1_adaptation_to_climate_change.",
+      "equivalent_to_python_esrs_key": "esrs_e1_adaptation_to_climate_change",
+      "web_esrs": "E1",
+      "web_label_en": "Adaptation to climate change",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Adaptation to climate change",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e1_climate_change_mitigation",
+      "status": "approved",
+      "ar16_topic_ids": [
+        2
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e1_mitigation_of_climate_change.",
+      "equivalent_to_python_esrs_key": "esrs_e1_mitigation_of_climate_change",
+      "web_esrs": "E1",
+      "web_label_en": "Climate change mitigation",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Climate change mitigation",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e1_energy_use",
+      "status": "approved",
+      "ar16_topic_ids": [
+        3
+      ],
+      "notes": "Direct key match against the approved legacy AR16 mapping.",
+      "web_esrs": "E1",
+      "web_label_en": "Energy",
+      "web_theme_en": "Climate change",
+      "web_subtheme_en": "Energy",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_e2_air_pollution",
+      "status": "approved",
+      "ar16_topic_ids": [
+        4
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_pollution_air_pollution.",
+      "equivalent_to_python_esrs_key": "esrs_e2_pollution_air_pollution",
+      "web_esrs": "E2",
+      "web_label_en": "air pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "air pollution",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_soil_pollution",
+      "status": "approved",
+      "ar16_topic_ids": [
+        6
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_pollution_soil_pollution.",
+      "equivalent_to_python_esrs_key": "esrs_e2_pollution_soil_pollution",
+      "web_esrs": "E2",
+      "web_label_en": "Soil pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Soil pollution",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_water_pollution",
+      "status": "approved",
+      "ar16_topic_ids": [
+        5
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_pollution_water_pollution.",
+      "equivalent_to_python_esrs_key": "esrs_e2_pollution_water_pollution",
+      "web_esrs": "E2",
+      "web_label_en": "Water pollution",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Water pollution",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_susbtances_of_concern",
+      "status": "approved",
+      "ar16_topic_ids": [
+        8
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_substances_of_concern.",
+      "equivalent_to_python_esrs_key": "esrs_e2_substances_of_concern",
+      "web_esrs": "E2",
+      "web_label_en": "Substances of concern",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Substances of concern",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_substances_of_very_high_concern",
+      "status": "approved",
+      "ar16_topic_ids": [
+        9
+      ],
+      "notes": "Direct key match against the approved legacy AR16 mapping.",
+      "web_esrs": "E2",
+      "web_label_en": "Substances of extremely high concern",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Substances of extremely high concern",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_impact_on_ecosystems_and_human_health",
+      "status": "approved",
+      "ar16_topic_ids": [
+        7
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_impact_on_ecosystems_and_Human_Health.",
+      "equivalent_to_python_esrs_key": "esrs_e2_impact_on_ecosystems_and_Human_Health",
+      "web_esrs": "E2",
+      "web_label_en": "Contamination of living organisms and food resources",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Contamination of living organisms and food resources",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e2_microplastics",
+      "status": "approved",
+      "ar16_topic_ids": [
+        10
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e2_pollution_microplastics.",
+      "equivalent_to_python_esrs_key": "esrs_e2_pollution_microplastics",
+      "web_esrs": "E2",
+      "web_label_en": "Microplastics",
+      "web_theme_en": "Pollution",
+      "web_subtheme_en": "Microplastics",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e3_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_e3_water_withdrawal",
+      "status": "approved",
+      "ar16_topic_ids": [
+        12
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e3_Water_Withdrawal.",
+      "equivalent_to_python_esrs_key": "esrs_e3_Water_Withdrawal",
+      "web_esrs": "E3",
+      "web_label_en": "Water extractions",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water extractions"
+    },
+    {
+      "python_esrs_key": "esrs_e3_water_consumption",
+      "status": "approved",
+      "ar16_topic_ids": [
+        11
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e3_Water_Consumption.",
+      "equivalent_to_python_esrs_key": "esrs_e3_Water_Consumption",
+      "web_esrs": "E3",
+      "web_label_en": "Water consumption",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water consumption"
+    },
+    {
+      "python_esrs_key": "esrs_e3_water_discharge",
+      "status": "approved",
+      "ar16_topic_ids": [
+        13
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e3_Water_Discharge.",
+      "equivalent_to_python_esrs_key": "esrs_e3_Water_Discharge",
+      "web_esrs": "E3",
+      "web_label_en": "water spills",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "water spills"
+    },
+    {
+      "python_esrs_key": "esrs_e3_water_discharge_into_oceans",
+      "status": "approved",
+      "ar16_topic_ids": [
+        14
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e3_Water_Discharge_into_oceans.",
+      "equivalent_to_python_esrs_key": "esrs_e3_Water_Discharge_into_oceans",
+      "web_esrs": "E3",
+      "web_label_en": "Water spills into the oceans",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Water",
+      "web_subtopic_en": "Water spills into the oceans"
+    },
+    {
+      "python_esrs_key": "esrs_e3_extraction_and_use_of_marine_resources",
+      "status": "approved",
+      "ar16_topic_ids": [
+        15
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e3_Extraction_and_use_of_marine_resources.",
+      "equivalent_to_python_esrs_key": "esrs_e3_Extraction_and_use_of_marine_resources",
+      "web_esrs": "E3",
+      "web_label_en": "Extraction and use of marine resources",
+      "web_theme_en": "Water and marine resources",
+      "web_subtheme_en": "Marine resources",
+      "web_subtopic_en": "Extraction and use of marine resources"
+    },
+    {
+      "python_esrs_key": "esrs_e3_other_issues_related_to_esrs_e3",
+      "status": "review_only",
+      "ar16_topic_ids": [],
+      "notes": "Known non-AR16 residual bucket; kept in manual review if predicted positive."
+    },
+    {
+      "python_esrs_key": "esrs_e4_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_climate_change",
+      "status": "approved",
+      "ar16_topic_ids": [
+        16
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_loss_climate_change.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_loss_climate_change",
+      "web_esrs": "E4",
+      "web_label_en": "Climate change",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Climate change"
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_land_and_water_use_change",
+      "status": "approved",
+      "ar16_topic_ids": [
+        17
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_loss_change_land_use_freshwater_sea_use.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_loss_change_land_use_freshwater_sea_use",
+      "web_esrs": "E4",
+      "web_label_en": "Land use change, freshwater use change and sea use change",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Land use change, freshwater use change and sea use change"
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_direct_exploitation",
+      "status": "approved",
+      "ar16_topic_ids": [
+        18
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_loss_direct_exploitation.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_loss_direct_exploitation",
+      "web_esrs": "E4",
+      "web_label_en": "Direct exploitation",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Direct exploitation"
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_exotic_species",
+      "status": "approved",
+      "ar16_topic_ids": [
+        19
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_exotic_invading_species.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_exotic_invading_species",
+      "web_esrs": "E4",
+      "web_label_en": "Invasive alien species",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Invasive alien species"
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_pollution",
+      "status": "approved",
+      "ar16_topic_ids": [
+        20
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_pollution.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_pollution",
+      "web_esrs": "E4",
+      "web_label_en": "Pollution",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Pollution"
+    },
+    {
+      "python_esrs_key": "esrs_e4_direct_impact_on_biodiversity_loss_other_factors",
+      "status": "approved",
+      "ar16_topic_ids": [
+        21
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_direct_impact_biodiversity_others.",
+      "equivalent_to_python_esrs_key": "esrs_e4_direct_impact_biodiversity_others",
+      "web_esrs": "E4",
+      "web_label_en": "Others",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Factors of direct impact on the loss of biodiversity",
+      "web_subtopic_en": "Others"
+    },
+    {
+      "python_esrs_key": "esrs_e4_status_of_species_species_population",
+      "status": "approved",
+      "ar16_topic_ids": [
+        22
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impact_on_status_species_size_of_species_population.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impact_on_status_species_size_of_species_population",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the status of the species",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the status of the species",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e4_status_of_species_extintion_risk",
+      "status": "approved",
+      "ar16_topic_ids": [
+        22
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impact_on_status_species_extinction_risk_species.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impact_on_status_species_extinction_risk_species",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the status of the species",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the status of the species",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e4_status_of_ecosystems_soil_degradation",
+      "status": "approved",
+      "ar16_topic_ids": [
+        23
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impact_extension_status_ecosystems_soil_degradation.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impact_extension_status_ecosystems_soil_degradation",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the extent and state of ecosystems",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the extent and state of ecosystems",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e4_status_of_ecosystems_desertification",
+      "status": "approved",
+      "ar16_topic_ids": [
+        23
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impact_extension_status_ecosystems_desertification.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impact_extension_status_ecosystems_desertification",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the extent and state of ecosystems",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the extent and state of ecosystems",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e4_status_of_ecosystems_soil_sealing",
+      "status": "approved",
+      "ar16_topic_ids": [
+        23
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impact_extension_status_ecosystems_soil_sealing.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impact_extension_status_ecosystems_soil_sealing",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on the extent and state of ecosystems",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on the extent and state of ecosystems",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e4_impacts_ecosystem_services",
+      "status": "approved",
+      "ar16_topic_ids": [
+        24
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e4_impacts_dependencies_services_ecosystems.",
+      "equivalent_to_python_esrs_key": "esrs_e4_impacts_dependencies_services_ecosystems",
+      "web_esrs": "E4",
+      "web_label_en": "Incidents on ecosystem services and dependencies on these services",
+      "web_theme_en": "Biodiversity and ecosystems",
+      "web_subtheme_en": "Incidents on ecosystem services and dependencies on these services",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e5_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_e5_resource_input",
+      "status": "approved",
+      "ar16_topic_ids": [
+        25
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e5_resource_use_circular_economy_resource_input.",
+      "equivalent_to_python_esrs_key": "esrs_e5_resource_use_circular_economy_resource_input",
+      "web_esrs": "E5",
+      "web_label_en": "Resource inputs, including resource utilization",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Resource inputs, including resource utilization",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e5_resource_output",
+      "status": "approved",
+      "ar16_topic_ids": [
+        26
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e5_resource_use_circular_economy_resource_output.",
+      "equivalent_to_python_esrs_key": "esrs_e5_resource_use_circular_economy_resource_output",
+      "web_esrs": "E5",
+      "web_label_en": "Resource outflows related to products and services",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Resource outflows related to products and services",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_e5_waste_management",
+      "status": "approved",
+      "ar16_topic_ids": [
+        27
+      ],
+      "notes": "Equivalent to approved legacy key esrs_e5_resource_use_circular_economy_waste_management.",
+      "equivalent_to_python_esrs_key": "esrs_e5_resource_use_circular_economy_waste_management",
+      "web_esrs": "E5",
+      "web_label_en": "Waste",
+      "web_theme_en": "Circular economy",
+      "web_subtheme_en": "Waste",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_g1_corporate_conduct",
+      "status": "approved",
+      "ar16_topic_ids": [
+        83
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_culture.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_culture",
+      "web_esrs": "G1",
+      "web_label_en": "Corporate culture",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corporate culture",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_whistleblower",
+      "status": "approved",
+      "ar16_topic_ids": [
+        84
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_whistleblower_protection.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_whistleblower_protection",
+      "web_esrs": "G1",
+      "web_label_en": "Protection of whistleblowers",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Protection of whistleblowers",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_animal_welfare",
+      "status": "approved",
+      "ar16_topic_ids": [
+        85
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_animal_welfare.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_animal_welfare",
+      "web_esrs": "G1",
+      "web_label_en": "animal welfare",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "animal welfare",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_lobbying_activities",
+      "status": "approved",
+      "ar16_topic_ids": [
+        86
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_political_engagement.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_political_engagement",
+      "web_esrs": "G1",
+      "web_label_en": "Political commitment and pressure group activities",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Political commitment and pressure group activities",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_supply_chain_conduct",
+      "status": "approved",
+      "ar16_topic_ids": [
+        87
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_supplier_relationship.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_supplier_relationship",
+      "web_esrs": "G1",
+      "web_label_en": "Supplier relationship management, including payment practices",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Supplier relationship management, including payment practices",
+      "web_subtopic_en": null
+    },
+    {
+      "python_esrs_key": "esrs_g1_anti_corruption_prevention",
+      "status": "approved",
+      "ar16_topic_ids": [
+        88
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_corruption_prevention.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_corruption_prevention",
+      "web_esrs": "G1",
+      "web_label_en": "Prevention and detection, including training",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corruption and bribery",
+      "web_subtopic_en": "Prevention and detection, including training"
+    },
+    {
+      "python_esrs_key": "esrs_g1_anti_corruption_incidents",
+      "status": "approved",
+      "ar16_topic_ids": [
+        89
+      ],
+      "notes": "Equivalent to approved legacy key esrs_g1_corporate_behaviour_corruption_incidents.",
+      "equivalent_to_python_esrs_key": "esrs_g1_corporate_behaviour_corruption_incidents",
+      "web_esrs": "G1",
+      "web_label_en": "Cases",
+      "web_theme_en": "Business conduct",
+      "web_subtheme_en": "Corruption and bribery",
+      "web_subtopic_en": "Cases"
+    },
+    {
+      "python_esrs_key": "esrs_s1_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_safe_employment",
+      "status": "approved",
+      "ar16_topic_ids": [
+        28
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_safe_employment.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_safe_employment",
+      "web_esrs": "S1",
+      "web_label_en": "Secure employment",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Secure employment"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_working_time",
+      "status": "approved",
+      "ar16_topic_ids": [
+        29
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_working_time.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_working_time",
+      "web_esrs": "S1",
+      "web_label_en": "Working time",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Working time"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_fair_salary",
+      "status": "approved",
+      "ar16_topic_ids": [
+        30
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_fair_salary.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_fair_salary",
+      "web_esrs": "S1",
+      "web_label_en": "Adequate salaries",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Adequate salaries"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_social_dialogue",
+      "status": "approved",
+      "ar16_topic_ids": [
+        31
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_social_dialogue.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_social_dialogue",
+      "web_esrs": "S1",
+      "web_label_en": "Social dialogue",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Social dialogue"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_association",
+      "status": "approved",
+      "ar16_topic_ids": [
+        32
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_association_freedom_works_council_information_rights.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_association_freedom_works_council_information_rights",
+      "web_esrs": "S1",
+      "web_label_en": "Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_bargaining",
+      "status": "approved",
+      "ar16_topic_ids": [
+        33
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_collective_negotiation_collective_agreement.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_collective_negotiation_collective_agreement",
+      "web_esrs": "S1",
+      "web_label_en": "Collective bargaining, including the proportion of workers covered by collective agreements",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Collective bargaining, including the proportion of workers covered by collective agreements"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_reconciling",
+      "status": "approved",
+      "ar16_topic_ids": [
+        34
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_reconciling_work_family_life.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_reconciling_work_family_life",
+      "web_esrs": "S1",
+      "web_label_en": "Work conciliation",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Work conciliation"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_working_conditions_own_health_safety",
+      "status": "approved",
+      "ar16_topic_ids": [
+        35
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_workforce_working_conditions_health_safety.",
+      "equivalent_to_python_esrs_key": "esrs_s1_workforce_working_conditions_health_safety",
+      "web_esrs": "S1",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Health and safety"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_equality_own_gender_equality",
+      "status": "approved",
+      "ar16_topic_ids": [
+        36
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value.",
+      "equivalent_to_python_esrs_key": "esrs_s1_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value",
+      "web_esrs": "S1",
+      "web_label_en": "Gender equality and equal pay for work of equal value",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Gender equality and equal pay for work of equal value"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_equality_own_training",
+      "status": "approved",
+      "ar16_topic_ids": [
+        37
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_equal_treatment_opportunities_training_competence_development.",
+      "equivalent_to_python_esrs_key": "esrs_s1_equal_treatment_opportunities_training_competence_development",
+      "web_esrs": "S1",
+      "web_label_en": "Training and capacity development",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Training and capacity development"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_equality_own_disabilities",
+      "status": "approved",
+      "ar16_topic_ids": [
+        38
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_equal_treatment_opportunities_employment_inclusion_people_disabilities.",
+      "equivalent_to_python_esrs_key": "esrs_s1_equal_treatment_opportunities_employment_inclusion_people_disabilities",
+      "web_esrs": "S1",
+      "web_label_en": "Employment and inclusion of people with disabilities",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Employment and inclusion of people with disabilities"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_equality_own_harassment",
+      "status": "approved",
+      "ar16_topic_ids": [
+        39
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_equal_treatment_opportunities_measures_against_violence_harassment_workplace.",
+      "equivalent_to_python_esrs_key": "esrs_s1_equal_treatment_opportunities_measures_against_violence_harassment_workplace",
+      "web_esrs": "S1",
+      "web_label_en": "Measures against violence and harassment in the workplace",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Measures against violence and harassment in the workplace"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_equality_own_diversity",
+      "status": "approved",
+      "ar16_topic_ids": [
+        40
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_equal_treatment_opportunities_diversity.",
+      "equivalent_to_python_esrs_key": "esrs_s1_equal_treatment_opportunities_diversity",
+      "web_esrs": "S1",
+      "web_label_en": "Diversity",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Diversity"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_other_rights_own_child_labour",
+      "status": "approved",
+      "ar16_topic_ids": [
+        41
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_other_labour_rights_child_labour.",
+      "equivalent_to_python_esrs_key": "esrs_s1_other_labour_rights_child_labour",
+      "web_esrs": "S1",
+      "web_label_en": "child labor",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "child labor"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_other_rights_own_forced_labour",
+      "status": "approved",
+      "ar16_topic_ids": [
+        42
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_other_labour_rights_forced_labour.",
+      "equivalent_to_python_esrs_key": "esrs_s1_other_labour_rights_forced_labour",
+      "web_esrs": "S1",
+      "web_label_en": "Forced labor",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Forced labor"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_other_rights_own_housing",
+      "status": "approved",
+      "ar16_topic_ids": [
+        43
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_other_labour_rights_adequate_housing.",
+      "equivalent_to_python_esrs_key": "esrs_s1_other_labour_rights_adequate_housing",
+      "web_esrs": "S1",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Adequate housing"
+    },
+    {
+      "python_esrs_key": "esrs_s1_own_other_rights_own_privacy",
+      "status": "approved",
+      "ar16_topic_ids": [
+        44
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s1_other_labour_rights_privacity.",
+      "equivalent_to_python_esrs_key": "esrs_s1_other_labour_rights_privacity",
+      "web_esrs": "S1",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Own staff",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Privacy"
+    },
+    {
+      "python_esrs_key": "esrs_s2_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_safe_employment",
+      "status": "approved",
+      "ar16_topic_ids": [
+        45
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_safe_employment.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_safe_employment",
+      "web_esrs": "S2",
+      "web_label_en": "Secure employment",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Secure employment"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_working_time",
+      "status": "approved",
+      "ar16_topic_ids": [
+        46
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_working_time.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_working_time",
+      "web_esrs": "S2",
+      "web_label_en": "Working time",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Working time"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_fair_salary",
+      "status": "approved",
+      "ar16_topic_ids": [
+        47
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_fair_salary.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_fair_salary",
+      "web_esrs": "S2",
+      "web_label_en": "Adequate salaries",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Adequate salaries"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_social_dialogue",
+      "status": "approved",
+      "ar16_topic_ids": [
+        48
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_social_dialogue.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_social_dialogue",
+      "web_esrs": "S2",
+      "web_label_en": "Social dialogue",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Social dialogue"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_association",
+      "status": "approved",
+      "ar16_topic_ids": [
+        49
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_association_freedom_works_council_information_rights.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_association_freedom_works_council_information_rights",
+      "web_esrs": "S2",
+      "web_label_en": "Freedom of association, including the existence of works councils",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Freedom of association, including the existence of works councils"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_bargaining",
+      "status": "approved",
+      "ar16_topic_ids": [
+        50
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_collective_negotiation_collective_agreement.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_collective_negotiation_collective_agreement",
+      "web_esrs": "S2",
+      "web_label_en": "Collective bargaining",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Collective bargaining"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_reconciling",
+      "status": "approved",
+      "ar16_topic_ids": [
+        51
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_reconciling_work_family_life.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_reconciling_work_family_life",
+      "web_esrs": "S2",
+      "web_label_en": "Work conciliation",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Work conciliation"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_working_conditions_chain_health_safety",
+      "status": "approved",
+      "ar16_topic_ids": [
+        52
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_workers_value_chain_working_conditions_health_safety.",
+      "equivalent_to_python_esrs_key": "esrs_s2_workers_value_chain_working_conditions_health_safety",
+      "web_esrs": "S2",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Working conditions",
+      "web_subtopic_en": "Health and safety"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_equality_chain_gender_equality",
+      "status": "approved",
+      "ar16_topic_ids": [
+        53
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value.",
+      "equivalent_to_python_esrs_key": "esrs_s2_equal_treatment_opportunities_gender_equality_equal_pay_work_equal_value",
+      "web_esrs": "S2",
+      "web_label_en": "Gender equality and equal pay for work of equal value",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Gender equality and equal pay for work of equal value"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_equality_chain_training",
+      "status": "approved",
+      "ar16_topic_ids": [
+        54
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_equal_treatment_opportunities_training_competence_development.",
+      "equivalent_to_python_esrs_key": "esrs_s2_equal_treatment_opportunities_training_competence_development",
+      "web_esrs": "S2",
+      "web_label_en": "Training and capacity development",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Training and capacity development"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_equality_chain_disabilities",
+      "status": "approved",
+      "ar16_topic_ids": [
+        55
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_equal_treatment_opportunities_employment_inclusion_people_disabilities.",
+      "equivalent_to_python_esrs_key": "esrs_s2_equal_treatment_opportunities_employment_inclusion_people_disabilities",
+      "web_esrs": "S2",
+      "web_label_en": "Employment and inclusion of people with disabilities",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Employment and inclusion of people with disabilities"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_equality_chain_harassment",
+      "status": "approved",
+      "ar16_topic_ids": [
+        56
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_equal_treatment_opportunities_measures_against_violence_harassment_workplace.",
+      "equivalent_to_python_esrs_key": "esrs_s2_equal_treatment_opportunities_measures_against_violence_harassment_workplace",
+      "web_esrs": "S2",
+      "web_label_en": "Measures against violence and harassment in the workplace",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Measures against violence and harassment in the workplace"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_equality_chain_diversity",
+      "status": "approved",
+      "ar16_topic_ids": [
+        57
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_equal_treatment_opportunities_diversity.",
+      "equivalent_to_python_esrs_key": "esrs_s2_equal_treatment_opportunities_diversity",
+      "web_esrs": "S2",
+      "web_label_en": "Diversity",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Equal treatment and opportunities for all",
+      "web_subtopic_en": "Diversity"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_other_rights_chain_child_labour",
+      "status": "approved",
+      "ar16_topic_ids": [
+        58
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_other_labour_rights_child_labour.",
+      "equivalent_to_python_esrs_key": "esrs_s2_other_labour_rights_child_labour",
+      "web_esrs": "S2",
+      "web_label_en": "child labor",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "child labor"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_other_rights_chain_forced_labour",
+      "status": "approved",
+      "ar16_topic_ids": [
+        59
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_other_labour_rights_forced_labour.",
+      "equivalent_to_python_esrs_key": "esrs_s2_other_labour_rights_forced_labour",
+      "web_esrs": "S2",
+      "web_label_en": "Forced labor",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Forced labor"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_other_rights_chain_housing",
+      "status": "approved",
+      "ar16_topic_ids": [
+        60
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_other_labour_rights_adequate_housing.",
+      "equivalent_to_python_esrs_key": "esrs_s2_other_labour_rights_adequate_housing",
+      "web_esrs": "S2",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Adequate housing"
+    },
+    {
+      "python_esrs_key": "esrs_s2_chain_other_rights_chain_privacy",
+      "status": "approved",
+      "ar16_topic_ids": [
+        62
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s2_other_labour_rights_privacity.",
+      "equivalent_to_python_esrs_key": "esrs_s2_other_labour_rights_privacity",
+      "web_esrs": "S2",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Value chain workers",
+      "web_subtheme_en": "Other labor rights",
+      "web_subtopic_en": "Privacy"
+    },
+    {
+      "python_esrs_key": "esrs_s3_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_s3_economic_rights_communities_housing",
+      "status": "approved",
+      "ar16_topic_ids": [
+        63
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_adequate_housing.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_adequate_housing",
+      "web_esrs": "S3",
+      "web_label_en": "Adequate housing",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Adequate housing"
+    },
+    {
+      "python_esrs_key": "esrs_s3_economic_rights_communities_food",
+      "status": "approved",
+      "ar16_topic_ids": [
+        64
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_adequate_food.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_adequate_food",
+      "web_esrs": "S3",
+      "web_label_en": "Proper nutrition",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Proper nutrition"
+    },
+    {
+      "python_esrs_key": "esrs_s3_economic_rights_communities_water",
+      "status": "approved",
+      "ar16_topic_ids": [
+        65
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_water_sanitation.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_water_sanitation",
+      "web_esrs": "S3",
+      "web_label_en": "Water and sanitation",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Water and sanitation"
+    },
+    {
+      "python_esrs_key": "esrs_s3_economic_rights_communities_land_incidents",
+      "status": "approved",
+      "ar16_topic_ids": [
+        66
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_land_incidents.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_land_incidents",
+      "web_esrs": "S3",
+      "web_label_en": "Land-related incidents",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Land-related incidents"
+    },
+    {
+      "python_esrs_key": "esrs_s3_economic_rights_communities_security_incidents",
+      "status": "approved",
+      "ar16_topic_ids": [
+        67
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_security_incidents.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_security_incidents",
+      "web_esrs": "S3",
+      "web_label_en": "Security-related incidents",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Economic, social and cultural rights of groups",
+      "web_subtopic_en": "Security-related incidents"
+    },
+    {
+      "python_esrs_key": "esrs_s3_civil_rights_expression",
+      "status": "approved",
+      "ar16_topic_ids": [
+        68
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_expression_freedom.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_expression_freedom",
+      "web_esrs": "S3",
+      "web_label_en": "Freedom of expression",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Freedom of expression"
+    },
+    {
+      "python_esrs_key": "esrs_s3_civil_rights_assembly",
+      "status": "approved",
+      "ar16_topic_ids": [
+        69
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_assembly_freedom.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_assembly_freedom",
+      "web_esrs": "S3",
+      "web_label_en": "Freedom of assembly",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Freedom of assembly"
+    },
+    {
+      "python_esrs_key": "esrs_s3_civil_rights_human_rights",
+      "status": "approved",
+      "ar16_topic_ids": [
+        70
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_indicence_human_rights.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_indicence_human_rights",
+      "web_esrs": "S3",
+      "web_label_en": "Incidents on human rights defenders",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Civil and political rights of groups",
+      "web_subtopic_en": "Incidents on human rights defenders"
+    },
+    {
+      "python_esrs_key": "esrs_s3_indigenous_rights_consent",
+      "status": "approved",
+      "ar16_topic_ids": [
+        71
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_consent.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_consent",
+      "web_esrs": "S3",
+      "web_label_en": "Free, prior and informed consent",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Free, prior and informed consent"
+    },
+    {
+      "python_esrs_key": "esrs_s3_indigenous_rights_self_determination",
+      "status": "approved",
+      "ar16_topic_ids": [
+        72
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_self_determination.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_self_determination",
+      "web_esrs": "S3",
+      "web_label_en": "Self-determination",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Self-determination"
+    },
+    {
+      "python_esrs_key": "esrs_s3_indigenous_rights_cultural_rights",
+      "status": "approved",
+      "ar16_topic_ids": [
+        73
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s3_affected_groups_cultural_rights.",
+      "equivalent_to_python_esrs_key": "esrs_s3_affected_groups_cultural_rights",
+      "web_esrs": "S3",
+      "web_label_en": "Cultural rights",
+      "web_theme_en": "Affected groups",
+      "web_subtheme_en": "Rights of indigenous peoples",
+      "web_subtopic_en": "Cultural rights"
+    },
+    {
+      "python_esrs_key": "esrs_s4_summary",
+      "status": "aggregate_only",
+      "ar16_topic_ids": [],
+      "notes": "Standard-level summary output; it can inform review but is not an AR16 matter/submatter candidate."
+    },
+    {
+      "python_esrs_key": "esrs_s4_consumer_information_privacy",
+      "status": "approved",
+      "ar16_topic_ids": [
+        74
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_incidents_privacity.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_incidents_privacity",
+      "web_esrs": "S4",
+      "web_label_en": "Privacy",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Privacy"
+    },
+    {
+      "python_esrs_key": "esrs_s4_consumer_information_freedom_expression",
+      "status": "approved",
+      "ar16_topic_ids": [
+        75
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_incidents_expression_freedom.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_incidents_expression_freedom",
+      "web_esrs": "S4",
+      "web_label_en": "Freedom of expression",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Freedom of expression"
+    },
+    {
+      "python_esrs_key": "esrs_s4_consumer_information_access_information",
+      "status": "approved",
+      "ar16_topic_ids": [
+        76
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_incidents_information_access.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_incidents_information_access",
+      "web_esrs": "S4",
+      "web_label_en": "Access to information (quality)",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Incidents related to information for consumers or end users",
+      "web_subtopic_en": "Access to information (quality)"
+    },
+    {
+      "python_esrs_key": "esrs_s4_personal_safety_health_safety_products",
+      "status": "approved",
+      "ar16_topic_ids": [
+        77
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_safety_health.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_safety_health",
+      "web_esrs": "S4",
+      "web_label_en": "Health and safety",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Health and safety"
+    },
+    {
+      "python_esrs_key": "esrs_s4_personal_safety_security_individals",
+      "status": "approved",
+      "ar16_topic_ids": [
+        78
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_safety_security.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_safety_security",
+      "web_esrs": "S4",
+      "web_label_en": "Safety of a person",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Safety of a person"
+    },
+    {
+      "python_esrs_key": "esrs_s4_personal_safety_child_protection",
+      "status": "approved",
+      "ar16_topic_ids": [
+        79
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_safety_child_protection.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_safety_child_protection",
+      "web_esrs": "S4",
+      "web_label_en": "Protection of children",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Personal safety of consumers or end users",
+      "web_subtopic_en": "Protection of children"
+    },
+    {
+      "python_esrs_key": "esrs_s4_social_inclusion_non_discrimination",
+      "status": "approved",
+      "ar16_topic_ids": [
+        80
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_inclusion_non_discrimination.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_inclusion_non_discrimination",
+      "web_esrs": "S4",
+      "web_label_en": "Non-discrimination",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Non-discrimination"
+    },
+    {
+      "python_esrs_key": "esrs_s4_social_inclusion_access_products",
+      "status": "approved",
+      "ar16_topic_ids": [
+        81
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_inclusion_access_products.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_inclusion_access_products",
+      "web_esrs": "S4",
+      "web_label_en": "Access to products and services",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Access to products and services"
+    },
+    {
+      "python_esrs_key": "esrs_s4_social_inclusion_marketing",
+      "status": "approved",
+      "ar16_topic_ids": [
+        82
+      ],
+      "notes": "Equivalent to approved legacy key esrs_s4_consumers_inclusion_responsible_marketing.",
+      "equivalent_to_python_esrs_key": "esrs_s4_consumers_inclusion_responsible_marketing",
+      "web_esrs": "S4",
+      "web_label_en": "Responsible marketing practices",
+      "web_theme_en": "Consumers and end users",
+      "web_subtheme_en": "Social inclusion of consumers or end users",
+      "web_subtopic_en": "Responsible marketing practices"
+    }
+  ]
+}

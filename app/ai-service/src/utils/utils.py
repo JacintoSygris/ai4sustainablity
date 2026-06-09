@@ -8,20 +8,38 @@ from utils import llm_utils
 
 
 def check_keys(key_list: list):
-    # Check if keys.properties exists
-    if os.path.exists('keys.properties'):
-        config = configparser.ConfigParser()
-        config.read('keys.properties')
+    missing_keys = [key for key in key_list if not os.environ.get(key)]
+    if missing_keys and os.path.exists('keys.properties'):
+        _load_flat_keys_properties('keys.properties', missing_keys)
+        missing_keys = [key for key in key_list if not os.environ.get(key)]
 
-        # Loop over all keys and values
-        if config.has_section('keys'):
-            for key in config['keys']:
-                key = key.upper()
-                os.environ[key] = config['keys'][key]
+    if missing_keys and os.path.exists('keys.properties'):
+        config = configparser.ConfigParser()
+        try:
+            config.read('keys.properties')
+        except configparser.Error:
+            config = None
+
+        if config is not None and config.has_section('keys'):
+            for key, value in config['keys'].items():
+                normalized_key = key.upper()
+                if normalized_key in missing_keys:
+                    os.environ[normalized_key] = value
 
     for k in key_list:
         if not os.environ.get(k):
             raise llm_utils.UnknownApiKeyException(k)
+
+
+def _load_flat_keys_properties(filepath: str, key_list: list):
+    with open(filepath, encoding='utf-8') as handle:
+        for line in handle:
+            if "=" not in line or line.strip().startswith("#"):
+                continue
+            key, value = line.split("=", 1)
+            normalized_key = key.strip().upper()
+            if normalized_key in key_list:
+                os.environ[normalized_key] = value.strip()
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd=''):
     """
@@ -70,9 +88,10 @@ def call_openai(openai_key: str, prompt: str, data: str, model: str, output_stru
     return event
 
 def upload_file(openai_key: str, file_path: str, vector_store_id: str):
-    empty_store(openai_key)   # removes all files in store
+    empty_store(openai_key, vector_store_id)
     client = OpenAI(api_key=openai_key)
-    response = client.files.create(file=open(file_path, "rb"), purpose="assistants")
+    with open(file_path, "rb") as file_handle:
+        response = client.files.create(file=file_handle, purpose="assistants")
     attach_response = client.vector_stores.files.create(
         vector_store_id=vector_store_id,
         file_id=response.id
@@ -114,17 +133,21 @@ def vector_store_exists(openai_key: str, vector_store_name: str) -> bool:
             return True
     return False
 
-def empty_store(openai_key: str):
+def empty_store(openai_key: str, vector_store_id: str | None = None):
     client = OpenAI(api_key=openai_key)
-    files = client.files.list()
+    if vector_store_id is None:
+        print("[Vector store] No vector_store_id provided; account-wide cleanup is disabled.")
+        return
+
+    files = client.vector_stores.files.list(vector_store_id=vector_store_id)
     print("Files:", files)
     try:
         for file in files:
-            print(f"removing file {file.filename} (id: {file.id})")
-            client.files.delete(file.id)
+            print(f"removing file {file.id}")
+            client.vector_stores.files.delete(file_id=file.id, vector_store_id=vector_store_id)
         print("All empty!")
-    except:
-        print("All empty!")
+    except Exception as e:
+        print(f"Exception: {e}")
 
 def trim_prompt_to_max_tokens(prompt, max_tokens, model="gpt-4o-mini"):
     # Initialize the tokenizer for the given model

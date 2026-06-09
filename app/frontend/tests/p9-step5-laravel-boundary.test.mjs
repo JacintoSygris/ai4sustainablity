@@ -65,13 +65,13 @@ test("P9 helpers compact response state with full-replacement clear semantics", 
 test("P9 helpers expose corpus transparency, applicability, and export decisions", () => {
   const corpus = {
     generation: {
-      coverage_status: "standard_level_partial",
-      limitations: ["No approved AR16 matter to Disclosure Requirement mapping is loaded yet."],
-      mapping_granularity: "standard_level",
+      coverage_status: "topical_mapping_required",
+      limitations: ["No approved AR16 matter to Disclosure Requirement mapping is loaded yet; topical datapoints are not included."],
+      mapping_granularity: "disclosure_requirement_mapping_required",
       matter_to_dr_mapping_status: "pending",
     },
     matter_mapping: {
-      current_filter: "activated_esrs_standard",
+      current_filter: "topical_blocked_until_dr_mapping",
       status: "pending",
     },
     phase_in_assessment: {
@@ -93,13 +93,13 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
         title: "Topical datapoints",
         datapoints: [
           {
-            id: "E2.IRO-1_01",
-            name: "Pollution IRO screening",
+            id: "BP-1_01",
+            name: "General basis for preparation",
             applicability: {
-              reason: "This topical datapoint belongs to an ESRS standard activated by final materiality.",
-              mapping_basis: "activated_esrs_standard",
-              reason_code: "material_esrs_standard",
-              limitations: ["Included at activated ESRS standard level."],
+              reason: "ESRS 2 general disclosure datapoints are included as the baseline sustainability statement corpus.",
+              mapping_basis: "always_required",
+              reason_code: "always_required_esrs_2",
+              limitations: [],
             },
             phase_in: { less_than_750: "May phase in", all_undertakings: "" },
           },
@@ -113,24 +113,32 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
     ["/esrs-datapoints/export.csv", "/esrs-datapoints/responses/export.csv"],
   )
   assert.deepEqual(flattenCorpus(corpus).map((row) => [row.blockTitle, row.datapoint.id]), [
-    ["Topical datapoints", "E2.IRO-1_01"],
+    ["Topical datapoints", "BP-1_01"],
   ])
   assert.deepEqual(p9MappingSummary(corpus), {
-    coverageStatus: "standard_level_partial",
-    currentFilter: "activated_esrs_standard",
-    limitations: ["No approved AR16 matter to Disclosure Requirement mapping is loaded yet."],
-    mappingGranularity: "standard_level",
+    coverageStatus: "topical_mapping_required",
+    coverageStatusLabel: "Falta mapa AR16 a DR",
+    currentFilter: "topical_blocked_until_dr_mapping",
+    currentFilterLabel: "Bloqueado hasta mapear AR16 a DR",
+    limitations: [
+      "Falta el mapa aprobado AR16 a DR. P9 no incluirá datapoints tópicos para evitar convertir un tema material en todo el estándar ESRS.",
+    ],
+    mappingGranularity: "disclosure_requirement_mapping_required",
+    mappingGranularityLabel: "Requiere mapa a Disclosure Requirement",
     mappingStatus: "pending",
+    mappingStatusLabel: "Mapa pendiente",
   })
   assert.equal(phaseInSummary(corpus).applicablePhaseInCount, 3)
   assert.equal(completionPlanItems(corpus)[0].title, "Complete ESRS 2 first")
+  assert.equal(completionPlanItems({ completion_plan: { phases: [{ key: "topical", status: "blocked" }] } })[0].statusLabel, "Bloqueado")
   assert.deepEqual(datapointApplicabilitySummary(corpus.blocks.topical.datapoints[0]), {
-    limitations: ["Included at activated ESRS standard level."],
-    mappingBasis: "activated_esrs_standard",
+    limitations: [],
+    mappingBasis: "always_required",
+    mappingBasisLabel: "Siempre requerido",
     phaseInAllUndertakings: "",
     phaseInLessThan750: "May phase in",
-    reason: "This topical datapoint belongs to an ESRS standard activated by final materiality.",
-    reasonCode: "material_esrs_standard",
+    reason: "ESRS 2 general disclosure datapoints are included as the baseline sustainability statement corpus.",
+    reasonCode: "always_required_esrs_2",
   })
 })
 

@@ -518,11 +518,14 @@ export async function laravelApi<T>(path: string, options: LaravelApiOptions = {
   }
 
   if (needsCsrf(method)) {
-    const xsrfToken = csrfToken ?? readCookie("XSRF-TOKEN")
+    if (csrfToken) {
+      headers.set("X-CSRF-TOKEN", csrfToken)
+    } else {
+      const xsrfToken = readCookie("XSRF-TOKEN")
 
-    if (xsrfToken) {
-      headers.set("X-CSRF-TOKEN", xsrfToken)
-      headers.set("X-XSRF-TOKEN", xsrfToken)
+      if (xsrfToken) {
+        headers.set("X-XSRF-TOKEN", xsrfToken)
+      }
     }
   }
 

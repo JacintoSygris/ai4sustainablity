@@ -132,6 +132,45 @@ it('keeps Python ESRS key inventory covered by the AR16 runtime mapping', functi
     expect($coveredKeys->diff($inventoryKeys)->values()->all())->toBe([]);
 });
 
+it('keeps the new-format 732 mapping inventory approved only through local AR16 equivalences', function () {
+    $mapping = json_decode(
+        file_get_contents(base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json')),
+        true,
+        flags: JSON_THROW_ON_ERROR
+    );
+
+    $keys = collect($mapping['keys']);
+    $allowedStatuses = ['approved', 'aggregate_only', 'review_only', 'excluded'];
+
+    expect($mapping['schema_version'])->toBe('1.0');
+    expect($mapping['mapping_version'])->toBe('new_format_732_v1');
+    expect($mapping['status'])->toBe('runtime-approved-for-candidate-suggestions');
+    expect($mapping['model_key_count'])->toBe(102);
+    expect($mapping['approved_key_count'])->toBe(91);
+    expect($mapping['approved_by'])->toBe('local-ar16-equivalence-crosswalk');
+    expect($mapping['approved_at'])->toBe('2026-06-08');
+    expect($keys)->toHaveCount(102);
+    expect($keys->pluck('python_esrs_key')->unique()->count())->toBe(102);
+    expect($keys->pluck('status')->countBy()->all())->toBe([
+        'aggregate_only' => 10,
+        'approved' => 91,
+        'review_only' => 1,
+    ]);
+
+    $rowsByKey = $keys->keyBy('python_esrs_key');
+    expect($rowsByKey['esrs_e1_climate_change_adaptation']['ar16_topic_ids'])->toBe([1]);
+    expect($rowsByKey['esrs_e1_energy_use']['ar16_topic_ids'])->toBe([3]);
+    expect($rowsByKey['esrs_s4_social_inclusion_access_products']['ar16_topic_ids'])->toBe([81]);
+    expect($rowsByKey['esrs_e1_summary']['status'])->toBe('aggregate_only');
+    expect($rowsByKey['esrs_e3_other_issues_related_to_esrs_e3']['status'])->toBe('review_only');
+
+    $keys->each(function (array $row) use ($allowedStatuses) {
+        expect($row['python_esrs_key'])->not->toBe('');
+        expect($row['status'])->toBeIn($allowedStatuses);
+        expect($row['ar16_topic_ids'])->toBeArray();
+    });
+});
+
 /**
  * @return array<int, array<string, string>>
  */

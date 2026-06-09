@@ -146,3 +146,27 @@ test("package manifest has no direct retired local backend dependencies", () => 
   assert.equal(packageJson.dependencies?.["drizzle-orm"], undefined)
   assert.equal(packageJson.dependencies?.["@libsql/client"], undefined)
 })
+
+test("visible help and password recovery links resolve to real Next pages", () => {
+  assert.equal(existsSync(join(root, "app/help/page.tsx")), true, "/help must not 404 from header links")
+  assert.equal(existsSync(join(root, "app/(dashboard)/settings/page.tsx")), true, "/settings must not 404 from user menu links")
+  assert.equal(
+    existsSync(join(root, "app/(auth)/forgot-password/page.tsx")),
+    true,
+    "/forgot-password must not 404 from login links",
+  )
+})
+
+test("landing feature icons do not request generated placeholder jpg URLs", () => {
+  const source = read("components/landing/features-section.tsx")
+
+  assert.doesNotMatch(source, /\/\.jpg\?/, "feature icons must not point to invalid placeholder image URLs")
+  assert.match(source, /<feature\.icon/, "feature icons should render from the local icon component")
+})
+
+test("root layout does not load Vercel-only analytics on the VPS frontend", () => {
+  const source = read("app/layout.tsx")
+
+  assert.doesNotMatch(source, /@vercel\/analytics/, "VPS deployment must not request /_vercel/insights/script.js")
+  assert.doesNotMatch(source, /<Analytics/, "Vercel Analytics component must not render on the VPS deployment")
+})

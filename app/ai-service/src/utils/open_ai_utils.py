@@ -156,6 +156,7 @@ class OpenAIHandler(LLMHandler):
                 print(f"[Extract Assistant Warning] Manual parsing failed: {parse_err}")
                 print(f"[Extract Assistant Warning] Retrying parsing... (n={n})")
                 raw_content = self.__fix_json(raw_content, str(parse_err))
+        raise RuntimeError("Could not parse LLM response after structured and fallback retries")
     # print(f" {event}\n\n")
 
     def __clean_json(self, json_str: str) -> str:
@@ -199,9 +200,10 @@ class OpenAIHandler(LLMHandler):
     def upload_file(self, file_path: str):
         self.__empty_store()
         print(f"[Vector store] Uploading file: {file_path}")
-        file_batch = self.client.vector_stores.file_batches.upload_and_poll(
-            vector_store_id=self.vector_store_id, files=[open(file_path, "rb")]
-        )
+        with open(file_path, "rb") as file_handle:
+            file_batch = self.client.vector_stores.file_batches.upload_and_poll(
+                vector_store_id=self.vector_store_id, files=[file_handle]
+            )
         self.__show_files_in_vector_store()
 
     def __show_files_in_vector_store(self):
@@ -219,19 +221,6 @@ class OpenAIHandler(LLMHandler):
             files = self.client.vector_stores.files.list(vector_store_id=self.vector_store_id)
             list_files = [file.id for file in files]
             print(f"[Vector store] Files remaining {list_files}")
-        except Exception as e:
-            print(f"Exception: {e}")
-
-        files = self.client.files.list()
-        list_files = [file.filename for file in files]
-        print(f"[File storage] Files: {list_files}")
-        try:
-            for file in files:
-                print(f"[File storage] Removing file {file.filename} (id: {file.id})")
-                self.client.files.delete(file.id)
-            files = self.client.files.list()
-            list_files = [file.filename for file in files]
-            print(f"[File storage] Files remaining: {list_files}")
         except Exception as e:
             print(f"Exception: {e}")
 

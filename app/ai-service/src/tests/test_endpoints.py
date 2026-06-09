@@ -1,7 +1,9 @@
 import builtins
+import csv
 import importlib
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -21,6 +23,18 @@ COMPANY_PAYLOAD = {
 }
 
 
+def company_esrs_keys() -> list[str]:
+    company_esrs_path = Path(__file__).resolve().parents[2] / "data" / "company_esrs.csv"
+    with company_esrs_path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.reader(handle, delimiter=";")
+        header = next(reader)
+    return [column for column in header if column != "file"]
+
+
+def complete_esrs_payload(value: int = 0) -> dict[str, int]:
+    return {key: value for key in company_esrs_keys()}
+
+
 def forget_endpoint_modules():
     for module_name in [
         "services.endpoints",
@@ -35,17 +49,6 @@ def forget_endpoint_modules():
 def import_fresh_endpoints():
     forget_endpoint_modules()
     return importlib.import_module("services.endpoints")
-
-
-class NoStartThread:
-    def __init__(self, target, args=(), daemon=None):
-        self.target = target
-        self.args = args
-        self.daemon = daemon
-        self.started = False
-
-    def start(self):
-        self.started = True
 
 
 class EndpointsTest(unittest.TestCase):
@@ -72,12 +75,67 @@ class EndpointsTest(unittest.TestCase):
             with patch.object(
                 endpoints,
                 "predict_esrs",
-                return_value=Prediction(esrs={"esrs_e1_energy_use": 1}),
+                return_value=Prediction(
+                    esrs={"esrs_e1_energy_use": 1},
+                    model_profile="legacy_v0",
+                    model_key_count=1,
+                ),
             ):
                 response = client.post("/predict", json=COMPANY_PAYLOAD)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"esrs": {"esrs_e1_energy_use": 1}})
+        self.assertEqual(response.json()["esrs"], {"esrs_e1_energy_use": 1})
+        self.assertEqual(response.json()["model_profile"], "legacy_v0")
+        self.assertEqual(response.json()["model_key_count"], 1)
+
+    def test_predict_route_returns_422_for_unknown_model_profile(self):
+        endpoints = import_fresh_endpoints()
+        payload = {**COMPANY_PAYLOAD, "model_profile": "unknown_profile"}
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/predict", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("Unknown model profile 'unknown_profile'", response.json()["detail"])
+
+    def test_predict_route_returns_422_for_inventoried_profile_that_is_not_runtime_enabled(self):
+        endpoints = import_fresh_endpoints()
+        payload = {**COMPANY_PAYLOAD, "model_profile": "new_format_732_v1_gemini"}
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/predict", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("not runtime-enabled", response.json()["detail"])
+
+    def test_model_profiles_route_exposes_active_and_inventoried_profiles(self):
+        endpoints = import_fresh_endpoints()
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.get("/model-profiles")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["active_model_profile"], "legacy_v0")
+        self.assertEqual(
+            body["runtime_enabled_profiles"],
+            [
+                "legacy_v0",
+                "new_format_732_v1_gpt41",
+                "new_format_732_v1_gpt41_materiality_gold_v4",
+            ],
+        )
+        self.assertEqual(body["profiles"]["legacy_v0"]["expected_key_count"], 96)
+        self.assertTrue(body["profiles"]["legacy_v0"]["runtime_enabled"])
+        self.assertEqual(body["profiles"]["new_format_732_v1_gpt41"]["expected_key_count"], 102)
+        self.assertTrue(body["profiles"]["new_format_732_v1_gpt41"]["runtime_enabled"])
+        materiality_profile = body["profiles"]["new_format_732_v1_gpt41_materiality_gold_v4"]
+        self.assertEqual(materiality_profile["expected_key_count"], 102)
+        self.assertTrue(materiality_profile["runtime_enabled"])
+        self.assertFalse(body["profiles"]["new_format_732_v1_gemini"]["runtime_enabled"])
 
     def test_predict_route_returns_specific_file_error(self):
         endpoints = import_fresh_endpoints()
@@ -91,23 +149,76 @@ class EndpointsTest(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["detail"], "The file ../data/esrs_classifier.pkl was not found.")
 
-    def test_retrain_pre_registers_job_before_worker_runs(self):
+    def test_retrain_rejects_archived_legacy_trainer_before_job_creation(self):
         endpoints = import_fresh_endpoints()
         endpoints.job_store.clear()
-        payload = {**COMPANY_PAYLOAD, "esrs": {"esrs_e1_energy_use": 1}}
+        payload = {**COMPANY_PAYLOAD, "esrs": complete_esrs_payload()}
 
-        with patch.object(endpoints.threading, "Thread", NoStartThread):
-            with patch.object(endpoints, "validate_model_artifacts", return_value=None):
-                client = TestClient(endpoints.app)
-                response = client.post("/retrain", json=payload)
-                job_id = response.json()["job_id"]
-                status_response = client.get(f"/retrain-status/{job_id}")
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/retrain", json=payload)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["status"], "started")
-        self.assertNotEqual(status_response.json()["status"], "not found")
-        self.assertIsNone(status_response.json()["error"])
-        self.assertEqual(endpoints.job_store[job_id].status, JobStatus.Status.started)
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("legacy retrain trainer was archived", response.json()["detail"])
+        self.assertNotIn("job_id", response.json())
+        self.assertEqual(endpoints.job_store, {})
+
+    def test_retrain_rejects_unknown_esrs_key_before_job_creation(self):
+        endpoints = import_fresh_endpoints()
+        endpoints.job_store.clear()
+        payload = {**COMPANY_PAYLOAD, "esrs": {**complete_esrs_payload(), "esrs_unknown_topic": 1}}
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/retrain", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(endpoints.job_store, {})
+
+    def test_retrain_rejects_missing_esrs_key_before_job_creation(self):
+        endpoints = import_fresh_endpoints()
+        endpoints.job_store.clear()
+        esrs = complete_esrs_payload()
+        esrs.pop(company_esrs_keys()[0])
+        payload = {**COMPANY_PAYLOAD, "esrs": esrs}
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/retrain", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(endpoints.job_store, {})
+
+    def test_retrain_rejects_non_binary_esrs_value_before_job_creation(self):
+        endpoints = import_fresh_endpoints()
+        endpoints.job_store.clear()
+        esrs = complete_esrs_payload()
+        esrs[company_esrs_keys()[0]] = 2
+        payload = {**COMPANY_PAYLOAD, "esrs": esrs}
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/retrain", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(endpoints.job_store, {})
+
+    def test_retrain_rejects_non_legacy_model_profile_before_job_creation(self):
+        endpoints = import_fresh_endpoints()
+        endpoints.job_store.clear()
+        payload = {
+            **COMPANY_PAYLOAD,
+            "model_profile": "new_format_732_v1_gpt41",
+            "esrs": complete_esrs_payload(),
+        }
+
+        with patch.object(endpoints, "validate_model_artifacts", return_value=None):
+            client = TestClient(endpoints.app)
+            response = client.post("/retrain", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("/retrain only supports legacy_v0", response.json()["detail"])
+        self.assertEqual(endpoints.job_store, {})
 
     def test_long_job_records_success_and_failure(self):
         endpoints = import_fresh_endpoints()

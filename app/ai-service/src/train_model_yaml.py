@@ -1,5 +1,6 @@
 import time
 from argparse import ArgumentParser
+from pathlib import Path
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -137,11 +138,16 @@ def train_model(df, output_path, verbose, base_model, wrapper, split, optimiser)
         ('classifier', wrapped_clf)
     ])
 
-    # Split
+    # Split. When training with multiple reports for the same company, keep the
+    # same company out of both train and test to avoid optimistic leakage.
     splitter = splitters[split]()
     if verbose:
         print(f"[Splitting] with {splitter.name()}")
-    X_train, X_test, y_train, y_test = splitter.split(X, y)
+    if "company_data_company_name" in df.columns:
+        groups = df["company_data_company_name"].fillna(df["file"]).astype(str)
+    else:
+        groups = df["file"].astype(str)
+    X_train, X_test, y_train, y_test = splitter.split(X, y, groups=groups)
 
     # Optimize
     optimiser_object = optimisers[optimiser]
@@ -166,11 +172,13 @@ def train_model(df, output_path, verbose, base_model, wrapper, split, optimiser)
     print("Baseline dummy accuracy:", dummy.score(X_test, y_test))
 
     # Save model and vocabulary artifacts
-    joblib.dump(clf, output_path + '/esrs_classifier.pkl')
-    joblib.dump(y.columns.tolist(), output_path + '/esrs_columns.pkl')
-    joblib.dump(mlb_sector.classes_.tolist(), output_path + '/sector_columns.pkl')
-    joblib.dump(mlb_regions.classes_.tolist(), output_path + '/region_columns.pkl')
-    joblib.dump(mlb_products.classes_.tolist(), output_path + '/product_columns.pkl')
+    output_dir = Path(output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    joblib.dump(clf, output_dir / 'esrs_classifier.pkl')
+    joblib.dump(y.columns.tolist(), output_dir / 'esrs_columns.pkl')
+    joblib.dump(mlb_sector.classes_.tolist(), output_dir / 'sector_columns.pkl')
+    joblib.dump(mlb_regions.classes_.tolist(), output_dir / 'region_columns.pkl')
+    joblib.dump(mlb_products.classes_.tolist(), output_dir / 'product_columns.pkl')
 
     return clf
 
@@ -179,6 +187,7 @@ def main(company_data, esrs_data, output_path, verbose, base_model_builder, wrap
     print(f"Loading data {company_data} and {esrs_data}")
     df = load_data(company_data, esrs_data)
     print(f"Start training")
+    Path(output_path).mkdir(parents=True, exist_ok=True)
     start = time.time()
     train_model(df, output_path, int(verbose), base_model_builder, wrapper_builder, splitter, optimiser)
     end = time.time()

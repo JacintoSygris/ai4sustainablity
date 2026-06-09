@@ -5,6 +5,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+});
+
 it('requires authentication for the double materiality guide', function () {
     $this->getJson('/api/double-materiality-guide')
         ->assertUnauthorized();
@@ -99,4 +103,18 @@ it('returns not found for unsupported ADM template csv keys', function () {
         ->getJson('/api/double-materiality-guide/templates/unsupported.csv')
         ->assertNotFound()
         ->assertJsonPath('message', 'Template not found.');
+});
+
+it('can auto authenticate the private dev technical user for the guide', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev-guide@example.test',
+        'services.private_dev.user_name' => 'I4S Guide Dev',
+    ]);
+
+    $this->getJson('/api/double-materiality-guide')
+        ->assertOk()
+        ->assertJsonPath('data.type', 'double_materiality_guide');
+
+    expect(User::where('email', 'i4sdev-guide@example.test')->exists())->toBeTrue();
 });

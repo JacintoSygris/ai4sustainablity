@@ -14,8 +14,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (config('services.private_dev.auto_login')) {
+            return redirect(route('characterization.create', absolute: false));
+        }
+
         return view('auth.login');
     }
 

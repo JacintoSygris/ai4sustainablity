@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -59,6 +61,22 @@ it('returns a normalized P6 materiality proposal for the separate frontend', fun
                 'esrs_e2_pollution' => 1,
                 'esrs_e3_other' => 1,
             ],
+            'model_profile' => 'legacy_v0',
+            'model_key_count' => 96,
+            'mapped_key_count' => 92,
+            'feature_metadata' => [
+                'derived_fields' => [],
+                'defaulted_fields' => [],
+                'missing_required_fields' => [],
+            ],
+            'mapping_metadata' => [
+                'laravel' => [
+                    'mapping_version' => 'v0',
+                    'mapping_status' => 'runtime-approved-for-candidate-suggestions',
+                    'mapping_key_count' => 92,
+                ],
+            ],
+            'evidence_refs' => [],
         ],
         'submitted_at' => now()->subMinute(),
         'completed_at' => now(),
@@ -74,6 +92,12 @@ it('returns a normalized P6 materiality proposal for the separate frontend', fun
         ->assertJsonPath('data.ai.summary', 'AI proposed 2 candidate ESRS topics. 1 predicted ESRS key needs manual review.')
         ->assertJsonPath('data.ai.review_required_prediction_keys', ['esrs_e3_other'])
         ->assertJsonPath('data.ai.raw_prediction_key_count', 3)
+        ->assertJsonPath('data.ai.model_profile', 'legacy_v0')
+        ->assertJsonPath('data.ai.model_key_count', 96)
+        ->assertJsonPath('data.ai.mapped_key_count', 92)
+        ->assertJsonPath('data.ai.feature_metadata.missing_required_fields', [])
+        ->assertJsonPath('data.ai.mapping_metadata.laravel.mapping_version', 'v0')
+        ->assertJsonPath('data.ai.evidence_refs', [])
         ->assertJsonPath('data.ready_for_confirmation', true);
 
     expect(collect($response->json('data.proposal_topics'))->pluck('esrs_code')->all())
@@ -328,11 +352,11 @@ it('rejects an empty P6 proposal review action set', function () {
         ->assertJsonValidationErrors(['topic_actions']);
 });
 
-it('falls back to legacy AI candidate topics when proposal topic ids are not synchronized', function () {
+it('falls back to legacy AI candidate topics only when stored proposal topic ids are null', function () {
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
-        'esrs_topic_ids' => [],
+        'esrs_topic_ids' => null,
         'result_data' => [
             'status' => 'completed',
             'candidate_topics' => [
@@ -347,11 +371,73 @@ it('falls back to legacy AI candidate topics when proposal topic ids are not syn
         ->getJson('/api/materiality-proposal')
         ->assertOk()
         ->assertJsonPath('data.source', 'ai_prediction')
+        ->assertJsonPath('data.ai.topic_sync_status', 'legacy_candidate_fallback')
         ->assertJsonPath('data.proposal_topic_ids', [$this->e2Topic->id, $this->e1Topic->id])
         ->assertJsonPath('data.ready_for_confirmation', true);
 
     expect(collect($response->json('data.proposal_topics'))->pluck('esrs_code')->all())
         ->toBe(['E2', 'E1']);
+});
+
+it('does not restore AI candidates after stored proposal topic ids are explicitly empty', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [],
+        'result_data' => [
+            'status' => 'completed',
+            'candidate_topics' => [
+                ['ar16_topic_id' => $this->e2Topic->id, 'suggested' => true],
+            ],
+            'raw_prediction' => [],
+        ],
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-proposal')
+        ->assertOk()
+        ->assertJsonPath('data.source', 'stored_topic_ids')
+        ->assertJsonPath('data.ai.topic_sync_status', 'stored_override')
+        ->assertJsonPath('data.proposal_topic_ids', [])
+        ->assertJsonPath('data.ready_for_confirmation', false);
+});
+
+it('reports stored topic ids as the source when they differ from AI candidates', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e1Topic->id],
+        'result_data' => [
+            'status' => 'completed',
+            'candidate_topics' => [
+                ['ar16_topic_id' => $this->e2Topic->id, 'suggested' => true],
+            ],
+            'raw_prediction' => [],
+        ],
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-proposal')
+        ->assertOk()
+        ->assertJsonPath('data.source', 'stored_topic_ids')
+        ->assertJsonPath('data.ai.topic_sync_status', 'stored_override')
+        ->assertJsonPath('data.proposal_topic_ids', [$this->e1Topic->id]);
+});
+
+it('uses a specific validation message when a completed proposal has no topics to review', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [],
+    ]);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-proposal', [
+            'topic_actions' => [],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['characterization'])
+        ->assertJsonPath('errors.characterization.0', 'The P6 materiality proposal has no topics to review. Add or confirm material topics before storing review actions.');
 });
 
 it('treats malformed legacy raw prediction values as empty evidence', function () {

@@ -190,3 +190,16 @@ test("Step 6 refreshes live Laravel report data instead of reusing stale client 
     "report draft requests must bypass browser fetch caches",
   )
 })
+
+test("Step 6 report layout can shrink inside the wizard shell", () => {
+  const page = read("app/(dashboard)/wizard/step-6/page.tsx")
+  const panel = read("components/wizard/report-draft-panel.tsx")
+
+  assert.match(page, /className="[^"]*min-w-0[^"]*lg:flex-row/, "Step 6 shell must allow its flex children to shrink")
+  assert.match(panel, /className="[^"]*min-w-0[^"]*flex-1/, "P10 panel must not force horizontal overflow")
+  assert.match(
+    panel,
+    /xl:grid-cols-\[minmax\(0,1fr\)_360px\]/,
+    "P10 detail grid must use a shrinkable main column before the fixed downloads column",
+  )
+})

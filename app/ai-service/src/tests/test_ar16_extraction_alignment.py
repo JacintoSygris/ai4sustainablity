@@ -121,6 +121,91 @@ class Ar16ExtractionAlignmentTest(unittest.TestCase):
         self.assertEqual(duplicate_row["review_required"], "true")
         self.assertEqual(duplicate_row["source_value"], "Alias value")
 
+    def test_flags_invalid_equivalence_target_as_review_required(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            paths = _write_alignment_fixture(root)
+            paths["equivalences"].write_text(
+                json.dumps(
+                    {
+                        "equivalences": [
+                            {
+                                "source_surface": "yaml",
+                                "source_key": "esrs_e1_climate_change_adaptation",
+                                "target_key": "esrs_e1_not_approved",
+                                "status": "equivalent",
+                                "basis": "bad fixture",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_path = root / "aligned.csv"
+            trace_path = root / "trace.csv"
+
+            result = align_extraction_csv(
+                input_path=paths["input"],
+                output_path=output_path,
+                trace_output_path=trace_path,
+                mapping_path=paths["mapping"],
+                key_equivalences_path=paths["equivalences"],
+            )
+            aligned_rows = _read_csv(output_path)
+            trace_rows = _read_csv(trace_path)
+
+        self.assertEqual(result["review_required"], 2)
+        invalid_row = next(row for row in trace_rows if row["source_key"] == "esrs_e1_climate_change_adaptation")
+        self.assertEqual(invalid_row["status"], "invalid_equivalence_target:not_in_mapping")
+        self.assertEqual(invalid_row["review_required"], "true")
+        self.assertNotIn("esrs_e1_not_approved", aligned_rows[0])
+
+    def test_flags_duplicate_yaml_source_equivalences_as_review_required(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            paths = _write_alignment_fixture(root)
+            paths["equivalences"].write_text(
+                json.dumps(
+                    {
+                        "equivalences": [
+                            {
+                                "source_surface": "yaml",
+                                "source_key": "esrs_e1_climate_change_adaptation",
+                                "target_key": "esrs_e1_adaptation_to_climate_change",
+                                "status": "equivalent",
+                                "basis": "first",
+                            },
+                            {
+                                "source_surface": "yaml",
+                                "source_key": "esrs_e1_climate_change_adaptation",
+                                "target_key": "esrs_e1_energy_use",
+                                "status": "equivalent",
+                                "basis": "second",
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_path = root / "aligned.csv"
+            trace_path = root / "trace.csv"
+
+            result = align_extraction_csv(
+                input_path=paths["input"],
+                output_path=output_path,
+                trace_output_path=trace_path,
+                mapping_path=paths["mapping"],
+                key_equivalences_path=paths["equivalences"],
+            )
+            aligned_rows = _read_csv(output_path)
+            trace_rows = _read_csv(trace_path)
+
+        self.assertEqual(result["review_required"], 2)
+        duplicate_row = next(row for row in trace_rows if row["source_key"] == "esrs_e1_climate_change_adaptation")
+        self.assertEqual(duplicate_row["status"], "duplicate_source_equivalence")
+        self.assertEqual(duplicate_row["review_required"], "true")
+        self.assertNotIn("esrs_e1_adaptation_to_climate_change", aligned_rows[0])
+
 
 def _write_alignment_fixture(root: Path) -> dict[str, Path]:
     mapping_path = root / "ar16_mapping.json"

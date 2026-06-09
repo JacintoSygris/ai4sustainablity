@@ -1,4 +1,6 @@
 import csv
+import configparser
+import os
 import re
 import time
 import json
@@ -11,30 +13,33 @@ KEYS_FILE = "keys.properties"
 
 # --- Load API key from properties file ---
 def load_api_key(filepath):
+    env_key = os.environ.get("OPENAI_API_KEY")
+    if env_key:
+        return env_key
+
+    if not os.path.exists(filepath):
+        raise ValueError(f"OPENAI_API_KEY not found in {filepath}")
+
     props = {}
     with open(filepath) as f:
         for line in f:
             if "=" in line and not line.strip().startswith("#"):
                 k, v = line.split("=", 1)
-                props[k.strip()] = v.strip()
+                props[k.strip().upper()] = v.strip()
 
     if "OPENAI_API_KEY" not in props:
-        raise ValueError("OPENAI_API_KEY not found in keys.properties")
+        config = configparser.ConfigParser()
+        try:
+            config.read(filepath)
+        except configparser.Error:
+            config = None
+        if config is not None and config.has_section("keys"):
+            for key, value in config["keys"].items():
+                if key.upper() == "OPENAI_API_KEY":
+                    return value.strip()
+        raise ValueError(f"OPENAI_API_KEY not found in {filepath}")
 
     return props["OPENAI_API_KEY"]
-
-
-# --- Validate CLI arguments ---
-if len(sys.argv) != 3:
-    print("Usage: python script.py <input_csv> <output_csv>")
-    sys.exit(1)
-
-INPUT_FILE = sys.argv[1]
-OUTPUT_FILE = sys.argv[2]
-
-
-api_key = load_api_key(KEYS_FILE)
-client = OpenAI(api_key=api_key)
 
 
 # --- Approximate FX rates to EUR ---
@@ -61,7 +66,7 @@ def extract_json_block(text):
         return match.group(0)
     raise ValueError("No JSON object found")
 
-def extract_structured_data(raw_value):
+def extract_structured_data(raw_value, client):
     prompt = f"""
 Extract structured financial data from this string.
 
@@ -113,9 +118,9 @@ def convert_to_million_eur(structured):
     return value * rate
 
 
-def process_csv():
-    with open(INPUT_FILE, newline='', encoding='utf-8') as infile, \
-         open(OUTPUT_FILE, 'w', newline='', encoding='utf-8') as outfile:
+def process_csv(input_file, output_file, client):
+    with open(input_file, newline='', encoding='utf-8') as infile, \
+         open(output_file, 'w', newline='', encoding='utf-8') as outfile:
 
         reader = csv.DictReader(infile, delimiter=';')
         fieldnames = reader.fieldnames
@@ -128,7 +133,7 @@ def process_csv():
 
             try:
                 print(f"Reading data of: {row['file']}")
-                structured = extract_structured_data(raw_value)
+                structured = extract_structured_data(raw_value, client)
                 eur_value = convert_to_million_eur(structured)
                 print(f"Converted to: {eur_value}")
 
@@ -143,5 +148,17 @@ def process_csv():
             time.sleep(0.3)
 
 
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if len(argv) != 2:
+        print("Usage: python clean_data_set.py <input_csv> <output_csv>")
+        return 1
+
+    api_key = load_api_key(KEYS_FILE)
+    client = OpenAI(api_key=api_key)
+    process_csv(argv[0], argv[1], client)
+    return 0
+
+
 if __name__ == "__main__":
-    process_csv()
+    raise SystemExit(main())

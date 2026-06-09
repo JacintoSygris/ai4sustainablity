@@ -16,6 +16,8 @@ from typing import Any, Iterable
 
 import yaml
 
+from project_paths import AI_SERVICE_ROOT, resolve_web_data_file
+
 
 @dataclass(frozen=True)
 class Ar16RegistryEntry:
@@ -160,11 +162,14 @@ class ReconciliationReport:
 
 def default_paths(project_root: Path | None = None) -> dict[str, Path]:
     if project_root is None:
-        project_root = Path(__file__).resolve().parents[4]
+        ai_service_root = AI_SERVICE_ROOT
+        mapping_path = resolve_web_data_file("ar16_to_python_esrs_mapping.json")
+    else:
+        ai_service_root = project_root / "app" / "ai-service"
+        mapping_path = project_root / "app" / "web" / "data" / "ar16_to_python_esrs_mapping.json"
 
-    ai_service_root = project_root / "app" / "ai-service"
     return {
-        "mapping_path": project_root / "app" / "web" / "data" / "ar16_to_python_esrs_mapping.json",
+        "mapping_path": mapping_path,
         "company_esrs_csv_path": ai_service_root / "data" / "company_esrs.csv",
         "feature_description_path": ai_service_root / "src" / "features" / "feature_description.py",
         "yaml_models_dir": ai_service_root / "extraction_models",

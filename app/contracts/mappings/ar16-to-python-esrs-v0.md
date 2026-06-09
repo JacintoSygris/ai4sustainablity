@@ -86,6 +86,8 @@ not create AR16 candidate topics by themselves. Positive `needs_review` or
 `review_only` keys, and any positive key unknown to the runtime mapping, are
 exposed as `review_required_prediction_keys` in the Laravel adapter response.
 
-Before switching any deployed environment from `CHARACTERIZATION_GATEWAY=mock`
-to `CHARACTERIZATION_GATEWAY=api`, deploy this runtime mapping decision and run
-an intentional gateway smoke test against the Python service.
+The private VPS is now intentionally configured with
+`CHARACTERIZATION_GATEWAY=api` per the current deployment notes. Keep
+`.env.example` on `mock` for local development, and run an intentional gateway
+smoke test against the private Python service before claiming any future mapping
+or gateway release as live.

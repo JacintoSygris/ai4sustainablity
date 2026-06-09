@@ -44,7 +44,7 @@ class MaterialityProposalController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
 
         $validated = $request->validate([
-            'topic_actions' => ['required', 'array'],
+            'topic_actions' => ['present', 'array'],
             'topic_actions.*' => ['string', Rule::in(self::ACTION_KEYS)],
             'action_reasons' => ['sometimes', 'array'],
             'action_reasons.*' => ['array'],
@@ -55,6 +55,7 @@ class MaterialityProposalController extends Controller
 
         $proposalTopicIds = $this->proposalTopicIds($characterization);
         $this->validateReviewPrecondition($characterization, $proposalTopicIds);
+        $this->validateReviewActionCoverage($validated['topic_actions']);
         $this->validateReviewTopicKeys($validated, $proposalTopicIds);
 
         $formData = $characterization->form_data ?? [];
@@ -76,16 +77,19 @@ class MaterialityProposalController extends Controller
     private function proposalState(Characterization $characterization): array
     {
         $resultData = $characterization->result_data ?? [];
-        $hasAiCandidates = array_key_exists('candidate_topics', $resultData);
-        $topicIds = $this->proposalTopicIds($characterization);
         $candidateTopics = Arr::get($resultData, 'candidate_topics', []);
+        $candidateTopicIds = is_array($candidateTopics) ? $this->candidateTopicIds($resultData) : [];
+        $topicIds = $this->proposalTopicIds($characterization);
+        $topicSyncStatus = $this->topicSyncStatus($characterization, $topicIds, $candidateTopicIds);
         $rawPrediction = Arr::get($resultData, 'raw_prediction', []);
         $reviewRequiredPredictionKeys = Arr::get($resultData, 'review_required_prediction_keys', []);
 
         return [
             'characterization_id' => $characterization->id,
             'status' => $characterization->status,
-            'source' => $hasAiCandidates ? 'ai_prediction' : 'stored_topic_ids',
+            'source' => in_array($topicSyncStatus, ['synced', 'legacy_candidate_fallback'], true)
+                ? 'ai_prediction'
+                : 'stored_topic_ids',
             'proposal_topic_ids' => $topicIds,
             'proposal_topics' => $this->topicSummaries($topicIds),
             'ready_for_confirmation' => $characterization->status === Characterization::STATUS_COMPLETED
@@ -100,6 +104,13 @@ class MaterialityProposalController extends Controller
                 'candidate_topics' => is_array($candidateTopics) ? $candidateTopics : [],
                 'review_required_prediction_keys' => $this->stringList($reviewRequiredPredictionKeys),
                 'raw_prediction_key_count' => is_array($rawPrediction) ? count($rawPrediction) : 0,
+                'topic_sync_status' => $topicSyncStatus,
+                'model_profile' => $this->stringOrNull(Arr::get($resultData, 'model_profile')),
+                'model_key_count' => $this->integerOrNull(Arr::get($resultData, 'model_key_count')),
+                'mapped_key_count' => $this->integerOrNull(Arr::get($resultData, 'mapped_key_count')),
+                'feature_metadata' => $this->featureMetadata(Arr::get($resultData, 'feature_metadata')),
+                'mapping_metadata' => $this->arrayOrEmpty(Arr::get($resultData, 'mapping_metadata')),
+                'evidence_refs' => $this->arrayOrEmpty(Arr::get($resultData, 'evidence_refs')),
             ],
         ];
     }
@@ -109,13 +120,11 @@ class MaterialityProposalController extends Controller
      */
     private function proposalTopicIds(Characterization $characterization): array
     {
-        $topicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
-
-        if ($topicIds === [] && array_key_exists('candidate_topics', $characterization->result_data ?? [])) {
+        if ($characterization->esrs_topic_ids === null && array_key_exists('candidate_topics', $characterization->result_data ?? [])) {
             return $this->candidateTopicIds($characterization->result_data ?? []);
         }
 
-        return $topicIds;
+        return $this->topicIds($characterization->esrs_topic_ids ?? []);
     }
 
     /**
@@ -240,12 +249,32 @@ class MaterialityProposalController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $topicActions
+     */
+    private function validateReviewActionCoverage(array $topicActions): void
+    {
+        if ($topicActions !== []) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'topic_actions' => 'At least one P6 proposal topic action is required.',
+        ]);
+    }
+
+    /**
      * @param  array<int, int>  $proposalTopicIds
      */
     private function validateReviewPrecondition(Characterization $characterization, array $proposalTopicIds): void
     {
         if ($characterization->status === Characterization::STATUS_COMPLETED && $proposalTopicIds !== []) {
             return;
+        }
+
+        if ($characterization->status === Characterization::STATUS_COMPLETED) {
+            throw ValidationException::withMessages([
+                'characterization' => 'The P6 materiality proposal has no topics to review. Add or confirm material topics before storing review actions.',
+            ]);
         }
 
         throw ValidationException::withMessages([
@@ -320,6 +349,66 @@ class MaterialityProposalController extends Controller
             ->filter(fn ($value) => is_string($value) && filled($value))
             ->values()
             ->all();
+    }
+
+    private function stringOrNull(mixed $value): ?string
+    {
+        return is_string($value) && filled($value) ? $value : null;
+    }
+
+    private function integerOrNull(mixed $value): ?int
+    {
+        return is_int($value) ? $value : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function featureMetadata(mixed $value): array
+    {
+        $metadata = is_array($value) ? $value : [];
+
+        return [
+            'derived_fields' => is_array($metadata['derived_fields'] ?? null) ? $metadata['derived_fields'] : [],
+            'defaulted_fields' => is_array($metadata['defaulted_fields'] ?? null) ? $metadata['defaulted_fields'] : [],
+            'missing_required_fields' => $this->stringList($metadata['missing_required_fields'] ?? []),
+        ];
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function arrayOrEmpty(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * @param  array<int, int>  $topicIds
+     * @param  array<int, int>  $candidateTopicIds
+     */
+    private function topicSyncStatus(Characterization $characterization, array $topicIds, array $candidateTopicIds): string
+    {
+        if ($candidateTopicIds === []) {
+            return 'no_ai_candidates';
+        }
+
+        if ($characterization->esrs_topic_ids === null) {
+            return 'legacy_candidate_fallback';
+        }
+
+        return $this->sameTopicSet($topicIds, $candidateTopicIds) ? 'synced' : 'stored_override';
+    }
+
+    /**
+     * @param  array<int, int>  $left
+     * @param  array<int, int>  $right
+     */
+    private function sameTopicSet(array $left, array $right): bool
+    {
+        return count($left) === count($right)
+            && array_diff($left, $right) === []
+            && array_diff($right, $left) === [];
     }
 
     private function canonicalTopicKey(string|int $key): ?string

@@ -19,6 +19,7 @@ function csrfFromHtml(html: string): string | null {
 
 export async function fetchLaravelCsrfToken(path: "/laravel/login" | "/laravel/register" = "/laravel/login") {
   const response = await fetch(path, {
+    cache: "no-store",
     credentials: "include",
   })
   const html = await response.text()

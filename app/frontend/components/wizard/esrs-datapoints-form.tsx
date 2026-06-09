@@ -229,10 +229,10 @@ export function EsrsDatapointsForm() {
                 <div>
                   <p className="text-xs font-medium uppercase text-muted-foreground">Cobertura P9</p>
                   <p className="mt-1 text-sm text-foreground">
-                    {mappingSummary.mappingStatus || "-"} / {mappingSummary.coverageStatus || "-"}
+                    {mappingSummary.mappingStatusLabel || "-"} / {mappingSummary.coverageStatusLabel || "-"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {mappingSummary.mappingGranularity || "standard_level"} · {mappingSummary.currentFilter || "-"}
+                    {mappingSummary.mappingGranularityLabel || "-"} · {mappingSummary.currentFilterLabel || "-"}
                   </p>
                 </div>
                 <div>
@@ -265,7 +265,7 @@ export function EsrsDatapointsForm() {
                     <div key={item.key || item.title} className="rounded-md border border-border px-3 py-2 text-sm">
                       <p className="font-medium text-foreground">{item.title || item.key}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.status || "-"} · {item.datapointCount} datapoints
+                        {item.statusLabel || "-"} · {item.datapointCount} datapoints
                       </p>
                     </div>
                   ))}
@@ -293,7 +293,7 @@ export function EsrsDatapointsForm() {
                         <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                           {applicability.mappingBasis ? (
                             <span className="rounded-md border border-border px-2 py-1">
-                              Base: {applicability.mappingBasis}
+                              Base: {applicability.mappingBasisLabel || applicability.mappingBasis}
                             </span>
                           ) : null}
                           {applicability.reasonCode ? (

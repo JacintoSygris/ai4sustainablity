@@ -42,9 +42,10 @@ Runtime row counts:
 3. ESRS 2 datapoints as always required.
 4. Topical E/S/G datapoints filtered by activated ESRS standard by default.
    If `ESRS_MATTER_DR_MAPPING_PATH` points to an approved mapping JSON that
-   covers every selected material topic and validates against the seeded ESRS
-   topics plus IG3 DR keys, topical datapoints are filtered by the mapped
-   Disclosure Requirement keys instead.
+   covers every selected material topic, has one mapping row per selected topic,
+   and validates against the seeded ESRS topics plus IG3 DR keys, topical
+   datapoints are filtered by the mapped `(ESRS standard, Disclosure Requirement)`
+   pairs instead.
 5. ESRS 2 MDR datapoints as a conditional block when at least one topical
    standard is material.
 6. E1 non-material exception status when P6 proposed E1 and final P8 removed E1.
@@ -58,8 +59,8 @@ Runtime row counts:
    standard-level DR/datapoint counts are exposed as the transparent fallback.
    With full valid approved-map coverage, each topic is marked
    `mapped_to_disclosure_requirements` and exposes the mapped DR keys plus the
-   mapped datapoint count. Partial or invalid maps do not advertise per-topic
-   DR-level filtering.
+   mapped datapoint count. Partial, duplicate-selected-topic, or invalid maps do
+   not advertise per-topic DR-level filtering.
 10. A `phase_in_assessment` block that evaluates the current employee-count
     data against the ESRS `<750` phase-in threshold and counts phase-in
     datapoints for frontend planning.
@@ -141,13 +142,15 @@ Minimal JSON shape:
 ```
 
 The backend applies the DR-level filter only when every selected material topic
-has a valid mapping row. A valid row must reference an existing seeded
+has exactly one valid mapping row. A valid row must reference an existing seeded
 `EsrsTopic`, its `esrs_code` must match that topic's seeded ESRS standard, and
-each mapped DR key must exist in the IG3 corpus for that same standard. If
-coverage is partial or any selected mapping is invalid, the API reports
-`matter_mapping.status=partial`, keeps `coverage_status=standard_level_partial`,
-shows a visible limitation, and continues filtering topical datapoints at
-activated-standard level.
+each mapped DR key must exist in the IG3 corpus for that same standard. The
+runtime filter uses `(ESRS standard, DR)` pairs so cross-standard DR-key
+collisions in the sourced IG3 corpus do not leak into another selected standard.
+If coverage is partial, any selected topic is duplicated, or any selected mapping
+is invalid, the API reports `matter_mapping.status=partial`, keeps
+`coverage_status=standard_level_partial`, shows a visible limitation, and
+continues filtering topical datapoints at activated-standard level.
 
 Each `phase_in_assessment` entry contains:
 

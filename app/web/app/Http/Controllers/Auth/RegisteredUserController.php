@@ -17,8 +17,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (config('services.private_dev.auto_login')) {
+            return redirect(route('characterization.create', absolute: false));
+        }
+
         return view('auth.register');
     }
 

@@ -49,17 +49,17 @@ test("server Laravel helper and Next rewrites cover dashboard session and web lo
 
   assert.match(helper, /headers\(\)/, "server helper must forward incoming Next headers")
   assert.match(helper, /cookie/i, "server helper must forward browser cookies")
-  assert.doesNotMatch(helper, /authorization|Authorization/, "server helper must not depend on a secondary edge auth header")
+  assert.doesNotMatch(helper, /authorization|Authorization/, "server helper must not depend on Apache Basic Auth")
   assert.match(helper, /auth\/session/, "server helper must call Laravel session endpoint")
   assert.match(nextConfig, /source:\s*["']\/logout["']/, "Next must proxy Laravel logout")
   assert.match(nextConfig, /source:\s*["']\/characterization\/:path\*["']/, "Next must proxy Laravel PDF route")
 })
 
-test("Next frontend does not carry a secondary project-level edge auth gate", () => {
+test("Next frontend does not carry project-level Basic Auth", () => {
   const packageJson = read("package.json")
   const envExample = read(".env.example")
 
   assert.match(packageJson, /"next":\s*"16\./, "frontend remains on Next 16")
   assert.equal(existsSync(join(root, "proxy.ts")), false, "proxy.ts must not enforce a separate auth gate")
-  assert.doesNotMatch(envExample, /BASIC_AUTH|I4S_DISABLE_BASIC_AUTH/, "frontend env example must not advertise a secondary edge auth gate")
+  assert.doesNotMatch(envExample, /BASIC_AUTH|I4S_DISABLE_BASIC_AUTH/, "frontend env example must not advertise Basic Auth")
 })

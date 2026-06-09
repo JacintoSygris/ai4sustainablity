@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -46,16 +48,16 @@ it('returns delta state using the P6 proposal as the default confirmation', func
         ->assertJsonPath('data.delta.unchanged', [$this->e1Topic->id, $this->e2Topic->id])
         ->assertJsonPath('data.preview.material_topic_count', 2)
         ->assertJsonPath('data.preview.activated_esrs_standards', ['E1', 'E2'])
-        ->assertJsonPath('data.preview.mapping_granularity', 'standard_level')
-        ->assertJsonPath('data.preview.coverage_status', 'standard_level_partial');
+        ->assertJsonPath('data.preview.mapping_granularity', 'disclosure_requirement_mapping_required')
+        ->assertJsonPath('data.preview.coverage_status', 'topical_mapping_required');
 
     $preview = $this->actingAs($this->user)
         ->getJson('/api/materiality-confirmation')
         ->json('data.preview');
 
     expect($preview['datapoint_estimate']['total_datapoint_count'])->toBeGreaterThan(0);
-    expect($preview['datapoint_estimate']['topical_datapoint_count'])->toBeGreaterThan(0);
-    expect($preview['datapoint_estimate']['label'])->toBe('Orientative standard-level estimate');
+    expect($preview['datapoint_estimate']['topical_datapoint_count'])->toBe(0);
+    expect($preview['datapoint_estimate']['label'])->toBe('Materiality-filtered P9 corpus estimate');
     expect($preview['effort_level'])->toBeIn(['low', 'medium', 'high']);
 });
 
@@ -83,7 +85,8 @@ it('stores final materiality confirmation and returns added and removed topics',
         ->assertJsonPath('data.delta.removed', [$this->e1Topic->id])
         ->assertJsonPath('data.delta.unchanged', [$this->e2Topic->id])
         ->assertJsonPath('data.preview.activated_esrs_standards', ['E2', 'S1'])
-        ->assertJsonPath('data.preview.coverage_status', 'standard_level_partial');
+        ->assertJsonPath('data.preview.coverage_status', 'topical_mapping_required')
+        ->assertJsonPath('data.preview.datapoint_estimate.topical_datapoint_count', 0);
 
     $characterization->refresh();
 
@@ -307,7 +310,7 @@ it('returns a P8 decision sheet summary for the separate frontend', function () 
         ->assertJsonPath('data.summary.removed_count', 1)
         ->assertJsonPath('data.summary.unchanged_count', 1)
         ->assertJsonPath('data.summary.activated_esrs_standards', ['E2', 'S1'])
-        ->assertJsonPath('data.summary.coverage_status', 'standard_level_partial')
+        ->assertJsonPath('data.summary.coverage_status', 'topical_mapping_required')
         ->assertJsonPath('data.e1_not_material_explanation', 'Climate impacts are below the documented ADM threshold.')
         ->assertJsonPath('data.note', 'These selections reflect the external double materiality assessment. Evidence remains outside the application.');
 

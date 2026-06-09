@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Route;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+});
+
 it('exposes the current Laravel browser session for the Next frontend', function () {
     $user = User::factory()->create([
         'email' => 'frontend-session@example.test',

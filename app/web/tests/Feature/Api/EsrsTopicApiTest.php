@@ -58,3 +58,17 @@ it('filters ESRS topics by code', function () {
         expect($item['esrs_code'])->toBe($topic->esrs_code);
     }
 });
+
+it('can auto authenticate the private dev technical user for ESRS catalog requests', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev-esrs@example.test',
+        'services.private_dev.user_name' => 'I4S ESRS Dev',
+    ]);
+
+    $this->getJson('/api/esrs-topics?per_page=5')
+        ->assertOk()
+        ->assertJsonCount(5, 'data');
+
+    expect(User::where('email', 'i4sdev-esrs@example.test')->exists())->toBeTrue();
+});

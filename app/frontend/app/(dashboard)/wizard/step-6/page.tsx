@@ -42,7 +42,7 @@ export default function Step6Page() {
   ]
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row">
+    <div className="flex min-w-0 flex-col gap-8 lg:flex-row">
       <WizardSidebar steps={steps} currentStep={6} viewingStep={6} />
 
       <ReportDraftPanel />

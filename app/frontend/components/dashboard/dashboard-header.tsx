@@ -41,7 +41,6 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     const headers = new Headers()
 
     if (csrfToken) {
-      headers.set("X-CSRF-TOKEN", csrfToken)
       headers.set("X-XSRF-TOKEN", csrfToken)
     }
 

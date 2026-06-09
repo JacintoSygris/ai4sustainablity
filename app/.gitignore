@@ -22,6 +22,8 @@ frontend/out/
 
 ai-service/.env
 ai-service/.env.*
+ai-service/keys.properties
+ai-service/**/keys.properties
 ai-service/.venv/
 ai-service/venv/
 ai-service/**/__pycache__/

@@ -1,9 +1,26 @@
-import requests
-import time
-import json
+import argparse
 import itertools
-import threading
+import json
+import os
 import sys
+import threading
+import time
+
+import requests
+
+DEFAULT_BASE_URL = "http://127.0.0.1:8001"
+BASE_URL_ENV = "I4S_AI_BASE_URL"
+
+
+def resolve_base_url(base_url=None):
+    candidate = base_url or os.environ.get(BASE_URL_ENV) or DEFAULT_BASE_URL
+    candidate = candidate.strip().rstrip("/")
+    return candidate or DEFAULT_BASE_URL
+
+
+def endpoint_url(path, base_url=None):
+    return f"{resolve_base_url(base_url)}/{path.lstrip('/')}"
+
 
 def spinner(msg="Waiting..."):
     stop_event = threading.Event()
@@ -17,12 +34,12 @@ def spinner(msg="Waiting..."):
             time.sleep(0.1)
         sys.stdout.write('\r' + ' ' * (len(msg) + 2) + '\r')  # clear line
 
-    thread = threading.Thread(target=spin)
+    thread = threading.Thread(target=spin, daemon=True)
     thread.start()
-    return stop_event
+    return stop_event, thread
 
-def sample_predict():
-    return ("http://127.0.0.1:8000/predict",  # url
+def sample_predict(base_url=None):
+    return (endpoint_url("predict", base_url),  # url
             {                                 # company data
                 "company_name": "ACCIONA, S.A.",
                 "sector_list": ["Renewable Energy", "Construction", "Water Management", "Infrastructure", "Real Estate", "Mobility"],
@@ -35,8 +52,8 @@ def sample_predict():
             })
 
 
-def sample_retrain():
-    return ("http://127.0.0.1:8000/retrain",  # url
+def sample_retrain(base_url=None):
+    return (endpoint_url("retrain", base_url),  # url
             {                                 # company_data
                 "company_name": "Banco de Sabadell, Sociedad Anonima",
                 "sector_list": ["Financial services", "Banking"],
@@ -147,6 +164,45 @@ def sample_retrain():
             })
 
 
+def format_request_exception(e: requests.exceptions.RequestException) -> str:
+    response = getattr(e, "response", None)
+    if response is None:
+        return str(e)
+
+    try:
+        detail = response.json().get('detail')
+    except ValueError:
+        detail = response.text
+
+    return f"{e} ---> {detail}"
+
+
+def run_sample_predict(base_url=None):
+    url, company_data = sample_predict(base_url=base_url)
+    stop_spinner, spinner_thread = spinner("Sending request...")
+    start_time = time.perf_counter()
+
+    try:
+        response = requests.post(url, json=company_data, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(format_request_exception(e))
+        return 1
+    except ValueError as e:
+        print(f"invalid_json_response=true detail={e}")
+        return 1
+    finally:
+        end_time = time.perf_counter()
+        stop_spinner.set()
+        spinner_thread.join(timeout=1)
+
+    elapsed = end_time - start_time
+    print(f"\nResponse: {response.status_code} in {elapsed:.2f} seconds")
+    print(f"{json.dumps(data, indent=4)}")
+    return 0
+
+
 # retrain -------------------------------------------------
 # try:
 #     url, company_data = sample_retrain()
@@ -157,35 +213,25 @@ def sample_retrain():
 #     while data.get("status") == "started" or data.get("status") == "running":
 #         print(f"{job_id}: {data.get('status')}")
 #         time.sleep(5)
-#         response = requests.get(f"http://127.0.0.1:8000/retrain-status/{job_id}")
+#         response = requests.get(f"{resolve_base_url()}/retrain-status/{job_id}")
 #         data = response.json()
 #     print(f"{job_id}: {data.get('status')}")
 #     if data.get('status') == 'failed':
 #         print(f"{data.get('error')}")
 # except requests.exceptions.RequestException as e:
-#     print(f"{e} ---> {e.response.json().get('detail')}")
+#     print(format_request_exception(e))
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Run a sample prediction against the IA4S FastAPI service.")
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=f"FastAPI base URL. Defaults to ${BASE_URL_ENV} or {DEFAULT_BASE_URL}.",
+    )
+    args = parser.parse_args(argv)
+    return run_sample_predict(base_url=args.base_url)
+
 
 # predict -------------------------------------------------
-try:
-    url, company_data = sample_predict()
-    # Start spinner
-    stop_spinner = spinner("Sending request...")
-
-    # Start timer
-    start_time = time.perf_counter()
-
-    response = requests.post(url, json=company_data)
-
-    # Stop timer and spinner
-    end_time = time.perf_counter()
-    stop_spinner.set()
-
-    response.raise_for_status()
-    data = response.json()
-
-    # Print result and timing
-    elapsed = end_time - start_time
-    print(f"\nResponse: {response.status_code} in {elapsed:.2f} seconds")
-    print(f"{json.dumps(data, indent=4)}")
-except requests.exceptions.RequestException as e:
-    print(f"{e} ---> {e.response.json().get('detail')}")
+if __name__ == "__main__":
+    sys.exit(main())

@@ -9,6 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -340,9 +342,9 @@ function reportReadyCharacterization(User $user, EsrsTopic $topic): Characteriza
                         'value' => 'Prepared on a consolidated basis.',
                         'updated_at' => now()->toJSON(),
                     ],
-                    'E2.IRO-1_01' => [
+                    'BP-1_02' => [
                         'status' => 'draft',
-                        'value' => 'Pollution IRO screening started.',
+                        'value' => 'Disclosure boundary review started.',
                         'updated_at' => now()->toJSON(),
                     ],
                 ],

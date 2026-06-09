@@ -1,10 +1,13 @@
-import threading
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
-from uuid import uuid4
 from .datatypes import *
-from .service_predict import predict_esrs, validate_model_artifacts
+from .service_predict import (
+    LEGACY_MODEL_PROFILE,
+    model_profiles_metadata,
+    predict_esrs,
+    resolve_model_profile,
+    validate_model_artifacts,
+)
 
 # ----------------------------------------------------------------
 #  ENDPOINTS
@@ -20,6 +23,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@app.get(
+    "/model-profiles",
+    summary="List AI model profiles and runtime activation state",
+    description="Returns profile inventory metadata without running a prediction. Runtime-enabled profiles can be selected through I4S_AI_MODEL_PROFILE or the request payload.",
+)
+async def model_profiles():
+    try:
+        return model_profiles_metadata()
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+
+
 @app.post(
     "/predict",
     response_model=Prediction,
@@ -32,6 +47,8 @@ app = FastAPI(lifespan=lifespan)
 async def predict(company: CompanyData):
     try:
         return predict_esrs(company)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
     except Exception as e:
         handle_exception(e)
 
@@ -49,11 +66,16 @@ async def predict(company: CompanyData):
 )
 async def retrain(company: CompanyDataAndEsrs):
     try:
-        job_id = str(uuid4())
-        job_store[job_id] = JobStatus(job_id=job_id, status=JobStatus.Status.started)
-        thread = threading.Thread(target=long_job, args=(job_id, run_retrain_classifier, company), daemon=True)
-        thread.start()
-        return JobStatus(job_id=job_id, status=JobStatus.Status.started)
+        from .service_retrain import LEGACY_TRAINER_ARCHIVED_MESSAGE, validate_retrain_esrs_labels
+
+        profile = resolve_model_profile(company.model_profile)
+        if profile.name != LEGACY_MODEL_PROFILE:
+            raise ValueError("/retrain only supports legacy_v0 until new-format retraining has a separate approved profile pipeline.")
+
+        validate_retrain_esrs_labels(company)
+        raise ValueError(LEGACY_TRAINER_ARCHIVED_MESSAGE)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
     except Exception as e:
         handle_exception(e)
 

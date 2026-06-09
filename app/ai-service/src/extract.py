@@ -56,16 +56,19 @@ class Extractor:
                 #else:
                 #    raise UnknownAiModelException(model)
                 #return
-            except UnknownApiKeyException:
-                if handler == OpenAIHandler:
-                    pass
-                else:
+            except UnknownApiKeyException as e:
+                if _model_looks_like_provider(handler, model):
                     raise
+                continue
         raise UnknownAiModelException(model)
 
     def process(self, path: str, results_file: str, tasks: list[str]):
         # self.tasks = [task_map[task] for task in tasks]
+        if not tasks:
+            raise ValueError("No active extraction tasks resolved. Check --tasks or YAML task files.")
         self.tasks = [obj for task in tasks for obj in Extractor.task_map[task]]
+        if not self.tasks:
+            raise ValueError("No active extraction tasks resolved. Check --tasks or YAML task files.")
         self.results_file = results_file
         if os.path.isdir(path):
             self.process_folder(path)
@@ -83,13 +86,19 @@ class Extractor:
 
     def __update_results(self, response, file_path: str):
         if not response:
-            return
+            return False
         if not self.all_headers:
             self.all_headers = response.to_header_row()
             self.all_values = response.to_csv_row(os.path.basename(file_path))
         else:
             self.all_headers += ';' + response.to_header_row(False)
             self.all_values += ';' + response.to_csv_row()
+        return True
+
+    def __mark_failed(self, file_path: str, reason: str):
+        print(f"[Report processor] {reason}; marking file as failed: {file_path}")
+        if file_path not in self.failed_files:
+            self.failed_files.append(file_path)
 
     def process_file(self, file_path: str):
         _, extension = os.path.splitext(file_path)
@@ -97,23 +106,32 @@ class Extractor:
         processor = Processor.get_processor(extension)
         if processor is None:
             print(f"No processor found for extension {extension}")
+            self.__mark_failed(file_path, f"No processor found for extension {extension}")
             return
 
         self.all_headers = ''
         self.all_values = ''
+        response = None
+        needs_manual_extraction = not self.vectorise
         if self.vectorise:  # we vectorise the file
             self.llm_handler.upload_file(file_path)
             print("[Report processor] Extracting...")
             for task in self.tasks:
                 response = self.llm_handler.call_with_prompt(file_path, task.prompt(), task.data_format())
                 print(f"[Task {task.task_name()}] Response: {response}")  # if None, retry
-                self.__update_results(response, file_path)
+                if not self.__update_results(response, file_path):
+                    print(f"[Task {task.task_name()}] No response from vectorised extraction")
+                    self.all_headers = ''
+                    self.all_values = ''
+                    needs_manual_extraction = True
+                    break
 
-        if not self.vectorise or response is None:  # do manual trimming
+        if needs_manual_extraction:  # do manual trimming
             try:
                 text = processor.extract(file_path)
-            except:
+            except Exception:
                 print(f"[Processor] Error reading PDF... skipping")
+                self.__mark_failed(file_path, "Processor could not read the document")
                 return
             for task in self.tasks:
                 try:
@@ -123,10 +141,16 @@ class Extractor:
                     self.failed_files.append(file_path)
                     return
                 print(f"[Task {task.task_name()}] Response: {response}")
-                self.__update_results(response, file_path)
+                if not self.__update_results(response, file_path):
+                    self.__mark_failed(file_path, f"Task {task.task_name()} produced no response")
+                    return
+
+        if not self.all_headers or not self.all_values:
+            self.__mark_failed(file_path, "No extraction output was produced")
+            return
 
         empty = not os.path.exists(self.results_file)
-        os.makedirs(os.path.dirname(self.results_file), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.abspath(self.results_file)), exist_ok=True)
         with open(self.results_file, 'a', encoding='utf-8') as file:
             if empty:
                 file.write(self.all_headers)
@@ -157,7 +181,20 @@ def parse_tasks(values):
             raise argparse.ArgumentTypeError(
                 f"'{val}' is not a known task ({list(Extractor.task_map.keys())}) or a valid file path"
             )
+    if not result:
+        raise argparse.ArgumentTypeError(
+            "No active extraction tasks resolved. Provide a known task or a YAML file/directory with active tasks."
+        )
     return result
+
+
+def _model_looks_like_provider(handler, model: str) -> bool:
+    normalized = model.lower()
+    if handler == OpenAIHandler:
+        return normalized.startswith(("gpt-", "o1", "o2", "o3", "o4"))
+    if handler == GeminiHandler:
+        return normalized.startswith("gemini")
+    return False
 
 
 def ensure_ar16_reconciled() -> ReconciliationReport:
@@ -188,7 +225,7 @@ def add_yaml_task(file: str) -> Task:
         return task
     return None
 
-if __name__ == '__main__':
+def main(argv=None):
     argument_parser = ArgumentParser(description='Extract sustainability data from documents')
     subparsers = argument_parser.add_subparsers(dest="command", required=True, help="Subcommands")
 
@@ -215,13 +252,13 @@ if __name__ == '__main__':
                                help='fail before external AI calls if AR16/YAML/Python reconciliation has pending drift')
 
     # --- parse arguments ---
-    args = argument_parser.parse_args()
-    try: # custom parse for tasks
-        args.tasks = parse_tasks(args.tasks)
-    except argparse.ArgumentTypeError as e:
-        config_parser.error(str(e))
-
+    args = argument_parser.parse_args(argv)
     if args.command == "config":
+        try: # custom parse for tasks
+            args.tasks = parse_tasks(args.tasks)
+        except argparse.ArgumentTypeError as e:
+            config_parser.error(str(e))
+
         start_time = time.time()
         if args.require_ar16_aligned:
             try:
@@ -236,8 +273,11 @@ if __name__ == '__main__':
                 )
             except RuntimeError as e:
                 config_parser.error(str(e))
-        extractor = Extractor(args.vectorise, args.model)
-        extractor.process(args.path, args.save, args.tasks)
+        try:
+            extractor = Extractor(args.vectorise, args.model)
+            extractor.process(args.path, args.save, args.tasks)
+        except ValueError as e:
+            config_parser.error(str(e))
         end_time = time.time()
         elapsed = end_time - start_time
         minutes = int(elapsed // 60)
@@ -245,8 +285,10 @@ if __name__ == '__main__':
         print(f"[Finished] Time taken: {minutes} minutes and {seconds:.2f} seconds")
         if extractor.failed_files:
             print(f"[Finished] {len(extractor.failed_files)} unprocessed files: {','.join(extractor.failed_files)}")
+            return 1
         else:
             print(f"[Finished] All files processed.")
+            return 0
 
     elif args.command == "help":
         if args.models:
@@ -259,3 +301,8 @@ if __name__ == '__main__':
                     print(f"Supported {ai_handler.__name__[:6]} models: None (unable to find {ai_handler.API_KEY_NAME})")
         else:
             print("General help:\nUse --models to get more specific help.")
+        return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

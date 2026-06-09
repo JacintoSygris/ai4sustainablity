@@ -635,3 +635,17 @@ it('resets retry metadata when a completed characterization is genuinely resubmi
 
     Bus::assertDispatched(SubmitCharacterizationJob::class);
 });
+
+it('can auto authenticate the private dev technical user for api requests', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev-api@example.test',
+        'services.private_dev.user_name' => 'I4S API Dev',
+    ]);
+
+    $this->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data', null);
+
+    expect(User::where('email', 'i4sdev-api@example.test')->exists())->toBeTrue();
+});

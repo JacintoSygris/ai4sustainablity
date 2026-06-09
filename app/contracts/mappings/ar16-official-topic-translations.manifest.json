@@ -1,0 +1,213 @@
+{
+  "created_at": "2026-06-09T17:10:26.846299+00:00",
+  "download_summary": {
+    "downloaded_at": "2026-06-09T17:10:26.376551+00:00",
+    "files": [
+      {
+        "bytes": 1892254,
+        "language": "bg",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-bg.fmx4",
+        "sha256": "7c69625ab9348e92a9e55e1d06232f2f71e6f9116ea14d29f3bc55eea0867cbc",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=bg&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1630925,
+        "language": "es",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-es.fmx4",
+        "sha256": "85c077668a79f9d9f91d10ade8b87f0cb8a89dde2163e9d23a935527d99ff4c2",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=es&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1760461,
+        "language": "cs",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-cs.fmx4",
+        "sha256": "ec144d903d8d4d0ee93469432f51aa612adfc103cfad5ee948919abaa4fe7a01",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=cs&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1740823,
+        "language": "da",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-da.fmx4",
+        "sha256": "d639396b54dcb8a5179a5879d703e08287266d05a6edb56a6486c4d8cee83de6",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=da&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1799456,
+        "language": "de",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-de.fmx4",
+        "sha256": "be373f5a591c173f23f08a6abb508263fed140967bfcca250e2c99f3cd28eacb",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=de&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1799680,
+        "language": "et",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-et.fmx4",
+        "sha256": "8aeb6dd5a03914d03d9eee90e8b8059892c1e37cc01160a21c8317520be57ca8",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=et&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 2051903,
+        "language": "el",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-el.fmx4",
+        "sha256": "dd39958e9d8e6411d645f107a2ec46b3ab66f14657a42d5951fcbdb4c05d1627",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=el&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1594873,
+        "language": "en",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-en.fmx4",
+        "sha256": "34ae8218a331a43ccb62c6e1c3afb897a431fb6426093d927ac48507f8f701d8",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=en&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1692190,
+        "language": "fr",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-fr.fmx4",
+        "sha256": "d74e174618d950611009d49d710f4e3111232a85caf0dcde0b255ccdba7bb4d8",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=fr&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1690765,
+        "language": "ga",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-ga.fmx4",
+        "sha256": "ca4aaccfe1fdaea480b94e74c75ae5b86f530c23ed9e02a420a5818a8b370581",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=ga&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 2250035,
+        "language": "hr",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-hr.fmx4",
+        "sha256": "b094ebda2ea2f8adaa040f8c9a6bb29ac27a5dff3b725d07e61b2408d8f5f78c",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=hr&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1988043,
+        "language": "it",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-it.fmx4",
+        "sha256": "58d666965ec931de3c9c4a5665d5b868d543222b5307c257a3bfd6ce116fe7c2",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=it&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1768692,
+        "language": "lv",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-lv.fmx4",
+        "sha256": "83092eff9b7dd6de34716f75ef5f01b339f47479bfd316bb791f1a23faf96c7d",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=lv&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1703990,
+        "language": "lt",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-lt.fmx4",
+        "sha256": "3896cc051a5e2243abc754ae5c85f6c53d8d3ba64865cc3a54c6ddf5b9f24e98",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=lt&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1865930,
+        "language": "hu",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-hu.fmx4",
+        "sha256": "2c3331a7aca290bbad94fb3602b7800e445a49311a39f0de036f56a77cff6d42",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=hu&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1661328,
+        "language": "mt",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-mt.fmx4",
+        "sha256": "1f49a1f56a21354146563f19ac282a69a0cdeedcfddf6e51757a4b84818399ec",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=mt&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1498681,
+        "language": "nl",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-nl.fmx4",
+        "sha256": "d4fc04ecb64e803ded92acb10e5951b5d862b1b98163828ccb02ecd2e5e39e35",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=nl&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1946659,
+        "language": "pl",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-pl.fmx4",
+        "sha256": "11ef8534303b44c19426e44ef5e6fd13b81f54c2bce3dcda27c567f793e365f3",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=pl&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1700370,
+        "language": "pt",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-pt.fmx4",
+        "sha256": "ade0ab63d387791b88d7ce93aeb641b7b80a1806480ce779f5f5759b52a6ef89",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=pt&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 2728503,
+        "language": "ro",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-ro.fmx4",
+        "sha256": "24dabbc15e80deb0eca62b622fad54e031e98cae078b5dba7567e9a8f0432b14",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=ro&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1823327,
+        "language": "sk",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-sk.fmx4",
+        "sha256": "ab49aba529c985146757fc538a90331da5b4ecaa2cd9e96b0cb462d9d3c16ce0",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=sk&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 2322477,
+        "language": "sl",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-sl.fmx4",
+        "sha256": "d7d2994479db1b2af64541e7b33d54a6e58dbb80aa60d54ea11ee7e23fc562f3",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=sl&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1821256,
+        "language": "fi",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-fi.fmx4",
+        "sha256": "8ddb1afcdec14aea96ebc00c8f544c8bc9b7432daa54ad47b3fea7527e930181",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=fi&productionSystem=cellar&part=",
+        "status": "already_present"
+      },
+      {
+        "bytes": 1725713,
+        "language": "sv",
+        "path": "D:\\AI Projects\\ia4sustainability\\app\\ai-service\\training_data\\official_sources\\eurlex_32023R2772_ar16\\fmx4\\32023R2772-sv.fmx4",
+        "sha256": "71408ac1400e60f129691676af9a8757c0705c7d6d1fcb744d15b266204aec56",
+        "source_url": "https://op.europa.eu/o/opportal-service/download-handler?identifier=3e901799-1124-11ef-a251-01aa75ed71a1&format=fmx4&language=sv&productionSystem=cellar&part=",
+        "status": "already_present"
+      }
+    ],
+    "language_count": 24,
+    "publication_id": "3e901799-1124-11ef-a251-01aa75ed71a1",
+    "source": "Publications Office of the European Union Cellar download handler"
+  },
+  "export_summary": {
+    "ar16_row_count": 89,
+    "language_count": 24,
+    "output_path": "D:\\AI Projects\\ia4sustainability\\app\\contracts\\mappings\\ar16-official-topic-translations.csv",
+    "row_count": 2136,
+    "sha256": "5f5d8a1f5c416b019f1acf264a71c412fc02dc638dba5f6470166eb0ea2e7bf7"
+  },
+  "publication_id": "3e901799-1124-11ef-a251-01aa75ed71a1",
+  "schema_version": "ar16-official-translations-v1",
+  "source": "Publications Office of the European Union Cellar download handler"
+}

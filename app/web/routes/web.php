@@ -2,19 +2,20 @@
 
 use App\Http\Controllers\CharacterizationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\AuthenticatePrivateDevUser;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
         ? redirect()->route('characterization.create')
         : redirect()->route('login');
-});
+})->middleware(AuthenticatePrivateDevUser::class);
 
 Route::get('/dashboard', function () {
     return redirect()->route('characterization.create');
-})->middleware('auth')->name('dashboard');
+})->middleware([AuthenticatePrivateDevUser::class, 'auth'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware([AuthenticatePrivateDevUser::class, 'auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

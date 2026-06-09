@@ -101,7 +101,7 @@ export function ReportDraftPanel() {
   const pendingFinalGeneration = finalGenerationPending(readiness, draft)
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="min-w-0 flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Informe ESRS</h1>
@@ -194,8 +194,8 @@ export function ReportDraftPanel() {
             </Card>
           ) : null}
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-            <div className="space-y-6">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0 space-y-6">
               <Card>
                 <CardContent className="space-y-4 pt-6">
                   <div>

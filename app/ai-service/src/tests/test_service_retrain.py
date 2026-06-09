@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from services.datatypes import CompanyDataAndEsrs
 from services import service_retrain
@@ -55,6 +56,19 @@ class SuccessfulTrainModule:
 
 
 class ServiceRetrainTest(unittest.TestCase):
+    def test_archived_legacy_trainer_does_not_mutate_canonical_csvs_or_artifacts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir) / "data"
+            write_fixture_data(data_dir)
+            before = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+
+            with self.assertRaisesRegex(RuntimeError, "legacy retrain trainer was archived"):
+                service_retrain.retrain_classifier(COMPANY, data_path=data_dir)
+
+            after = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+
+        self.assertEqual(after, before)
+
     def test_failed_retrain_does_not_mutate_canonical_csvs_or_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             data_dir = Path(temp_dir) / "data"
@@ -66,6 +80,27 @@ class ServiceRetrainTest(unittest.TestCase):
                     COMPANY,
                     data_path=data_dir,
                     train_module=FailingTrainModule(),
+                )
+
+            after = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+
+        self.assertEqual(after, before)
+
+    def test_invalid_esrs_labels_do_not_mutate_canonical_csvs_or_artifacts(self):
+        bad_company = COMPANY.model_copy(
+            update={"esrs": {"esrs_e1_energy_use": 1, "esrs_unknown_topic": 1}}
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir) / "data"
+            write_fixture_data(data_dir)
+            before = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+
+            with self.assertRaises(ValueError):
+                service_retrain.retrain_classifier(
+                    bad_company,
+                    data_path=data_dir,
+                    train_module=SuccessfulTrainModule(),
                 )
 
             after = {path.name: path.read_bytes() for path in data_dir.iterdir()}
@@ -91,6 +126,32 @@ class ServiceRetrainTest(unittest.TestCase):
         self.assertIn("Manufacturing,Services", company_csv)
         self.assertIn("NewCo;1", esrs_csv)
         self.assertEqual(classifier, "new-esrs_classifier.pkl")
+
+    def test_failed_mid_promotion_restores_canonical_csvs_and_artifacts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_dir = Path(temp_dir) / "data"
+            write_fixture_data(data_dir)
+            before = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+            original_replace = Path.replace
+            replace_calls = []
+
+            def fail_second_replace(source, target):
+                replace_calls.append((source.name, Path(target).name))
+                if len(replace_calls) == 2:
+                    raise PermissionError("simulated promotion failure")
+                return original_replace(source, target)
+
+            with patch.object(Path, "replace", fail_second_replace):
+                with self.assertRaises(PermissionError):
+                    service_retrain.retrain_classifier(
+                        COMPANY,
+                        data_path=data_dir,
+                        train_module=SuccessfulTrainModule(),
+                    )
+
+            after = {path.name: path.read_bytes() for path in data_dir.iterdir()}
+
+        self.assertEqual(after, before)
 
 
 if __name__ == "__main__":
