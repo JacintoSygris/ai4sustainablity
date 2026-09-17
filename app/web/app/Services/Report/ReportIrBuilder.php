@@ -45,7 +45,7 @@ class ReportIrBuilder
         }
 
         $disclaimers = [
-            'No es presentación oficial, aseguramiento, Taxonomía UE ni un documento iXBRL presentado.',
+            'No es presentación oficial, aseguramiento, opinión legal, Taxonomía UE ni un documento iXBRL presentado.',
         ];
 
         if ($omissions['is_stale']) {

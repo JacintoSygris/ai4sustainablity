@@ -1,6 +1,6 @@
 export const metadata = {
   title: "Términos del servicio - Airis",
-  description: "Condiciones de uso de la plataforma de preparación de informes ESRS.",
+  description: "Condiciones de uso de la plataforma de organización de información ESRS.",
 }
 
 export default function TermsPage() {
@@ -18,27 +18,27 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Objeto del servicio</h2>
         <p className="text-muted-foreground">
-          Esta plataforma te ayuda a preparar y organizar la información de sostenibilidad de tu empresa siguiendo los
-          estándares europeos ESRS 2023. El servicio te acompaña en la materialidad, en la selección de indicadores y en
-          la recopilación de evidencias.
+          Esta plataforma te ayuda a organizar información de sostenibilidad relacionada con ESRS 2023. El servicio
+          acompaña la descripción de la organización, la revisión de temas propuestos, el registro de decisiones humanas
+          y la recogida de información disponible o pendiente.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Qué NO es este servicio</h2>
         <p className="text-muted-foreground">
-          El resultado que obtienes es un borrador de trabajo y una organización de tus evidencias. Es importante que
-          tengas claro sus límites:
+          El resultado que obtienes es material de trabajo y un resumen de preparación. Es importante que tengas claro
+          sus límites:
         </p>
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>No es una presentación oficial de tu informe ante ningún organismo.</li>
           <li>No es un servicio de aseguramiento ni de verificación independiente.</li>
           <li>No sustituye el asesoramiento profesional legal, contable o de auditoría.</li>
-          <li>No garantiza por sí solo el cumplimiento de ninguna obligación normativa.</li>
+          <li>No garantiza por sí solo cumplimiento, precisión, suficiencia metodológica ni aceptación regulatoria.</li>
         </ul>
         <p className="text-muted-foreground">
-          La responsabilidad final sobre el contenido, la exactitud y la presentación de tu informe es siempre de tu
-          empresa.
+          La responsabilidad final sobre el contenido, la exactitud, la materialidad y cualquier uso de las salidas es
+          siempre de tu organización.
         </p>
       </section>
 
@@ -47,16 +47,16 @@ export default function TermsPage() {
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>Eres responsable de mantener la confidencialidad de tus credenciales de acceso.</li>
           <li>La información que introduzcas debe ser veraz y estar actualizada.</li>
-          <li>Debes contar con permiso para subir los documentos que aportes a la plataforma.</li>
+          <li>Debes contar con permiso para registrar datos, referencias o documentos si el operador activa esa función.</li>
         </ul>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Tus contenidos</h2>
         <p className="text-muted-foreground">
-          Los documentos y datos que subes siguen siendo tuyos. Nos autorizas únicamente a tratarlos para prestarte el
-          servicio, según se describe en la política de privacidad. Puedes eliminar tus documentos y tu cuenta cuando
-          quieras.
+          Los datos y referencias que introduces siguen siendo tuyos o de tu organización. Autorizas su tratamiento para
+          prestar el servicio según la política de privacidad aplicable. La eliminación y conservación dependen del
+          entorno y de las obligaciones del operador.
         </p>
       </section>
 

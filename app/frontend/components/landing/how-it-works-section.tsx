@@ -7,18 +7,18 @@ export function HowItWorksSection() {
     },
     {
       number: 2,
-      title: "Análisis de doble materialidad",
-      description: "Identifica y prioriza los impactos medioambientales y sociales más relevantes.",
+      title: "Revisión de temas",
+      description: "Contrasta las propuestas con tu actividad, cadena de valor y criterio del equipo responsable.",
     },
     {
       number: 3,
-      title: "Borrador y evidencias",
-      description: "Genera un paquete de revisión con borrador estructurado y evidencias trazables.",
+      title: "Materialidad y datos",
+      description: "Registra la selección humana y reúne información, pendientes y referencias de evidencia.",
     },
     {
       number: 4,
-      title: "Revisión y exportación",
-      description: "Verifica el contenido y descarga los datos que sostienen tu revisión final.",
+      title: "Resumen y exportación",
+      description: "Consulta el estado de preparación y descarga salidas de trabajo para revisión posterior.",
     },
   ]
 
@@ -30,8 +30,8 @@ export function HowItWorksSection() {
           <div className="rounded-2xl bg-primary p-8 text-primary-foreground lg:p-12">
             <h2 className="text-2xl font-bold md:text-3xl">¿Cómo te ayuda Airis?</h2>
             <p className="mt-4 text-primary-foreground/80">
-              Airis automatiza todo el flujo de trabajo de tu reporte de sostenibilidad, desde la caracterización
-              inicial hasta el paquete de revisión final.
+              Airis organiza el recorrido y deja visible qué está registrado, qué falta y qué sigue dependiendo de tu
+              equipo.
             </p>
             <button className="mt-6 rounded-lg border border-primary-foreground/30 px-6 py-2 text-sm font-medium transition-colors hover:bg-primary-foreground/10">
               Descubrir

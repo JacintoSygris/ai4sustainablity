@@ -91,7 +91,7 @@ class FloorProseComposer
     {
         $when = $confirmedAt !== null && $confirmedAt !== '' ? " de {$confirmedAt}" : ' registrada';
 
-        return "La propuesta automática de temas cambió después de la confirmación; este informe refleja la confirmación{$when}.";
+        return "La propuesta automática de temas cambió después de la confirmación; esta salida refleja la confirmación{$when}.";
     }
 
     private function joinEs(array $items): string

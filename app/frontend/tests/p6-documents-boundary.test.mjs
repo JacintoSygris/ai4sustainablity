@@ -136,17 +136,17 @@ test("negative document evidence is context only and never touches the review co
   assert.equal(topicHasNegativeDocumentEvidence([]), false)
 })
 
-test("consent/retention copy lives in one draft-marked constant rendered above the upload control", () => {
+test("consent/retention copy lives in one shared constant rendered above the upload control", () => {
   const consentSource = read("lib/p6-document-consent-copy.ts")
   const panelSource = read("components/wizard/document-evidence-panel.tsx")
 
-  assert.match(consentSource, /DRAFT/, "constant must be explicitly marked draft pending sign-off")
   assert.match(consentSource, /export const P6_DOCUMENT_CONSENT_COPY\b/, "copy must live in one exported constant")
-  assert.match(consentSource, /de forma privada/, "copy must state private storage")
-  assert.match(consentSource, /servicio de la plataforma/, "copy must state on-platform service analysis")
-  assert.match(consentSource, /nunca se env[ií]a/, "copy must state content never leaves to external AI services")
-  assert.match(consentSource, /hasta que decidas eliminarlo/, "copy must state keep-until-user-deletes retention")
-  assert.match(consentSource, /se borra por completo/, "copy must state full purge on deletion")
+  assert.match(
+    consentSource,
+    /El tratamiento de los documentos depende de la configuración del operador\./,
+    "copy must describe operator-dependent document handling",
+  )
+  assert.doesNotMatch(consentSource, /draft_pending_sign_off/, "copy must not expose internal approval markers")
   assert.match(panelSource, /P6_DOCUMENT_CONSENT_COPY/, "panel must render the shared consent constant")
   assert.doesNotMatch(panelSource, /servicio de la plataforma/, "panel must not duplicate the consent copy inline")
 

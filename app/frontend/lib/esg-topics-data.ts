@@ -253,7 +253,7 @@ export const esgTopicsData: ESGCategory[] = [
           {
             id: "s3-3",
             name: "Participación comunitaria",
-            examples: ["Programas de inversión social.", "Diálogo con stakeholders locales."],
+            examples: ["Programas de inversión social.", "Diálogo con grupos de interés locales."],
           },
         ],
       },

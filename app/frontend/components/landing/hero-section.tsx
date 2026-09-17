@@ -8,13 +8,13 @@ export function HeroSection() {
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="max-w-xl">
             <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Tu informe ESG,
+              Ordena tu trabajo ESRS,
               <br />
-              <span className="text-foreground">listo en minutos gracias a la IA</span>
+              <span className="text-foreground">con decisiones humanas y límites claros</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Descubre Airis, tu asistente para preparar reportes ESRS 2023 con materialidad, datapoints y evidencias
-              organizadas para revisión.
+              Airis te ayuda a describir tu organización, revisar temas propuestos, registrar decisiones de materialidad
+              y preparar un resumen de información disponible y pendiente.
             </p>
             <Button size="lg" className="mt-8" asChild>
               <Link href="/register">Empezar ahora</Link>

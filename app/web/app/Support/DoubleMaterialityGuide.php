@@ -15,7 +15,7 @@ class DoubleMaterialityGuide
             'content_format' => 'structured_prose_v2',
             'warning' => [
                 'en' => 'The guide accelerates the external double materiality assessment; it does not decide materiality.',
-                'es' => 'La guia acelera la ADM externa; no decide la materialidad.',
+                'es' => 'La guía acelera la ADM externa; no decide la materialidad.',
             ],
             'sections' => [
                 self::section(
@@ -25,28 +25,28 @@ class DoubleMaterialityGuide
                     [
                         self::step(
                             'review_p5_p6',
-                            'Review P5 characterization and P6 proposal',
-                            'Revisar la caracterizacion P5 y la propuesta P6',
+                            'Review the organization description and proposed topics',
+                            'Revisar la descripción de la organización y la propuesta de temas',
                             [
                                 'en' => 'Before starting, review what you already have: your company description from step 1 and the list of proposed topics from step 2. That list is your starting point, not the final decision. Note the topics you are unsure about: they are the ones that need the most attention in the analysis.',
                                 'es' => 'Antes de empezar, repasa lo que ya tienes: la descripción de tu empresa del paso 1 y la lista de temas propuestos del paso 2. Esa lista es tu punto de partida, no la decisión final. Apunta los temas que no tengas claros: son los que más atención necesitan en el análisis.',
                             ],
                             [
-                                'Confirm company perimeter, reporting year, sector, size range, and AI-proposed AR16 topics.',
-                                'Mark unclear P6 topics as items to resolve during the ADM workshop.',
+                                'Confirma perímetro, ejercicio, sector, tamaño y temas propuestos.',
+                                'Marca los temas dudosos para resolverlos durante el análisis.',
                             ],
                         ),
                         self::step(
                             'define_boundaries',
                             'Define assessment boundaries',
-                            'Definir limites de la evaluacion',
+                            'Definir límites de la evaluación',
                             [
                                 'en' => 'Decide what is included in the analysis: your own activity, what happens before it (suppliers, raw materials), and what happens after it (distribution, product use, waste). Perfection is not needed: write down what you include and leave out, and why.',
                                 'es' => 'Decide qué entra en el análisis: tu propia actividad, lo que pasa antes (proveedores, materias primas) y lo que pasa después (distribución, uso del producto, residuos). No hace falta perfección: anota qué incluyes y qué dejas fuera, y por qué.',
                             ],
                             [
-                                'Separate own operations, upstream value chain, and downstream value chain.',
-                                'Record assumptions that may affect impact or financial materiality.',
+                                'Separa operaciones propias, cadena de valor anterior y cadena de valor posterior.',
+                                'Registra los supuestos que puedan afectar a la materialidad de impacto o financiera.',
                             ],
                         ),
                     ],
@@ -65,21 +65,21 @@ class DoubleMaterialityGuide
                                 'es' => 'Para cada tema de tu lista, escribe en una tabla sencilla (vale una hoja de cálculo propia o papel): qué impacto causa tu empresa (a quién afecta y cuánto), y qué riesgo u oportunidad económica supone para ti (multas, costes, clientes que lo exigen, ahorros). Una línea por idea concreta, indicando dónde ocurre (tu empresa, proveedores o clientes).',
                             ],
                             [
-                                'Use AR16 matters as a completeness checklist, not as the materiality decision itself.',
-                                'Write one IRO per row with a clear value-chain location and affected stakeholder or financial channel.',
+                                'Usa los asuntos AR16 como comprobación de completitud, no como decisión de materialidad.',
+                                'Escribe un IRO por fila con ubicación clara en la cadena de valor y grupo de interés o canal financiero afectado.',
                             ],
                         ),
                         self::step(
                             'stakeholder_input',
                             'Capture stakeholder input',
-                            'Registrar input de stakeholders',
+                            'Registrar aportaciones de grupos de interés',
                             [
-                                'en' => 'Talk to people who know the company from inside and outside: staff, main customers, key suppliers, accountant or advisory office, and bank if relevant. Ask: which topics in this list worry you or could affect us? Note who said what and when. You do not need formal surveys: two or three well-noted conversations are enough.',
-                                'es' => 'Habla con quien conoce la empresa por dentro y por fuera: plantilla, clientes principales, proveedores clave, gestoría, banco si aplica. Pregunta: ¿qué temas de esta lista os preocupan o nos pueden afectar? Apunta quién dijo qué y cuándo. No necesitas encuestas formales: dos o tres conversaciones bien apuntadas valen.',
+                                'en' => 'Talk to people who know the company from inside and outside: staff, main customers, key suppliers, accountant or advisory office, and bank if relevant. Ask: which topics in this list worry you or could affect us? Note who said what and when. Decide the depth of consultation according to your organisation, context and risk.',
+                                'es' => 'Habla con quien conoce la empresa por dentro y por fuera: plantilla, clientes principales, proveedores clave, gestoría, banco si aplica. Pregunta: ¿qué temas de esta lista os preocupan o nos pueden afectar? Apunta quién dijo qué y cuándo. Decide la profundidad de la consulta según tu organización, contexto y riesgo.',
                             ],
                             [
-                                'Note source, date, stakeholder group, and the matter or IRO affected.',
-                                'Use this evidence outside the app; P8 only records final topic changes.',
+                                'Anota fuente, fecha, grupo de interés y tema o IRO afectado.',
+                                'Conserva esta evidencia fuera de la aplicación; el paso 4 solo registra los cambios finales de temas.',
                             ],
                         ),
                     ],
@@ -98,8 +98,8 @@ class DoubleMaterialityGuide
                                 'es' => "Para cada tema, pregunta: ¿cómo de grave es el daño que causamos o podemos causar (o el beneficio)? ¿A cuánta gente o entorno afecta? ¿Se puede revertir? ¿Cómo de probable es? Si la respuesta combinada es 'importante', el tema es material por impacto. Sé conservador: ante la duda, dentro.",
                             ],
                             [
-                                'Score scale, scope, irremediability, and likelihood using the organization threshold method.',
-                                'Keep evidence references for assurance review outside the application.',
+                                'Valora escala, alcance, carácter irremediable y probabilidad con el método de umbral de la organización.',
+                                'Conserva las referencias de evidencia para revisión externa fuera de la aplicación.',
                             ],
                         ),
                         self::step(
@@ -111,8 +111,8 @@ class DoubleMaterialityGuide
                                 'es' => 'Ahora el otro lado: ¿este tema puede costarnos o hacernos ganar dinero de forma apreciable? Piensa en multas, licencias, clientes que exigen requisitos, costes de energía o materiales, acceso a financiación. Si el efecto posible es apreciable para el tamaño de tu empresa, el tema es material financieramente.',
                             ],
                             [
-                                'Estimate potential financial effects, time horizon, likelihood, and magnitude.',
-                                'Record whether each IRO meets the defined threshold.',
+                                'Estima efectos financieros potenciales, horizonte temporal, probabilidad y magnitud.',
+                                'Registra si cada IRO alcanza el umbral definido.',
                             ],
                         ),
                     ],
@@ -120,7 +120,7 @@ class DoubleMaterialityGuide
                 self::section(
                     'document_decision',
                     'Document the decision',
-                    'Documentar la decision',
+                    'Documentar la decisión',
                     [
                         self::step(
                             'decision_log',
@@ -131,16 +131,16 @@ class DoubleMaterialityGuide
                                 'es' => 'Cierra la lista: para cada tema escribe material o no material y una frase de motivo. Si quitas un tema que estaba propuesto, el motivo es obligatorio para tu propia trazabilidad. Esa lista cerrada es lo que confirmarás en el paso 4.',
                             ],
                             [
-                                'Summarize which AR16 matters are material and why.',
-                                'Keep a decision log for topics added, removed, or left unchanged against P6.',
+                                'Resume qué asuntos AR16 son materiales y por qué.',
+                                'Mantén un registro de decisión para los temas añadidos, retirados o mantenidos frente a la propuesta.',
                             ],
                         ),
                     ],
                 ),
                 self::section(
                     'return_to_p8',
-                    'Return to P8',
-                    'Volver a P8',
+                    'Return to topic confirmation',
+                    'Volver a la confirmación de temas',
                     [
                         self::step(
                             'sync_to_laravel',
@@ -151,8 +151,8 @@ class DoubleMaterialityGuide
                                 'es' => 'Vuelve a la aplicación con tu lista cerrada y el acta de la reunión (fecha, método, participantes). En el paso 4 registrarás los cambios frente a la propuesta y la aplicación guardará tu hoja de decisión.',
                             ],
                             [
-                                'Use P8 to confirm final material topics and optional reason chips.',
-                                'If P6 proposed E1 and the ADM concludes E1 is not material, enter the required short explanation.',
+                                'Usa el paso 4 para confirmar los temas materiales finales y los motivos opcionales.',
+                                'Si la propuesta incluía E1 y la ADM concluye que E1 no es material, introduce la breve explicación requerida.',
                             ],
                         ),
                     ],

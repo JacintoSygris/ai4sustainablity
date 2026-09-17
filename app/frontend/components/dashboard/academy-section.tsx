@@ -17,7 +17,7 @@ const articles = [
   },
   {
     id: 2,
-    title: "Guía de stakeholders ESG",
+    title: "Grupos de interés",
     description:
       "Descubre cómo identificar y consultar a los grupos de interés clave para tu análisis de materialidad.",
     image: "/esg-business-meeting.jpg",
@@ -27,7 +27,7 @@ const articles = [
     id: 3,
     title: "Energías renovables y CSRD",
     description:
-      "Todo lo que necesitas saber sobre la divulgación de información relacionada con energías renovables en tu informe ESG.",
+      "Pistas para revisar información relacionada con energías renovables antes de incorporarla a una salida de trabajo.",
     image: "/wind-turbines-renewable-energy.jpg",
     isExternal: true,
   },
@@ -42,7 +42,7 @@ export function AcademySection() {
     <section className="mt-12">
       <h2 className="text-2xl font-bold text-foreground">Airis Academy</h2>
       <p className="mt-2 text-muted-foreground">
-        Descubre artículos, guías y tutoriales que te acompañarán en cada fase de la generación de un informe ESG:
+        Consulta guías de apoyo para revisar materialidad, grupos de interés e información de sostenibilidad:
       </p>
 
       <div className="relative mt-6 max-w-md">

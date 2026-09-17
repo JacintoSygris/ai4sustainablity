@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Airis - Preparación ESRS asistida",
-  description: "Asistente para preparar reportes ESRS 2023 con materialidad, datapoints y evidencias organizadas.",
+  description: "Asistente para organizar información ESRS 2023, propuestas revisables y decisiones humanas.",
   icons: {
     icon: "/icon-light-32x32.png",
     apple: "/apple-icon.png",

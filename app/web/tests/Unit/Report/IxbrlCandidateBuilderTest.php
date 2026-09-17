@@ -37,7 +37,7 @@ it('builds deterministic parseable XHTML iXBRL for compatible text monetary and 
 
     expect($first->bytes)->toBe($second->bytes)
         ->and($first->filename)->toBe('ixbrl-candidate-characterization-123.xhtml')
-        ->and($first->bytes)->toContain('Paquete tecnico iXBRL candidato; no presentacion oficial')
+        ->and($first->bytes)->toContain('Candidato tecnico iXBRL; no presentacion oficial')
         ->and($first->bytes)->toContain('taxonomies/esrs-set1-2024/xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd')
         ->and($first->bytes)->toContain('ix:nonNumeric')
         ->and($first->bytes)->toContain('ix:nonFraction')

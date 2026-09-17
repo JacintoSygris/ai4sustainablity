@@ -4,21 +4,21 @@ export function FeaturesSection() {
   const features = [
     {
       icon: HelpCircle,
-      title: "Sin conocimientos previos",
+      title: "Recorrido guiado",
       description:
-        "No necesitas experiencia técnica ni en sostenibilidad. Solo sigue las indicaciones de Airis y completa la información paso a paso.",
+        "La interfaz separa la descripción de la organización, la revisión de temas, la materialidad y la recogida de información.",
     },
     {
       icon: Sparkles,
-      title: "Inteligencia artificial ESG",
+      title: "Propuestas revisables",
       description:
-        "Nuestra inteligencia artificial está entrenada con las mejores prácticas de sostenibilidad para generar contenido preciso y adaptado.",
+        "Las sugerencias automáticas son puntos de partida. La selección final y los motivos siguen siendo decisiones humanas.",
     },
     {
       icon: FileText,
-      title: "Informes automáticos",
+      title: "Salidas de trabajo",
       description:
-        "Genera un informe ESG al instante, listo para presentar a tus stakeholders y cumplir con las normativas.",
+        "Descarga hojas de decisión, listas CSV, resúmenes de preparación y paquetes técnicos condicionados para revisión.",
     },
   ]
 

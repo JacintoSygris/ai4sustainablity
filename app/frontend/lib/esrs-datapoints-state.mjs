@@ -1,5 +1,5 @@
 export const P9_EXPORT_LINKS = [
-  { key: "corpus", label: "Corpus CSV", path: "/esrs-datapoints/export.csv" },
+  { key: "corpus", label: "Lista de información CSV", path: "/esrs-datapoints/export.csv" },
   { key: "responses", label: "Respuestas CSV", path: "/esrs-datapoints/responses/export.csv" },
 ]
 
@@ -55,7 +55,7 @@ export function flattenCorpus(corpus) {
   return Object.values(corpus.blocks ?? {}).flatMap((block) =>
     (block.datapoints ?? []).map((datapoint) => ({
       blockKey: block.key ?? "",
-      blockTitle: block.title ?? block.key ?? "Bloque P9",
+      blockTitle: block.title ?? block.key ?? "Bloque de información",
       datapoint,
     })),
   )
@@ -286,12 +286,12 @@ function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) 
 
   if (mappingStatus === "partial") {
     return [
-      "El mapa AR16 a DR configurado está incompleto o no es válido para todos los temas confirmados. P9 bloquea los datapoints tópicos hasta corregirlo.",
+      "La correspondencia AR16 a requisito de divulgación configurada está incompleta o no es válida para todos los temas confirmados. La información temática queda bloqueada hasta corregirlo.",
     ]
   }
 
   return [
-    "Falta el mapa aprobado AR16 a DR. P9 no incluirá datapoints tópicos para evitar convertir un tema material en todo el estándar ESRS.",
+    "Falta una correspondencia AR16 a requisito de divulgación completa y válida. La información temática no se incluye para evitar convertir un tema material en todo el estándar ESRS.",
   ]
 }
 

@@ -8,33 +8,33 @@
 export const WIZARD_STEPS = [
   {
     id: 1,
-    title: "Encuesta inicial",
-    description: "Contesta unas preguntas rápidas sobre tu empresa. ¡Así podremos ayudarte mejor!",
+    title: "Describe la organización",
+    description: "Registra actividad, tamaño, alcance y ejercicio de referencia.",
   },
   {
     id: 2,
-    title: "Revisión de temas materiales",
-    description: "Revisa los temas candidatos propuestos por la IA para tu sector y modifícalos si lo consideras necesario.",
+    title: "Revisa temas propuestos",
+    description: "Contrasta las propuestas automáticas y ajusta la lista con criterio humano.",
   },
   {
     id: 3,
     title: "Doble materialidad",
-    description: "Realiza el análisis de doble materialidad siguiendo las indicaciones marcadas.",
+    description: "Usa la guía para ordenar el análisis que realiza tu equipo.",
   },
   {
     id: 4,
-    title: "Selección final de temas relevantes",
-    description: "Tras realizar el análisis, identifica los temas más relevantes para tu empresa.",
+    title: "Confirma temas materiales",
+    description: "Guarda la selección final y los motivos que quieras conservar.",
   },
   {
     id: 5,
-    title: "Datapoints (ESRS)",
-    description: "Rellena los indicadores sugeridos con la información de tu empresa.",
+    title: "Reúne información ESRS",
+    description: "Registra respuestas, pendientes y no aplicables justificados.",
   },
   {
     id: 6,
-    title: "Informe",
-    description: "Revisa el borrador y las descargas preparadas por la plataforma.",
+    title: "Resultados",
+    description: "Revisa el resumen de preparación y las descargas disponibles.",
   },
 ]
 

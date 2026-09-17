@@ -1,6 +1,6 @@
 export const metadata = {
   title: "Política de privacidad - Airis",
-  description: "Cómo Airis trata los datos de tu cuenta, tus respuestas y los documentos que subes.",
+  description: "Cómo el operador debe explicar el tratamiento de cuenta, respuestas y referencias.",
 }
 
 export default function PrivacyPage() {
@@ -31,15 +31,15 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>
             <span className="font-medium text-foreground">Datos de tu cuenta:</span> nombre, correo electrónico y la
-            contraseña (que guardamos siempre cifrada, nunca en texto legible).
+            contraseña (guardada mediante un resumen criptográfico, no en texto legible).
           </li>
           <li>
             <span className="font-medium text-foreground">Respuestas de caracterización:</span> la información que
             introduces sobre tu empresa, tu actividad y tus decisiones a lo largo del asistente.
           </li>
           <li>
-            <span className="font-medium text-foreground">Documentos que subes:</span> los archivos de tu empresa que
-            aportas como evidencia para analizar tu informe.
+            <span className="font-medium text-foreground">Referencias y documentos, si el operador los activa:</span>{" "}
+            archivos o referencias que aportas como apoyo de trabajo.
           </li>
           <li>
             <span className="font-medium text-foreground">Datos técnicos mínimos:</span> los necesarios para mantener tu
@@ -49,19 +49,19 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-foreground">Cómo tratamos los documentos que subes</h2>
+        <h2 className="text-xl font-semibold text-foreground">Cómo deben tratarse los documentos</h2>
         <p className="text-muted-foreground">
-          Los documentos que subes se almacenan de forma privada y solo son accesibles desde tu cuenta. Su análisis se
-          realiza únicamente en el propio servidor de la plataforma. No enviamos tus documentos ni su contenido a
-          servicios de inteligencia artificial externos ni a terceros para su procesamiento.
+          El perfil público incluido desactiva la carga documental y no incorpora el servicio compatible de extracción.
+          Si un operador activa una función documental propia, debe explicar qué archivos almacena, qué extracciones
+          conserva, qué proveedores intervienen y qué registros pueden permanecer.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Para qué usamos tus datos</h2>
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-          <li>Prestarte el servicio de preparación de informes y guardar tu progreso.</li>
-          <li>Analizar los documentos que aportas para ayudarte a organizar tus evidencias.</li>
+          <li>Prestarte el servicio de organización de información y guardar tu progreso cuando el entorno lo permita.</li>
+          <li>Ordenar referencias de evidencia y respuestas registradas.</li>
           <li>Gestionar tu cuenta, tu acceso y la seguridad del servicio.</li>
         </ul>
       </section>
@@ -69,10 +69,10 @@ export default function PrivacyPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Cuánto tiempo conservamos tus datos</h2>
         <p className="text-muted-foreground">
-          Conservamos tus respuestas y tus documentos mientras mantengas tu cuenta activa y no los elimines. Cuando
-          borras un documento, se elimina por completo de nuestros sistemas. Cuando solicitas la eliminación de tu
-          cuenta, borramos de forma definitiva tus datos personales, tus respuestas y tus documentos, salvo aquello que
-          debamos conservar por una obligación legal.
+          La conservación depende del operador y del entorno. En la evaluación local incluida, la base SQLite se recrea
+          al arrancar el componente web y no debe usarse para conservar información. En otros entornos, pueden existir
+          registros, metadatos, copias de seguridad o obligaciones legales que impidan prometer un borrado absoluto sin
+          una política concreta del operador.
         </p>
       </section>
 
@@ -113,8 +113,8 @@ export default function PrivacyPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Cookies</h2>
         <p className="text-muted-foreground">
-          Usamos solo las cookies necesarias para iniciar sesión y mantener tu sesión segura. No utilizamos cookies de
-          seguimiento publicitario ni de terceros. Tienes más detalle en el aviso de cookies del propio sitio.
+          La plataforma usa cookies necesarias para iniciar sesión y mantener la sesión. Cualquier uso adicional debe
+          describirse en el aviso del operador.
         </p>
       </section>
 
