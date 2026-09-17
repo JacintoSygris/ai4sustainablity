@@ -111,9 +111,9 @@ export function ReportDraftPanel() {
     <div className="min-w-0 flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Resumen de preparación ESRS</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Resumen de preparación ASG/ESRS</h1>
           <p className="mt-2 text-muted-foreground">
-            Esto muestra qué información está registrada, qué falta y qué descargas pueden generarse.
+            Esto muestra qué asuntos materiales, indicadores/datos y evidencias están registrados, qué falta y qué descargas pueden generarse.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -144,13 +144,13 @@ export function ReportDraftPanel() {
           <div className="space-y-2">
             <p className="text-sm font-semibold text-amber-900">Alcance y límites de estas salidas</p>
             <p className="text-sm text-amber-900">
-              Este paquete organiza el estado de preparación ESRS 2023. Ten en cuenta sus límites:
+              Este paquete organiza el estado de preparación ASG/ESRS. Ten en cuenta sus límites:
             </p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
               <li>No es una presentación oficial ante ningún organismo.</li>
               <li>No es un servicio de aseguramiento ni de verificación independiente.</li>
               <li>No equivale a la atestación de la Taxonomía de la UE.</li>
-              <li>El candidato XHTML/iXBRL, cuando esté disponible, es una operación técnica condicionada.</li>
+              <li>El candidato XHTML/iXBRL, cuando esté disponible, es una operación técnica condicionada y requiere aprobación humana.</li>
             </ul>
           </div>
         </div>
@@ -191,12 +191,16 @@ export function ReportDraftPanel() {
               <div className="space-y-2 text-sm text-foreground">
                 <p>
                   {draft.materiality.is_confirmed && draft.materiality.confirmed_topic_count > 0
-                    ? `Una lista de ${draft.materiality.confirmed_topic_count} temas materiales confirmados por la persona usuaria`
-                    : "Pendiente: confirma tus temas materiales en el paso 4"}
+                    ? `Una lista de ${draft.materiality.confirmed_topic_count} asuntos materiales confirmados por la persona usuaria`
+                    : "Pendiente: confirma tus asuntos materiales en el paso 4"}
                 </p>
-                <p>Lista de {draft.datapoints.total_datapoint_count} elementos de información seleccionados por la plataforma</p>
                 <p>
-                  {draft.datapoints.decided_count} de {draft.datapoints.total_datapoint_count} elementos con respuesta o no aplicable justificado
+                  Lista de {draft.datapoints.total_datapoint_count} indicadores/datos ESRS seleccionados por la
+                  plataforma
+                </p>
+                <p>
+                  {draft.datapoints.decided_count} de {draft.datapoints.total_datapoint_count} indicadores/datos con
+                  respuesta o no aplicable justificado
                 </p>
                 {draft.datapoints.orphaned_response_count && draft.datapoints.orphaned_response_count > 0 ? (
                   <p className="text-amber-700">⚠ {draft.datapoints.orphaned_response_count} respuestas conservadas fuera de alcance</p>
@@ -208,7 +212,7 @@ export function ReportDraftPanel() {
           <Card>
             <CardContent className="grid gap-4 pt-6 md:grid-cols-4">
               <SummaryMetric label="Estado del resumen" value={statusLabel(readiness.status)} />
-              <SummaryMetric label="Elementos tratados" value={draft.datapoints.decided_count} />
+              <SummaryMetric label="Indicadores/datos tratados" value={draft.datapoints.decided_count} />
               <SummaryMetric label="Cobertura registrada" value={formatPercent(draft.datapoints.completion_ratio)} />
               <SummaryMetric
                 label="Resultados"
@@ -305,7 +309,7 @@ export function ReportDraftPanel() {
                     <SummaryMetric label="Ejercicio" value={draft.company.reporting_year ?? "-"} />
                     <SummaryMetric label="NACE" value={draft.company.nace_code || "-"} />
                     <SummaryMetric label="Temas confirmados" value={draft.materiality.confirmed_topic_count} />
-                    <SummaryMetric label="Elementos totales" value={draft.datapoints.total_datapoint_count} />
+                    <SummaryMetric label="Indicadores/datos totales" value={draft.datapoints.total_datapoint_count} />
                     <SummaryMetric label="Estado respuestas" value={statusLabel(draft.datapoints.response_status)} />
                   </div>
                   <div className="space-y-3">
@@ -389,7 +393,7 @@ export function ReportDraftPanel() {
                     <div key={limitation.key} className="rounded-md border border-border px-3 py-2 text-sm">
                       <p className="font-medium text-foreground">
                         {limitation.key === "exact_ar16_matter_to_dr_mapping_pending"
-                          ? "Cobertura de datapoints"
+                          ? "Cobertura de indicadores/datos"
                           : limitation.key === "report_package_scope"
                             ? "Alcance del paquete"
                             : "Limitación de esta versión"}

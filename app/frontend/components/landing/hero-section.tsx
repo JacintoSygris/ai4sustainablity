@@ -8,13 +8,13 @@ export function HeroSection() {
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="max-w-xl">
             <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Ordena tu trabajo ESRS,
+              Gestiona tu trabajo ASG, CSRD y ESRS,
               <br />
               <span className="text-foreground">con decisiones humanas y límites claros</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Airis te ayuda a describir tu organización, revisar temas propuestos, registrar decisiones de materialidad
-              y preparar un resumen de información disponible y pendiente.
+              Airis te ayuda a describir tu organización, revisar asuntos ASG propuestos para la doble materialidad,
+              registrar decisiones humanas y preparar indicadores/datos ESRS para el informe de sostenibilidad.
             </p>
             <Button size="lg" className="mt-8" asChild>
               <Link href="/register">Empezar ahora</Link>

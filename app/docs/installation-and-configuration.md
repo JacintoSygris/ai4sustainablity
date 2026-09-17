@@ -1,10 +1,10 @@
-# Instalación y configuración
+# Instalacion y configuracion
 
-Este documento ha sido sustituido por la documentación localizada:
+Este documento es una ruta puente. El manual tecnico completo y localizado esta en:
 
-- [Instalación local](es-ES/technical/installation-local.md)
-- [Configuración](es-ES/technical/configuration.md)
-- [Arquitectura](es-ES/technical/architecture.md)
-- [Límites de despliegue](es-ES/technical/deployment-boundaries.md)
+- [Manual tecnico ES](es-ES/technical/index.md)
+- [Technical manual en-GB](en-GB/technical/index.md)
 
-Antes de arrancar el perfil local, usa solo datos ficticios: la base SQLite incluida se recrea al iniciar el componente web.
+Para produccion, empieza por [indice y alcance](es-ES/technical/scope.md), [arquitectura](es-ES/technical/architecture.md), [secretos y parametros](es-ES/technical/secrets-and-parameters.md) y [servicios y despliegue](es-ES/technical/services-deployment.md).
+
+Para evaluacion local, usa [instalacion local](es-ES/technical/installation-local.md) con datos ficticios. `app/compose.public.yml` expone servicios internos, usa SQLite efimera y recrea la base al arrancar Laravel; no debe usarse en produccion.

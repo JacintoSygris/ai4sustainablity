@@ -6,19 +6,19 @@ export function FeaturesSection() {
       icon: HelpCircle,
       title: "Recorrido guiado",
       description:
-        "La interfaz separa la descripción de la organización, la revisión de temas, la materialidad y la recogida de información.",
+        "La interfaz separa la caracterización, la revisión de asuntos ASG, la doble materialidad y la recogida de indicadores/datos ESRS.",
     },
     {
       icon: Sparkles,
       title: "Propuestas revisables",
       description:
-        "Las sugerencias automáticas son puntos de partida. La selección final y los motivos siguen siendo decisiones humanas.",
+        "Las sugerencias automáticas son puntos de partida. La organización confirma la doble materialidad y los motivos.",
     },
     {
       icon: FileText,
       title: "Salidas de trabajo",
       description:
-        "Descarga hojas de decisión, listas CSV, resúmenes de preparación y paquetes técnicos condicionados para revisión.",
+        "Descarga hojas de decisión, listas CSV, resúmenes de preparación y candidatos XHTML/iXBRL condicionados para revisión.",
     },
   ]
 

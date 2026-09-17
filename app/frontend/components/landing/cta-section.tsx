@@ -11,7 +11,7 @@ export function CtaSection() {
 
       <div className="container relative z-10 mx-auto px-4 text-center">
         <h2 className="text-balance text-2xl font-bold text-primary-foreground md:text-3xl">
-          Prepara tu paquete ESRS 2023 con evidencias trazables,
+          Prepara tu paquete de trabajo ASG/ESRS con evidencias trazables,
           <br />
           control humano y límites claros antes de la entrega.
         </h2>

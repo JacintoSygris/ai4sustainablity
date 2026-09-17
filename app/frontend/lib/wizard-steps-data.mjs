@@ -13,8 +13,8 @@ export const WIZARD_STEPS = [
   },
   {
     id: 2,
-    title: "Revisa temas propuestos",
-    description: "Contrasta las propuestas automáticas y ajusta la lista con criterio humano.",
+    title: "Revisa asuntos propuestos",
+    description: "Contrasta las propuestas automáticas ASG y ajusta la lista con criterio humano.",
   },
   {
     id: 3,
@@ -23,18 +23,18 @@ export const WIZARD_STEPS = [
   },
   {
     id: 4,
-    title: "Confirma temas materiales",
+    title: "Confirma asuntos materiales",
     description: "Guarda la selección final y los motivos que quieras conservar.",
   },
   {
     id: 5,
-    title: "Reúne información ESRS",
+    title: "Reúne indicadores/datos ESRS",
     description: "Registra respuestas, pendientes y no aplicables justificados.",
   },
   {
     id: 6,
     title: "Resultados",
-    description: "Revisa el resumen de preparación y las descargas disponibles.",
+    description: "Revisa el resumen y las descargas disponibles, incluido XHTML/iXBRL si procede.",
   },
 ]
 

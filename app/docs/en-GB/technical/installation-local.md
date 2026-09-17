@@ -1,52 +1,32 @@
 # Local Installation
 
-Back to the [documentation index](../index.md).
+Back to the [technical manual](index.md).
 
-**Warning before starting:** the local profile recreates the SQLite database when the web component starts. Use fictitious data only. Do not use it for real information or to retain work.
+This page is kept as a bridge route. For production, follow [services and deployment](services-deployment.md). For local evaluation, remember that `app/compose.public.yml` exposes internal services, uses ephemeral SQLite and runs `migrate:fresh`.
 
-## Requirements
-
-- Git.
-- Docker Compose v2 or compatible `podman-compose`.
-- Network access during the first build to download base images and dependencies.
-
-## Start
-
-From the `app/` directory:
+Prerequisite: use fictitious data only.
 
 ```sh
+# Directory: app
 docker compose -f compose.public.yml up --build -d
 ```
 
-With Podman:
+Expected result: frontend, Laravel and FastAPI start for local evaluation.
+
+Check:
 
 ```sh
-podman-compose -f compose.public.yml up --build -d
+# Directory: app
+curl -fsS http://localhost:3000/ >/dev/null
+curl -fsS http://localhost:8000/healthz
+curl -fsS http://localhost:8001/healthz
+curl -fsS http://localhost:8001/model-profiles
 ```
 
-Usual services:
-
-| Service | URL |
-|---|---|
-| Interface | `http://localhost:3000` |
-| Laravel API | `http://localhost:8000` |
-| Proposal service | `http://localhost:8001` |
-
-## Checks
+Stop:
 
 ```sh
-curl -fsS http://127.0.0.1:3000/ >/dev/null
-curl -fsS http://127.0.0.1:8000/healthz
-curl -fsS http://127.0.0.1:3000/api/auth/register-config
-curl -fsS http://127.0.0.1:8001/healthz
-curl -fsS http://127.0.0.1:8001/model-profiles
-```
-
-These checks show that services respond. They do not prove email delivery, production persistence, external queues, specific exports or environment security.
-
-## Stop
-
-```sh
+# Directory: app
 docker compose -f compose.public.yml down
 ```
 

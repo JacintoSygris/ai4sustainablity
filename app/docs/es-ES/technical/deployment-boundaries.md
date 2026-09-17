@@ -1,21 +1,7 @@
-# Límites de despliegue
+# Limites de despliegue
 
-Volver al [índice de documentación](../index.md).
+Volver al [manual tecnico](index.md).
 
-El repositorio permite evaluación local y sirve como base técnica. No entrega un entorno de producción completo.
+Esta pagina se conserva como ruta puente. Los limites estan integrados en [indice y alcance](scope.md), [arquitectura](architecture.md) y [extraccion documental](document-extraction.md).
 
-## Debe aportar el operador
-
-- dominio, HTTPS, proxy inverso y cabeceras de seguridad;
-- base de datos persistente y copias de seguridad;
-- almacenamiento de archivos si se activa alguna función documental;
-- proveedor de correo y política de entregabilidad;
-- proceso de colas y trabajos en segundo plano;
-- gestión de secretos;
-- monitorización, registros, alertas y respuesta a incidentes;
-- política de privacidad, condiciones y datos de contacto reales;
-- revisión metodológica y legal del uso de las salidas.
-
-## No convertir controles técnicos en beneficios
-
-Un healthcheck no demuestra que el producto esté operativo para un caso real. Una migración aplicada no demuestra que haya continuidad de datos. Una correspondencia configurada no es aprobación normativa. Un candidato XHTML/iXBRL no es presentación oficial.
+Resumen: el repositorio no entrega un entorno de produccion completo. El operador aporta proxy TLS, PostgreSQL, Redis, worker, secretos, correo, OAuth opcional, backups, observabilidad y recuperacion. La extraccion documental requiere desarrollo antes de activarse.

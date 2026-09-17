@@ -195,7 +195,7 @@ export function DocumentEvidencePanel({
 
       <p className="mb-3 text-sm text-muted-foreground">
         Si tienes un informe de sostenibilidad anterior u otro documento propio, súbelo y la plataforma buscará
-        evidencias que apoyen tu revisión de temas.
+        evidencias que apoyen tu revisión de asuntos ASG candidatos.
       </p>
 
       <p className="mb-4 rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">{P6_DOCUMENT_CONSENT_COPY}</p>

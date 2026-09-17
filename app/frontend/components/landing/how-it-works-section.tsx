@@ -7,13 +7,13 @@ export function HowItWorksSection() {
     },
     {
       number: 2,
-      title: "Revisión de temas",
+      title: "Revisión de asuntos ASG",
       description: "Contrasta las propuestas con tu actividad, cadena de valor y criterio del equipo responsable.",
     },
     {
       number: 3,
-      title: "Materialidad y datos",
-      description: "Registra la selección humana y reúne información, pendientes y referencias de evidencia.",
+      title: "Doble materialidad y datos",
+      description: "Registra la selección humana y reúne indicadores/datos ESRS, pendientes y evidencias.",
     },
     {
       number: 4,
@@ -30,8 +30,8 @@ export function HowItWorksSection() {
           <div className="rounded-2xl bg-primary p-8 text-primary-foreground lg:p-12">
             <h2 className="text-2xl font-bold md:text-3xl">¿Cómo te ayuda Airis?</h2>
             <p className="mt-4 text-primary-foreground/80">
-              Airis organiza el recorrido y deja visible qué está registrado, qué falta y qué sigue dependiendo de tu
-              equipo.
+              Airis organiza el recorrido ASG/CSRD/ESRS y deja visible qué está registrado, qué falta y qué sigue
+              dependiendo de tu equipo.
             </p>
             <button className="mt-6 rounded-lg border border-primary-foreground/30 px-6 py-2 text-sm font-medium transition-colors hover:bg-primary-foreground/10">
               Descubrir

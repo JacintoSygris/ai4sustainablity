@@ -13,12 +13,12 @@ const tips = [
 const importanceItems = [
   {
     title: "Sector económico",
-    description: "Ayuda a situar la actividad en un contexto sectorial para revisar temas candidatos.",
+    description: "Ayuda a situar la actividad en un contexto sectorial para revisar asuntos ASG candidatos.",
   },
   {
     title: "Ingresos anuales (€)",
     description:
-      "La información sobre ingresos ayuda a contextualizar el tamaño y el nivel de detalle del trabajo de preparación.",
+      "La información sobre ingresos ayuda a contextualizar el tamaño y el nivel de detalle del trabajo ASG/ESRS.",
   },
   {
     title: "Número de empleados",

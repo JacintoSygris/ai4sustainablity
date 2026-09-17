@@ -58,8 +58,8 @@ export default async function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground">¡Hola, {userName}!</h1>
         <p className="mt-2 text-muted-foreground">
-          Te damos la bienvenida a Airis, tu asistente para preparar reportes ESRS 2023, organizar evidencias y revisar
-          datapoints antes de tu validación final.
+          Te damos la bienvenida a Airis, tu asistente para ordenar el trabajo ASG/CSRD/ESRS, documentar la doble
+          materialidad, organizar evidencias y revisar indicadores/datos antes de tu validación final.
         </p>
       </div>
 

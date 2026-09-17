@@ -232,7 +232,7 @@ export function EsrsDatapointsForm() {
           return
         }
 
-        setErrorMessage("No se han podido cargar los datapoints del paso 5 desde la plataforma.")
+        setErrorMessage("No se han podido cargar los indicadores/datos ESRS del paso 5 desde la plataforma.")
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -460,9 +460,9 @@ export function EsrsDatapointsForm() {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Información ESRS</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Indicadores y datos ESRS</h1>
           <p className="mt-2 text-muted-foreground">
-            Registra respuestas y referencias para los elementos de información seleccionados, agrupados por{" "}
+            Registra respuestas y referencias para los indicadores/datos seleccionados, agrupados por{" "}
             <Term k="requisito_divulgacion">requisito de divulgación</Term>. La aplicación no decide por sí sola qué
             información es suficiente.
           </p>
@@ -621,7 +621,7 @@ export function EsrsDatapointsForm() {
                   <div>
                     <p className="font-semibold text-foreground">Qué es esta lista</p>
                     <p className="mt-1 text-sm text-foreground">
-                      Cada fila es un dato concreto que pide el estándar: una cifra o una explicación. La lista combina información transversal disponible y, cuando la configuración lo permite, información temática derivada de los temas confirmados. El objetivo de hoy no es responderlo todo: es inventariar qué tienes y qué te falta.
+                      Cada fila es un indicador/dato concreto que pide el estándar: una cifra, una explicación o una referencia. La lista combina requisitos transversales disponibles y, cuando la configuración lo permite, información temática derivada de los asuntos materiales confirmados. El objetivo no es responderlo todo de golpe: es inventariar qué tienes, qué falta y qué debe revisar tu organización.
                     </p>
                   </div>
                   <button type="button" onClick={dismissIntro} className="text-muted-foreground hover:text-foreground" aria-label="Cerrar">
@@ -717,7 +717,7 @@ export function EsrsDatapointsForm() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-3 pt-3">
                     {group.rows.length === 0 ? (
-                      <div className="text-xs text-muted-foreground px-1">Sin datapoints en este filtro.</div>
+                      <div className="text-xs text-muted-foreground px-1">Sin indicadores/datos en este filtro.</div>
                     ) : (
                       group.rows.map((rowLike: any) => {
                         const datapoint: LaravelEsrsDatapoint = rowLike.datapoint || rowLike

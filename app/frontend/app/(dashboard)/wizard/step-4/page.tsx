@@ -4,15 +4,15 @@ import { AcademyTips } from "@/components/wizard/academy-tips"
 import { wizardStepsForView } from "@/lib/wizard-steps"
 
 const tips = [
-  "La propuesta del paso 2 es un punto de partida; la selección final registra la decisión posterior a la doble materialidad.",
+  "La propuesta del paso 2 es un punto de partida; la selección final registra la decisión posterior al análisis de doble materialidad.",
   "Si eliminas E1 cuando estaba propuesto, la plataforma exigirá una explicación corta para trazabilidad ESRS.",
-  "La vista previa de datapoints del paso 5 se recalcula desde la selección final confirmada.",
+  "La vista previa de indicadores/datos ESRS del paso 5 se recalcula desde la selección final confirmada.",
 ]
 
 const importantNote = {
   title: "Confirmación final",
   content:
-    "La selección final guardada activa los estándares y datapoints que se mostrarán después en el paso 5.",
+    "La selección final guardada activa los estándares y los indicadores/datos ESRS que se mostrarán después en el paso 5.",
 }
 
 export default function Step4Page() {
