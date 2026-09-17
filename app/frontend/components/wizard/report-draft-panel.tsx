@@ -81,7 +81,7 @@ export function ReportDraftPanel() {
           return
         }
 
-        setErrorMessage("No se ha podido cargar el informe desde la plataforma.")
+        setErrorMessage("No se ha podido cargar el resumen desde la plataforma.")
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -111,9 +111,9 @@ export function ReportDraftPanel() {
     <div className="min-w-0 flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Informe ESRS</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Resumen de preparación ESRS</h1>
           <p className="mt-2 text-muted-foreground">
-            Esto es lo que ya tienes preparado y lo que falta para cerrar el informe.
+            Esto muestra qué información está registrada, qué falta y qué descargas pueden generarse.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ export function ReportDraftPanel() {
           <Button type="button" variant="outline" asChild>
             <a href={laravelApiUrl("/report/draft")} target="_blank" rel="noreferrer">
               <FileText className="h-4 w-4" />
-              Borrador JSON
+              Resumen JSON
             </a>
           </Button>
         </div>
@@ -142,16 +142,15 @@ export function ReportDraftPanel() {
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-amber-900">Alcance y límites de este informe</p>
+            <p className="text-sm font-semibold text-amber-900">Alcance y límites de estas salidas</p>
             <p className="text-sm text-amber-900">
-              Este paquete prepara y organiza tus evidencias ESRS 2023 como borrador de trabajo. Ten en cuenta sus
-              límites:
+              Este paquete organiza el estado de preparación ESRS 2023. Ten en cuenta sus límites:
             </p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
-              <li>No es una presentación oficial de tu informe ante ningún organismo.</li>
+              <li>No es una presentación oficial ante ningún organismo.</li>
               <li>No es un servicio de aseguramiento ni de verificación independiente.</li>
               <li>No equivale a la atestación de la Taxonomía de la UE.</li>
-              <li>No genera el formato electrónico xHTML ni iXBRL.</li>
+              <li>El candidato XHTML/iXBRL, cuando esté disponible, es una operación técnica condicionada.</li>
             </ul>
           </div>
         </div>
@@ -165,7 +164,7 @@ export function ReportDraftPanel() {
 
       {loadingInitial ? (
         <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando el informe...</CardContent>
+          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando el resumen...</CardContent>
         </Card>
       ) : !readiness || !draft ? (
         <Card>
@@ -173,9 +172,9 @@ export function ReportDraftPanel() {
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
               <div>
-                <p className="font-medium text-foreground">No hay información suficiente para preparar el informe</p>
+                <p className="font-medium text-foreground">No hay información suficiente para preparar el resumen</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Completa la caracterización y la materialidad antes de preparar el informe.
+                  Completa la caracterización y la materialidad antes de consultar resultados.
                 </p>
               </div>
             </div>
@@ -188,16 +187,16 @@ export function ReportDraftPanel() {
         <>
           <Card>
             <CardContent className="space-y-3 pt-6">
-              <h2 className="text-lg font-semibold text-foreground">Lo que ya tienes</h2>
+              <h2 className="text-lg font-semibold text-foreground">Lo que está registrado</h2>
               <div className="space-y-2 text-sm text-foreground">
                 <p>
                   {draft.materiality.is_confirmed && draft.materiality.confirmed_topic_count > 0
-                    ? `✔ Una lista de ${draft.materiality.confirmed_topic_count} temas materiales confirmados y justificados`
+                    ? `Una lista de ${draft.materiality.confirmed_topic_count} temas materiales confirmados por la persona usuaria`
                     : "Pendiente: confirma tus temas materiales en el paso 4"}
                 </p>
-                <p>✔ El inventario de {draft.datapoints.total_datapoint_count} datapoints que pide el estándar</p>
+                <p>Lista de {draft.datapoints.total_datapoint_count} elementos de información seleccionados por la plataforma</p>
                 <p>
-                  ✔ {draft.datapoints.decided_count} de {draft.datapoints.total_datapoint_count} datapoints ya decididos
+                  {draft.datapoints.decided_count} de {draft.datapoints.total_datapoint_count} elementos con respuesta o no aplicable justificado
                 </p>
                 {draft.datapoints.orphaned_response_count && draft.datapoints.orphaned_response_count > 0 ? (
                   <p className="text-amber-700">⚠ {draft.datapoints.orphaned_response_count} respuestas conservadas fuera de alcance</p>
@@ -208,11 +207,11 @@ export function ReportDraftPanel() {
 
           <Card>
             <CardContent className="grid gap-4 pt-6 md:grid-cols-4">
-              <SummaryMetric label="Estado del informe" value={statusLabel(readiness.status)} />
-              <SummaryMetric label="Datapoints decididos" value={draft.datapoints.decided_count} />
-              <SummaryMetric label="Cobertura de datapoints" value={formatPercent(draft.datapoints.completion_ratio)} />
+              <SummaryMetric label="Estado del resumen" value={statusLabel(readiness.status)} />
+              <SummaryMetric label="Elementos tratados" value={draft.datapoints.decided_count} />
+              <SummaryMetric label="Cobertura registrada" value={formatPercent(draft.datapoints.completion_ratio)} />
               <SummaryMetric
-                label="Generación final"
+                label="Resultados"
                 value={statusLabel(readiness.sections.final_report_generation?.status)}
               />
             </CardContent>
@@ -238,7 +237,7 @@ export function ReportDraftPanel() {
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Siguientes acciones</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    La plataforma marca estas piezas como necesarias antes de cerrar el informe.
+                    La plataforma marca estas piezas como necesarias antes de habilitar todas las descargas.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -255,8 +254,8 @@ export function ReportDraftPanel() {
               <CardContent className="space-y-4 pt-6">
                 <h2 className="text-lg font-semibold text-foreground">¿Y ahora qué?</h2>
                 <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-                  <li>Comparte las descargas con tu gestoría, consultoría o auditoría.</li>
-                  <li>Usa el CSV de datapoints como lista de recogida de datos dentro de tu empresa.</li>
+                  <li>Comparte las descargas como material de trabajo con las personas que revisen la información.</li>
+                  <li>Usa el CSV de información como lista de recogida de datos dentro de tu empresa.</li>
                   <li>Vuelve cuando cambien tus cifras o tu actividad y actualiza las respuestas.</li>
                 </ul>
               </CardContent>
@@ -270,7 +269,7 @@ export function ReportDraftPanel() {
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Estado por secciones</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Lectura directa del estado del informe; cada fila viene de la plataforma.
+                      Lectura directa del estado registrado; cada fila viene de la plataforma.
                     </p>
                   </div>
                   <div className="overflow-hidden rounded-md border border-border">
@@ -296,9 +295,9 @@ export function ReportDraftPanel() {
               <Card>
                 <CardContent className="space-y-4 pt-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-foreground">Borrador renderizable</h2>
+                    <h2 className="text-lg font-semibold text-foreground">Resumen de preparación</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Resumen de empresa, materialidad confirmada y cobertura de datapoints desde el borrador.
+                      Identificación, materialidad confirmada por la persona usuaria y cobertura registrada.
                     </p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-3">
@@ -306,7 +305,7 @@ export function ReportDraftPanel() {
                     <SummaryMetric label="Ejercicio" value={draft.company.reporting_year ?? "-"} />
                     <SummaryMetric label="NACE" value={draft.company.nace_code || "-"} />
                     <SummaryMetric label="Temas confirmados" value={draft.materiality.confirmed_topic_count} />
-                    <SummaryMetric label="Datapoints totales" value={draft.datapoints.total_datapoint_count} />
+                    <SummaryMetric label="Elementos totales" value={draft.datapoints.total_datapoint_count} />
                     <SummaryMetric label="Estado respuestas" value={statusLabel(draft.datapoints.response_status)} />
                   </div>
                   <div className="space-y-3">
@@ -324,13 +323,13 @@ export function ReportDraftPanel() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-foreground">Bloques de datapoints</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Bloques de información</h3>
                     {draft.datapoints.blocks.map((block) => (
                       <div key={block.key ?? block.title} className="rounded-md border border-border px-3 py-2 text-sm">
                         <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                          <p className="font-medium text-foreground">{block.title ?? block.key ?? "Bloque de datapoints"}</p>
+                          <p className="font-medium text-foreground">{block.title ?? block.key ?? "Bloque de información"}</p>
                           <p className="text-muted-foreground">
-                            {block.decided_count}/{block.datapoint_count} decididos
+                            {block.decided_count}/{block.datapoint_count} tratados
                           </p>
                         </div>
                       </div>

@@ -1,58 +1,24 @@
-# IA4Sustainability
+# IA4Sustainability: paquete técnico
 
-IA4Sustainability es una aplicación pública para evaluación local del flujo
-P5-P10: caracterización, propuesta candidata del modelo, revisión de doble
-materialidad, confirmación humana, captura de datos ESRS y paquete técnico de
-preparación.
+Este directorio contiene la aplicación ejecutable: interfaz Next.js, API Laravel, servicio de propuestas FastAPI, contratos y activos de datos.
 
-La guía canónica de instalación y configuración está en
-[`docs/installation-and-configuration.md`](docs/installation-and-configuration.md).
+Antes de arrancar el perfil local, recuerda que la base SQLite incluida es temporal y se recrea al iniciar el componente web. Usa solo datos ficticios.
 
-## Arranque rápido local
+## Guias principales
 
-```sh
-git clone https://github.com/JacintoSygris/ai4sustainablity.git
-cd ai4sustainablity/app
-docker compose -f compose.public.yml up --build -d
-```
+- [Instalación local](docs/es-ES/technical/installation-local.md)
+- [Arquitectura](docs/es-ES/technical/architecture.md)
+- [Configuración](docs/es-ES/technical/configuration.md)
+- [Persistencia y migraciones](docs/es-ES/technical/operations/persistence-migrations.md)
+- [Monitorizacion y diagnostico](docs/es-ES/technical/operations/monitoring-troubleshooting.md)
+- [Contratos de integración](docs/es-ES/integrations/authentication.md)
 
-También puedes usar:
+## Servicios del perfil local
 
-```sh
-podman-compose -f compose.public.yml up --build -d
-```
-
-La primera construcción necesita red para descargar imágenes base y
-dependencias. Cuando los servicios estén levantados:
-
-| Servicio | URL local |
+| Servicio | URL habitual |
 |---|---|
-| Frontend Next | `http://localhost:3000` |
+| Interfaz | `http://localhost:3000` |
 | API Laravel | `http://localhost:8000` |
-| Servicio FastAPI | `http://localhost:8001` |
+| Servicio de propuestas | `http://localhost:8001` |
 
-En el navegador, abre `http://localhost:3000`, registra un usuario y después
-inicia sesión. El frontend proxyfica `/api` hacia Laravel.
-
-## Comprobaciones básicas
-
-```sh
-curl -fsS http://127.0.0.1:3000/ >/dev/null
-curl -fsS http://127.0.0.1:8000/healthz
-curl -fsS http://127.0.0.1:3000/api/auth/register-config
-curl -fsS http://127.0.0.1:8001/healthz
-curl -fsS http://127.0.0.1:8001/model-profiles
-```
-
-## Alcance del perfil público
-
-`compose.public.yml` es un perfil de evaluación y desarrollo local. Usa SQLite
-en `tmpfs`, sesiones en fichero, cola sincrónica, correo a log, OAuth
-desactivado, verificación de email desactivada y subida/escaneo documental P6
-desactivados. El contenedor Laravel ejecuta `migrate:fresh --seed` en cada
-arranque, por lo que los datos se descartan al reiniciar.
-
-No uses este perfil para datos reales ni como despliegue de producción. P10
-produce un paquete técnico de preparación; no es una presentación oficial ante
-un regulador, un trabajo de aseguramiento, una opinión legal ni una salida
-aceptada por un regulador.
+Estas URL sirven para evaluación local. La públicacion de puertos, HTTPS, proxy, secretos, persistencia, correo, colas y políticas de datos corresponden al operador de un entorno propio.

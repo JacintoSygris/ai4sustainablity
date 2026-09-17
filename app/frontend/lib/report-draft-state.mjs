@@ -14,26 +14,26 @@ const SECTION_LABELS = {
   materiality_proposal: "Propuesta de temas (IA)",
   double_materiality_guide: "Guía de doble materialidad",
   materiality_confirmation: "Confirmación de materialidad final",
-  esrs_datapoints: "Listado de datapoints",
-  datapoint_responses: "Respuestas de datapoints",
-  final_report_generation: "Paquete de informe",
+  esrs_datapoints: "Lista de información ESRS",
+  datapoint_responses: "Respuestas registradas",
+  final_report_generation: "Resumen de resultados",
 }
 
 const DOWNLOAD_LABELS = {
   p8_decision_sheet: "Hoja de decisión de materialidad",
-  p9_responses_csv: "Respuestas de datapoints (CSV)",
-  p9_datapoints_csv: "Listado de datapoints (CSV)",
+  p9_responses_csv: "Respuestas registradas (CSV)",
+  p9_datapoints_csv: "Lista de información ESRS (CSV)",
   characterization_summary_pdf: "Resumen de caracterización (PDF)",
-  report_readiness: "Estado del informe (JSON)",
+  report_readiness: "Resumen de preparación (JSON)",
   report_package_html: "Paquete HTML imprimible",
-  evidence_bundle_json: "Bundle de evidencias (JSON)",
+  evidence_bundle_json: "Trazabilidad de preparación (JSON)",
 }
 
 const LIMITATION_MESSAGES = {
   report_package_scope:
-    "El paquete prepara y organiza evidencias ESRS 2023. No sustituye filing oficial, aseguramiento, Taxonomía UE ni xHTML/iXBRL.",
+    "El paquete organiza preparación ESRS 2023. No sustituye presentación oficial, aseguramiento, Taxonomía UE ni aceptación de formatos digitales.",
   exact_ar16_matter_to_dr_mapping_pending:
-    "Modo alcance: el listado de datapoints incluye los transversales (ESRS 2), pero los datapoints temáticos derivados de tus temas materiales no se generan hasta que la plataforma tenga configurado el mapa oficial tema→requisito.",
+    "Modo alcance: la lista incluye bloques transversales disponibles, pero la información temática derivada de tus temas no se genera hasta que la plataforma tenga una correspondencia tema-requisito configurada y válida.",
   materiality_confirmation_stale:
     "Tu confirmación de materialidad es anterior a tus últimos cambios en la propuesta de temas. Vuelve al paso 4 y confirma de nuevo.",
   orphaned_datapoint_responses:
@@ -147,11 +147,11 @@ export function actionLabel(endpoint) {
   }
 
   if (endpoint?.includes("esrs-datapoints")) {
-    return "Responder los datapoints (paso 5)"
+    return "Registrar información ESRS (paso 5)"
   }
 
   if (endpoint === "/api/report/draft") {
-    return "Revisar el borrador (paso 6)"
+    return "Revisar el resumen (paso 6)"
   }
 
   if (endpoint === "/api/report/package") {

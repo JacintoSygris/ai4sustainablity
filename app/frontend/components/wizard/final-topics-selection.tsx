@@ -525,7 +525,7 @@ export function FinalTopicsSelection() {
               <CardContent className="py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>{addedCount} añadidos · {removedCount} retirados · {unchangedCount} sin cambios</span>
                 <span className="text-muted-foreground">
-                  Estimación paso 5: {previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} datapoints
+                  Estimación paso 5: {previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} elementos
                 </span>
                 <Button variant="outline" size="sm" onClick={() => setMode(mode === "direct" ? "guided" : "direct")}>Cambiar modo</Button>
               </CardContent>
@@ -706,7 +706,7 @@ export function FinalTopicsSelection() {
           {removesE1 ? (
             <Card className="border-amber-300">
               <CardContent className="space-y-2 pt-6">
-                <div className="text-sm font-medium text-amber-800">La normativa exige una explicación detallada si el cambio climático no es material. La mayoría de empresas lo mantienen como material.</div>
+                <div className="text-sm font-medium text-amber-800">Si decides que el cambio climático no es material, registra una explicación detallada de tu evaluación.</div>
                 <Textarea id="e1Explanation" value={e1Explanation} onChange={(e) => setE1Explanation(e.target.value)} maxLength={2000} placeholder="Explicación detallada (hasta 2000 caracteres)" />
               </CardContent>
             </Card>

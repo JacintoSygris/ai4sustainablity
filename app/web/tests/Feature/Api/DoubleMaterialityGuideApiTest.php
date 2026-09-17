@@ -15,7 +15,7 @@ it('returns a structured P7 double materiality guide for the separate frontend',
         'review_p5_p6' => 'Antes de empezar, repasa lo que ya tienes: la descripción de tu empresa del paso 1 y la lista de temas propuestos del paso 2. Esa lista es tu punto de partida, no la decisión final. Apunta los temas que no tengas claros: son los que más atención necesitan en el análisis.',
         'define_boundaries' => 'Decide qué entra en el análisis: tu propia actividad, lo que pasa antes (proveedores, materias primas) y lo que pasa después (distribución, uso del producto, residuos). No hace falta perfección: anota qué incluyes y qué dejas fuera, y por qué.',
         'iro_inventory' => 'Para cada tema de tu lista, escribe en una tabla sencilla (vale una hoja de cálculo propia o papel): qué impacto causa tu empresa (a quién afecta y cuánto), y qué riesgo u oportunidad económica supone para ti (multas, costes, clientes que lo exigen, ahorros). Una línea por idea concreta, indicando dónde ocurre (tu empresa, proveedores o clientes).',
-        'stakeholder_input' => 'Habla con quien conoce la empresa por dentro y por fuera: plantilla, clientes principales, proveedores clave, gestoría, banco si aplica. Pregunta: ¿qué temas de esta lista os preocupan o nos pueden afectar? Apunta quién dijo qué y cuándo. No necesitas encuestas formales: dos o tres conversaciones bien apuntadas valen.',
+        'stakeholder_input' => 'Habla con quien conoce la empresa por dentro y por fuera: plantilla, clientes principales, proveedores clave, gestoría, banco si aplica. Pregunta: ¿qué temas de esta lista os preocupan o nos pueden afectar? Apunta quién dijo qué y cuándo. Decide la profundidad de la consulta según tu organización, contexto y riesgo.',
         'impact_materiality' => "Para cada tema, pregunta: ¿cómo de grave es el daño que causamos o podemos causar (o el beneficio)? ¿A cuánta gente o entorno afecta? ¿Se puede revertir? ¿Cómo de probable es? Si la respuesta combinada es 'importante', el tema es material por impacto. Sé conservador: ante la duda, dentro.",
         'financial_materiality' => 'Ahora el otro lado: ¿este tema puede costarnos o hacernos ganar dinero de forma apreciable? Piensa en multas, licencias, clientes que exigen requisitos, costes de energía o materiales, acceso a financiación. Si el efecto posible es apreciable para el tamaño de tu empresa, el tema es material financieramente.',
         'decision_log' => 'Cierra la lista: para cada tema escribe material o no material y una frase de motivo. Si quitas un tema que estaba propuesto, el motivo es obligatorio para tu propia trazabilidad. Esa lista cerrada es lo que confirmarás en el paso 4.',
@@ -29,7 +29,7 @@ it('returns a structured P7 double materiality guide for the separate frontend',
         ->assertJsonPath('data.type', 'double_materiality_guide')
         ->assertJsonPath('data.phase', 'P7')
         ->assertJsonPath('data.content_format', 'structured_prose_v2')
-        ->assertJsonPath('data.warning.es', 'La guia acelera la ADM externa; no decide la materialidad.')
+        ->assertJsonPath('data.warning.es', 'La guía acelera la ADM externa; no decide la materialidad.')
         ->assertJsonPath('data.next_step.next_api', '/api/materiality-confirmation')
         ->assertJsonPath('data.next_step.next_phase', 'P8')
         ->assertJsonPath('data.next_step.note.es', 'Cuando termines el análisis, vuelve al paso 4 para confirmar tus temas materiales finales. El paso 5 derivará los datos a reportar de esa selección.');
@@ -45,7 +45,7 @@ it('returns a structured P7 double materiality guide for the separate frontend',
         ]);
 
     expect($response->json('data.sections.0.steps.0.title.es'))
-        ->toBe('Revisar la caracterizacion P5 y la propuesta P6');
+        ->toBe('Revisar la descripción de la organización y la propuesta de temas');
 
     expect(collect($response->json('data.templates'))->pluck('key')->all())
         ->toBe(['iro_register', 'stakeholder_consultation_log']);

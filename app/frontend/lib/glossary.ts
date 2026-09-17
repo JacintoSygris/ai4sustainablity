@@ -14,12 +14,12 @@ export const GLOSSARY = {
     es: {
       term: "Materialidad",
       definition:
-        "Un tema es material cuando importa de verdad para tu empresa: porque afecta a personas o medioambiente, o porque puede afectar a tus resultados. El informe solo profundiza en los temas materiales.",
+        "Un tema es material cuando importa para tu organización: porque afecta a personas o medioambiente, o porque puede afectar a resultados, costes, ingresos o riesgos. La decisión final requiere revisión humana.",
     },
     en: {
       term: "Materiality",
       definition:
-        "A topic is material when it truly matters to your company: because it affects people or the environment, or because it can affect your results. The report only goes deep on material topics.",
+        "A topic is material when it matters to your organisation: because it affects people or the environment, or because it can affect results, costs, revenue or risks. The final decision requires human review.",
     },
   },
   doble_materialidad: {
@@ -48,14 +48,14 @@ export const GLOSSARY = {
   },
   datapoint: {
     es: {
-      term: "Datapoint",
+      term: "Punto de información",
       definition:
-        "Cada dato concreto que el estándar pide informar: una cifra, un porcentaje o una explicación. Tu lista de datapoints sale de los temas que confirmes como materiales.",
+        "Cada elemento concreto que puede requerir una cifra, un porcentaje o una explicación. La lista depende de temas confirmados y de correspondencias configuradas.",
     },
     en: {
-      term: "Datapoint",
+      term: "Information point",
       definition:
-        "Each specific data item the standard asks you to report: a figure, a percentage, or an explanation. Your datapoint list comes from the topics you confirm as material.",
+        "Each specific item that may require a figure, percentage or explanation. The list depends on confirmed topics and configured mappings.",
     },
   },
   esrs: {
@@ -74,12 +74,12 @@ export const GLOSSARY = {
     es: {
       term: "Requisito de divulgación",
       definition:
-        "Un apartado del estándar que agrupa varios datapoints sobre una misma cuestión (por ejemplo, consumo de energía). Si el tema es material, sus requisitos de divulgación aplican.",
+        "Un apartado del estándar que agrupa varios puntos de información sobre una misma cuestión. Que un tema sea material no elimina la revisión de aplicabilidad.",
     },
     en: {
       term: "Disclosure requirement",
       definition:
-        "A section of the standard that groups several datapoints about the same issue, such as energy consumption. If the topic is material, its disclosure requirements apply.",
+        "A section of the standard that groups several information points about the same issue. A material topic still requires applicability review.",
     },
   },
   umbral: {

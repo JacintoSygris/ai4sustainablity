@@ -161,7 +161,7 @@ it('exposes stale materiality confirmation in report readiness without changing 
     expect(collect($response->json('data.limitations'))->firstWhere('key', 'materiality_confirmation_stale'))
         ->toMatchArray([
             'key' => 'materiality_confirmation_stale',
-            'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
+            'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm the material topics before using results.',
         ]);
 
     $formData['materiality_confirmation']['p6_snapshot']['topic_ids'] = [$this->e2Topic->id, $s1Topic->id];
@@ -476,7 +476,7 @@ it('generates a self-contained report package and evidence bundle when report in
         ->get('/api/report/package')
         ->assertOk()
         ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
-        ->assertSee('Paquete de preparación ESRS 2023', false)
+        ->assertSee('Resumen de preparación ESRS 2023', false)
         ->assertSee('Entidad Demo', false)
         ->assertSee('No sustituye la presentación oficial', false)
         ->getContent();
@@ -643,7 +643,7 @@ it('streams deterministic XHTML iXBRL candidate only when report readiness and f
 
     expect($document->loadXML($bytes, LIBXML_NONET))->toBeTrue();
     expect($bytes)
-        ->toContain('Paquete tecnico iXBRL candidato; no presentacion oficial')
+        ->toContain('Candidato tecnico iXBRL; no presentacion oficial')
         ->toContain('ix:header')
         ->toContain('link:schemaRef')
         ->toContain('taxonomies/esrs-set1-2024/xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd')

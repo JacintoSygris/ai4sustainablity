@@ -708,7 +708,7 @@ it('exposes orphaned response ids without counting them as live responses', func
     expect(collect($report->json('data.limitations'))->firstWhere('key', 'orphaned_datapoint_responses'))
         ->toMatchArray([
             'key' => 'orphaned_datapoint_responses',
-            'message' => 'Some stored datapoint responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
+            'message' => 'Some stored responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
         ]);
 
     $draft = $this->actingAs($this->user)

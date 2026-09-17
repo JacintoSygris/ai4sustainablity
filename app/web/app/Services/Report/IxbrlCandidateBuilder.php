@@ -147,7 +147,7 @@ class IxbrlCandidateBuilder
     private function appendHead(DOMDocument $document, DOMElement $html): DOMElement
     {
         $head = $this->append($document, $html, 'head');
-        $this->append($document, $head, 'title', 'Paquete tecnico iXBRL candidato; no presentacion oficial');
+        $this->append($document, $head, 'title', 'Candidato tecnico iXBRL; no presentacion oficial');
 
         return $head;
     }
@@ -188,8 +188,8 @@ class IxbrlCandidateBuilder
      */
     private function appendVisibleContent(DOMDocument $document, DOMElement $body, array $state, array $facts, array $contexts, array $units): void
     {
-        $this->append($document, $body, 'h1', 'Paquete tecnico iXBRL candidato; no presentacion oficial');
-        $this->append($document, $body, 'p', 'Documento tecnico candidato generado desde hechos P9 v1. No implica filing oficial, validacion Arelle ni presentacion regulatoria.');
+        $this->append($document, $body, 'h1', 'Candidato tecnico iXBRL; no presentacion oficial');
+        $this->append($document, $body, 'p', 'Documento tecnico candidato generado desde datos estructurados. No implica presentacion oficial, aseguramiento, opinion legal, validacion regulatoria ni aceptacion por una autoridad.');
         $this->append($document, $body, 'p', 'Entidad: '.(string) Arr::get($state, 'reporting_entity.name', 'Entidad sin nombre'));
 
         $list = $this->append($document, $body, 'ul');

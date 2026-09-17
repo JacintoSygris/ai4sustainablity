@@ -13,21 +13,21 @@ const tips = [
 const importanceItems = [
   {
     title: "Sector económico",
-    description: "Te permite comparar tu empresa con otras del mismo sector y generar benchmarks sectoriales fiables.",
+    description: "Ayuda a situar la actividad en un contexto sectorial para revisar temas candidatos.",
   },
   {
     title: "Ingresos anuales (€)",
     description:
-      "La dimensión financiera es clave para ajustar el nivel de detalle y requisitos de reporte según las normas ESRS.",
+      "La información sobre ingresos ayuda a contextualizar el tamaño y el nivel de detalle del trabajo de preparación.",
   },
   {
     title: "Número de empleados",
     description:
-      "Determina el alcance de obligaciones de divulgación y el tamaño de la organización para la doble materialidad.",
+      "Ayuda a contextualizar el tamaño y alcance de la organización; no determina obligaciones.",
   },
   {
     title: "Ámbito geográfico",
-    description: "Ayuda a captar los distintos marcos regulatorios y riesgos ESG específicos de cada región.",
+    description: "Ayuda a situar las operaciones y los riesgos de sostenibilidad que deberán revisarse.",
   },
   {
     title: "Productos / Servicios",

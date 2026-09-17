@@ -11,21 +11,21 @@ const copy = {
   es: {
     title: "Qué vas a hacer aquí",
     intro:
-      "Esta guía te lleva por el proceso de materialidad del estándar europeo ESRS en 6 pasos. No necesitas conocimientos previos: cada paso explica lo que tienes que hacer.",
+      "Esta guía te ayuda a ordenar información y decisiones relacionadas con ESRS. Cada paso explica qué se registra y qué debe revisar tu equipo.",
     steps: [
-      "cuéntanos cómo es tu empresa (10-15 min)",
-      "revisa los temas candidatos que propone la IA para tu sector (15-30 min)",
-      "aprende a analizar cada tema con tu equipo, fuera de la aplicación (la guía es para llevárselo; el análisis puede llevar días)",
-      "confirma tu lista final de temas materiales (15-30 min)",
-      "repasa los datos concretos que tendrás que reunir (1-2 h la primera pasada)",
-      "revisa el estado de tu informe y descarga los resultados (10 min)",
+      "describe la organización y el ejercicio de referencia",
+      "revisa los temas candidatos propuestos por la aplicación",
+      "ordena el análisis de doble materialidad con tu equipo",
+      "confirma la lista final de temas materiales",
+      "registra información, pendientes y no aplicables justificados",
+      "revisa el resumen de preparación y descarga resultados",
     ],
     needsTitle: "Qué necesitas",
     needs:
-      "Conocer tu empresa (actividad, plantilla, facturación aproximada) y poder hablar con las personas que la conocen por dentro.",
+      "Conocer actividad, plantilla, facturación aproximada, alcance y poder contrastar impactos, riesgos y oportunidades con personas responsables.",
     outcomeTitle: "Qué obtienes",
     outcome:
-      "Una lista justificada de temas materiales, el inventario de datos que pide el estándar y descargas para compartir con tu gestoría o consultoría.",
+      "Propuestas revisadas, decisiones guardadas, una lista de información y un resumen de preparación. No es un informe final.",
     dismiss: "Ocultar",
   },
   en: {

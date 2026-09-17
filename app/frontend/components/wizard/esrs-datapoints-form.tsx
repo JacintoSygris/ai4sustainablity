@@ -450,7 +450,7 @@ export function EsrsDatapointsForm() {
         return
       }
 
-      setErrorMessage("La plataforma no ha podido guardar las respuestas de datapoints.")
+      setErrorMessage("La plataforma no ha podido guardar las respuestas de información.")
     } finally {
       setSaving(false)
     }
@@ -460,11 +460,11 @@ export function EsrsDatapointsForm() {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Datapoints ESRS</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Información ESRS</h1>
           <p className="mt-2 text-muted-foreground">
-            Completa los <Term k="datapoint">datapoints</Term> que piden los <Term k="esrs">ESRS</Term>, agrupados por{" "}
-            <Term k="requisito_divulgacion">requisito de divulgación</Term>. La inteligencia artificial no decide los
-            datapoints.
+            Registra respuestas y referencias para los elementos de información seleccionados, agrupados por{" "}
+            <Term k="requisito_divulgacion">requisito de divulgación</Term>. La aplicación no decide por sí sola qué
+            información es suficiente.
           </p>
         </div>
         <div className="flex gap-2">
@@ -503,7 +503,7 @@ export function EsrsDatapointsForm() {
 
       {loadingInitial ? (
         <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando datapoints del paso 5...</CardContent>
+          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando información del paso 5...</CardContent>
         </Card>
       ) : !corpus ? (
         <Card>
@@ -513,7 +513,7 @@ export function EsrsDatapointsForm() {
               <div>
                 <p className="font-medium text-foreground">No hay materialidad final confirmada</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Completa el paso 4 para que la plataforma genere el listado de datapoints aplicable.
+                  Completa el paso 4 para que la plataforma prepare la lista de información aplicable.
                 </p>
               </div>
             </div>
@@ -566,7 +566,7 @@ export function EsrsDatapointsForm() {
             <CardContent className="space-y-5 pt-6">
               <div className="grid gap-4 lg:grid-cols-3">
                 <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">Cobertura de datapoints</p>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Cobertura de información</p>
                   <p className="mt-1 text-sm text-foreground">
                     {mappingSummary.mappingStatusLabel || "-"} / {mappingSummary.coverageStatusLabel || "-"}
                   </p>
@@ -578,7 +578,7 @@ export function EsrsDatapointsForm() {
                   <p className="text-xs font-medium uppercase text-muted-foreground">Fase-in</p>
                   <p className="mt-1 text-sm text-foreground">{phaseSummary.status || "-"}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {phaseSummary.applicablePhaseInCount} datapoints potencialmente aplicables
+                    {phaseSummary.applicablePhaseInCount} elementos potencialmente aplicables
                   </p>
                 </div>
                 <div>
@@ -604,7 +604,7 @@ export function EsrsDatapointsForm() {
                     <div key={item.key || item.title} className="rounded-md border border-border px-3 py-2 text-sm">
                       <p className="font-medium text-foreground">{item.title || item.key}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.statusLabel || "-"} · {item.datapointCount} datapoints
+                        {item.statusLabel || "-"} · {item.datapointCount} elementos
                       </p>
                     </div>
                   ))}
@@ -621,7 +621,7 @@ export function EsrsDatapointsForm() {
                   <div>
                     <p className="font-semibold text-foreground">Qué es esta lista</p>
                     <p className="mt-1 text-sm text-foreground">
-                      Cada fila es un dato concreto que pide el estándar: una cifra o una explicación. La lista sale de los temas que confirmaste en el paso 4 — no la decide la inteligencia artificial. El objetivo de hoy no es responderlo todo: es inventariar qué tienes y qué te falta.
+                      Cada fila es un dato concreto que pide el estándar: una cifra o una explicación. La lista combina información transversal disponible y, cuando la configuración lo permite, información temática derivada de los temas confirmados. El objetivo de hoy no es responderlo todo: es inventariar qué tienes y qué te falta.
                     </p>
                   </div>
                   <button type="button" onClick={dismissIntro} className="text-muted-foreground hover:text-foreground" aria-label="Cerrar">
@@ -769,7 +769,7 @@ export function EsrsDatapointsForm() {
                             <CardContent className="space-y-4 pt-6">
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div>
-                                  <p className="text-xs font-medium uppercase text-muted-foreground">{datapoint.standard || "Datapoint"}</p>
+                                  <p className="text-xs font-medium uppercase text-muted-foreground">{datapoint.standard || "Elemento"}</p>
                                   <h2 className="mt-1 text-base font-semibold text-foreground">{datapoint.name}</h2>
                                   <p className="mt-1 text-sm text-muted-foreground">{datapointSubtitle(datapoint)}</p>
                                   {applicability.reason ? (
@@ -850,10 +850,10 @@ export function EsrsDatapointsForm() {
                                 </div>
                                 <div className="space-y-3 lg:col-span-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="text-sm font-medium text-foreground">Facts estructurados</div>
+                                    <div className="text-sm font-medium text-foreground">Datos estructurados</div>
                                     <Button type="button" variant="outline" size="sm" onClick={() => addFact(datapoint.id, suggestedKind)}>
                                       <Plus className="h-4 w-4" />
-                                      Añadir fact
+                                      Añadir dato
                                     </Button>
                                   </div>
                                   {draft.value ? (
@@ -969,8 +969,8 @@ function FactEditor({
   return (
     <div className="space-y-4 rounded-md border border-border p-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-medium uppercase text-muted-foreground">Fact {factIndex + 1}</div>
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove} aria-label="Eliminar fact">
+        <div className="text-xs font-medium uppercase text-muted-foreground">Dato {factIndex + 1}</div>
+        <Button type="button" variant="ghost" size="sm" onClick={onRemove} aria-label="Eliminar dato">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
@@ -993,7 +993,7 @@ function FactEditor({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-value`}>Valor lexical</Label>
+          <Label htmlFor={`${datapointId}-${factIndex}-value`}>Valor</Label>
           {valueKind === "boolean" ? (
             <select
               id={`${datapointId}-${factIndex}-value`}
@@ -1022,7 +1022,7 @@ function FactEditor({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-fact-evidence`}>Evidencia del fact</Label>
+          <Label htmlFor={`${datapointId}-${factIndex}-fact-evidence`}>Referencia de evidencia</Label>
           <Input
             id={`${datapointId}-${factIndex}-fact-evidence`}
             value={fact.evidence_reference ?? ""}

@@ -351,7 +351,7 @@ class ReportController extends Controller
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Paquete de preparación ESRS 2023 - '.$company.'</title>
+  <title>Resumen de preparación ESRS 2023 - '.$company.'</title>
   <style>
     body { color: #172033; font-family: Arial, sans-serif; line-height: 1.5; margin: 32px; }
     header { border-bottom: 2px solid #172033; margin-bottom: 24px; padding-bottom: 16px; }
@@ -366,26 +366,26 @@ class ReportController extends Controller
 </head>
 <body>
   <header>
-    <h1>Paquete de preparación ESRS 2023</h1>
+    <h1>Resumen de preparación ESRS 2023</h1>
     <p><strong>'.$company.'</strong> - Ejercicio '.$year.'</p>
   </header>
   <section class="notice">
     <strong>No sustituye la presentación oficial.</strong>
-    Este paquete organiza la preparación ESRS 2023, evidencias y trazabilidad; no realiza filing oficial, aseguramiento, Taxonomía UE ni xHTML/iXBRL.
+    Este resumen organiza estado, temas, cobertura y trazabilidad. No es una presentación oficial, aseguramiento, opinión legal, memoria redactada ni aceptación de formatos digitales.
   </section>
   <section class="metrics">
     <div class="metric"><strong>Estado</strong><br>'.$status.'</div>
     <div class="metric"><strong>Temas materiales</strong><br>'.$this->e((string) Arr::get($draft, 'materiality.confirmed_topic_count', 0)).'</div>
-    <div class="metric"><strong>Datapoints decididos</strong><br>'.$datapointPercent.'%</div>
+    <div class="metric"><strong>Cobertura registrada</strong><br>'.$datapointPercent.'%</div>
   </section>
   <section>
     <h2>Temas materiales confirmados</h2>
     <ul>'.$topics.'</ul>
   </section>
   <section>
-    <h2>Cobertura de datapoints</h2>
+    <h2>Cobertura de información</h2>
     <table>
-      <thead><tr><th>Bloque</th><th>Decididos</th><th>Total</th></tr></thead>
+      <thead><tr><th>Bloque</th><th>Tratados</th><th>Total</th></tr></thead>
       <tbody>'.$blocks.'</tbody>
     </table>
   </section>
@@ -908,39 +908,39 @@ class ReportController extends Controller
         $limitations = [
             [
                 'key' => 'report_package_scope',
-                'message' => 'The report package supports ESRS 2023 preparation and evidence organization. It is not official filing, assurance, Taxonomy attestation, native PDF generation, or xHTML/iXBRL software.',
+                'message' => 'The package supports ESRS 2023 preparation status and traceability. It is not an official submission, assurance, Taxonomy attestation, native PDF generation, developed report, or regulatory acceptance of digital formats.',
             ],
         ];
 
         if (Arr::get($corpus, 'generation.matter_to_dr_mapping_status') !== 'loaded') {
             $limitations[] = [
                 'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                'message' => 'P9 does not include topical datapoints until a fully covering approved AR16 matter to Disclosure Requirement map is configured.',
+                'message' => 'The information list does not include topical information derived from confirmed topics until a complete and valid topic to Disclosure Requirement mapping is configured.',
             ];
         }
 
         if ((int) Arr::get($sections, 'datapoint_responses.orphaned_response_count', 0) > 0) {
             $limitations[] = [
                 'key' => 'orphaned_datapoint_responses',
-                'message' => 'Some stored datapoint responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
+                'message' => 'Some stored responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
             ];
         }
 
         if (Arr::get($sections, 'materiality_confirmation.is_stale') === true) {
             $limitations[] = [
                 'key' => 'materiality_confirmation_stale',
-                'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
+                'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm the material topics before using results.',
             ];
         }
 
         $limitations[] = [
             'key' => 'ixbrl_candidate_technical_package',
-            'message' => 'The iXBRL candidate endpoint emits a deterministic technical preparation package; it is not official filing, assurance, legal opinion, or regulator-accepted output.',
+            'message' => 'The iXBRL candidate endpoint emits a technical preparation output; it is not an official submission, assurance, legal opinion, or regulator-accepted output.',
         ];
 
         $limitations[] = [
             'key' => 'xhtml_ixbrl_generation_still_disabled',
-            'message' => 'The product capability flag for XHTML/iXBRL generation remains disabled; candidate downloads require runtime Arelle structural validation.',
+            'message' => 'XHTML/iXBRL candidate downloads are conditional and require runtime Arelle structural validation.',
         ];
 
         return $limitations;

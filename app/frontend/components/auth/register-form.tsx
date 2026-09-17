@@ -125,7 +125,9 @@ export function RegisterForm() {
 
       <div className="text-center">
         <h1 className="text-2xl font-semibold text-foreground">Crear cuenta</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Empieza a generar informes ESG con inteligencia artificial</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Organiza información ESRS con propuestas revisables y decisiones humanas
+        </p>
       </div>
 
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
