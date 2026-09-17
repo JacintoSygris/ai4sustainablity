@@ -1,0 +1,10 @@
+# The public model image has an explicit build-context allowlist.
+**
+!Dockerfile.public
+!requirements.public.txt
+!public_model_app.py
+!public_runtime/
+!public_runtime/**
+!model-artifacts/
+!model-artifacts/gpt41/
+!model-artifacts/gpt41/**

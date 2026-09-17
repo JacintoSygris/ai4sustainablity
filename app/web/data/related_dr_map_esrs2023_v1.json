@@ -1,0 +1,30 @@
+{
+  "version": "related_dr_map_v1",
+  "edges": {
+    "E1-1": [
+      { "target_dr": "GOV-1", "relation": "governance_reference", "citation": "ESRS 2 GOV-1" },
+      { "target_dr": "SBM-1", "relation": "strategy_connectivity", "citation": "ESRS 2 SBM-1" }
+    ],
+    "E1-2": [
+      { "target_dr": "MDR-P", "relation": "mdr_policy", "citation": "ESRS 2 MDR-P" }
+    ],
+    "E1-3": [
+      { "target_dr": "MDR-A", "relation": "mdr_action", "citation": "ESRS 2 MDR-A" }
+    ],
+    "E1-4": [
+      { "target_dr": "MDR-T", "relation": "mdr_target", "citation": "ESRS 2 MDR-T" }
+    ],
+    "E1-6": [
+      { "target_dr": "IRO-1", "relation": "iro_connectivity", "citation": "ESRS 2 IRO-1" }
+    ],
+    "S1-1": [
+      { "target_dr": "MDR-P", "relation": "mdr_policy", "citation": "ESRS 2 MDR-P" }
+    ],
+    "S1-4": [
+      { "target_dr": "MDR-A", "relation": "mdr_action", "citation": "ESRS 2 MDR-A" }
+    ],
+    "G1-1": [
+      { "target_dr": "GOV-1", "relation": "governance_reference", "citation": "ESRS 2 GOV-1" }
+    ]
+  }
+}

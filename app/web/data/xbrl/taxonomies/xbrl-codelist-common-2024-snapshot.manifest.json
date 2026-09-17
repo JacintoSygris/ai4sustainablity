@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "version": "xbrl-codelist-common-2024-snapshot",
+  "published_date": "2026-09-17",
+  "source_base_url": "https://www.xbrl.org/taxonomy/int/codelist-common/2024/",
+  "source_directory": "data/xbrl/taxonomies/xbrl-codelist-common-2024-source",
+  "zip_path": "data/xbrl/taxonomies/xbrl-codelist-common-2024-snapshot.zip",
+  "zip_sha256": "a4ef52ff46f4489309ead522e180aff93cfc3ad13e47ffb61ae7aa8b633c5a1e",
+  "zip_size": 2387,
+  "member_count": 4,
+  "taxonomy_package_member": "xbrl-codelist-common-2024-snapshot/META-INF/taxonomyPackage.xml",
+  "catalog_member": "xbrl-codelist-common-2024-snapshot/META-INF/catalog.xml",
+  "source_members": [
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/codelist-common/2024/role-label-code.xsd",
+      "filename": "role-label-code.xsd",
+      "size": 1470,
+      "sha256": "405d649e9b667db3061d4b003263bc43da1d6058fea005b9c04bc2aeb17cb06b",
+      "local_member": "xbrl-codelist-common-2024-snapshot/role-label-code.xsd"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/codelist-common/2024/property-part.xsd",
+      "filename": "property-part.xsd",
+      "size": 2093,
+      "sha256": "544c3bcafc7f8bcbfc15b758727466d9a8f5b27ca3336fc62a973c4a3c3dfcca",
+      "local_member": "xbrl-codelist-common-2024-snapshot/property-part.xsd"
+    }
+  ],
+  "zip_members": [
+    {
+      "path": "xbrl-codelist-common-2024-snapshot/META-INF/catalog.xml",
+      "size": 222,
+      "sha256": "da878c97004ae27d61f32e0e6ce73c11f172cd46e5786e99989220444af5edb4"
+    },
+    {
+      "path": "xbrl-codelist-common-2024-snapshot/META-INF/taxonomyPackage.xml",
+      "size": 1003,
+      "sha256": "800c11cb8b44e8545bf568563f8b34a188ee96d5ab274dc595d8f95e0e3470ed"
+    },
+    {
+      "path": "xbrl-codelist-common-2024-snapshot/role-label-code.xsd",
+      "size": 1470,
+      "sha256": "405d649e9b667db3061d4b003263bc43da1d6058fea005b9c04bc2aeb17cb06b"
+    },
+    {
+      "path": "xbrl-codelist-common-2024-snapshot/property-part.xsd",
+      "size": 2093,
+      "sha256": "544c3bcafc7f8bcbfc15b758727466d9a8f5b27ca3336fc62a973c4a3c3dfcca"
+    }
+  ],
+  "runtime_dependency": true
+}

@@ -1,0 +1,63 @@
+{
+  "version": "atomizer_support_rules_v1",
+  "source": "Atomizer certified-autopilot canonical_model.json exports (ESRS_SET1_2023-12-22_OJ); see app/web/data/atomizer_support_rules_v1.json.sha256 for content hash.",
+  "rules": {
+    "E1-6": {
+      "provenance_tier": "certified_support_rule",
+      "text": "Prepare gross Scope 1, Scope 2 and Scope 3 GHG emissions per the GHG Protocol Corporate Standard (version 2004); Commission Recommendation (EU) 2021/2279 or EN ISO 14064-1:2018 may also be considered. Disclose the methodologies, significant assumptions and emission factors used, the reasons they were chosen, and a reference or link to any calculation tools. Include CO2, CH4, N2O, HFCs, PFCs, SF6 and NF3 (plus other GHGs when significant), using the most recent IPCC 100-year Global Warming Potential values to compute CO2eq. Disaggregate Scope 1 and Scope 2 emissions between the consolidated accounting group and operationally-controlled investees/joint arrangements, and break out gross Scope 3 emissions by each significant (priority) Scope 3 category. Further disaggregation (e.g. by country, operating segment, economic activity, subsidiary, GHG category or source type) is encouraged where appropriate.",
+      "citations": [
+        "E1-6:AR39",
+        "E1-6:AR41",
+        "E1-6:P50",
+        "E1-6:P51",
+        "ESRS Set 1 OJ 2023-12-22"
+      ]
+    },
+    "GOV-1": {
+      "provenance_tier": "certified_support_rule",
+      "text": "Describe how the sustainability-related responsibilities of the administrative, management and supervisory bodies (or individuals) are reflected in terms of reference, board mandates and related policies, including which sustainability aspects are overseen, the information provided to the bodies, and how they respond to material impacts, risks and opportunities. Complex governance structures may be illustrated with a diagram. Describe the level of expertise or access to expertise on sustainability matters, which may be substantiated by the composition of the bodies, including members relied on for that expertise. Where reported, the board's gender-diversity ratio and the percentage of independent board members correspond to related SFDR PAI indicator #13 and the Delegated Regulation (EU) 2020/1816 benchmark indicators.",
+      "citations": [
+        "GOV-1:AR3",
+        "GOV-1:AR4",
+        "GOV-1:AR5",
+        "GOV-1:P23",
+        "ESRS Set 1 OJ 2023-12-22"
+      ]
+    },
+    "BP-1": {
+      "provenance_tier": "certified_support_rule",
+      "text": "State whether the scope of consolidation used for the sustainability statement is the same as for the financial statements, or, where applicable, declare that the undertaking is not required to draw up financial statements or is preparing consolidated sustainability information voluntarily, describing the scope actually used. The value-chain coverage disclosure concerns the undertaking's own upstream and downstream value chain. Information may be omitted only for a specific item corresponding to intellectual property, know-how or the results of innovation, or under the impending-developments/negotiations exemption of Articles 19a(3) and 29a(3) of Directive 2013/34/EU.",
+      "citations": [
+        "BP-1:P5",
+        "ESRS Set 1 OJ 2023-12-22"
+      ]
+    },
+    "S1-1": {
+      "provenance_tier": "certified_support_rule",
+      "text": "Disclose policies to manage material impacts, risks and opportunities related to own workforce in accordance with ESRS 2 MDR-P, stating whether they cover specific workforce groups or the whole workforce, and disclose significant changes to those policies during the reporting year (e.g. new expectations for foreign subsidiaries, new due-diligence/remedy approaches, just-transition commitments). Describe human-rights policy commitments and monitoring against the UN Guiding Principles, the ILO Declaration on Fundamental Principles and Rights at Work and the OECD Guidelines for Multinational Enterprises, referencing the International Bill of Human Rights and core ILO conventions where relevant. Explain how external-facing policies (responsible-sourcing policies, supplier codes of conduct) are embedded, including provisions on worker safety, precarious work, human trafficking, and forced or child labour, and describe communication channels and how policies reach different audiences despite potential barriers such as literacy, language or technology access. When addressing discrimination, consider grounds beyond those named in the Disclosure Requirement; equal-opportunity practices may include qualifications-based recruitment/advancement, top-management accountability for equal treatment, non-discrimination training, and workplace adjustments.",
+      "citations": [
+        "S1-1:P19",
+        "S1-1:P20",
+        "S1-1:AR10",
+        "S1-1:AR12",
+        "S1-1:AR13",
+        "S1-1:AR14",
+        "S1-1:AR15",
+        "S1-1:AR16",
+        "S1-1:AR17",
+        "ESRS Set 1 OJ 2023-12-22"
+      ]
+    },
+    "MDR-A": {
+      "provenance_tier": "certified_support_rule",
+      "text": "Key actions are those that materially contribute to achieving the undertaking's objectives in addressing a material impact, risk or opportunity; for understandability, they may be aggregated. Describe the type of current and future financial and other resources allocated to the action plan, including relevant terms of sustainable-finance instruments (e.g. green bonds, social bonds, green loans) and their environmental or social objectives, and explain how current financial resources relate to the most relevant amounts in the financial statements. Resource allocation may be presented as a table broken down between capital and operating expenditure, across relevant time horizons, and between resources applied in the current year versus planned for future years. If the undertaking has not adopted actions for a material sustainability matter, it shall disclose that fact and the reasons.",
+      "citations": [
+        "MDR-A:AR22",
+        "MDR-A:P69",
+        "MDR-A:AR23",
+        "MDR-A:P62",
+        "ESRS Set 1 OJ 2023-12-22"
+      ]
+    }
+  }
+}
