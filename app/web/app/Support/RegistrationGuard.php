@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
  *
  * Both checks FAIL-OPEN when unconfigured (no Turnstile secret) so local/CI
  * registration keeps working; production sets TURNSTILE_SITE_KEY/SECRET and the
- * checks become enforcing. This mirrors the CRC/P6 default-OFF lever pattern.
+ * checks become enforcing.
  */
 class RegistrationGuard
 {

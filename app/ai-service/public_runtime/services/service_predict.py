@@ -588,10 +588,6 @@ def filter_new_format_runtime_predictions(
     raw_predictions,
     scores: list[float],
     score_threshold: float | None = None,
-    label_thresholds: dict[str, float] | None = None,
-    sector_guard=None,
-    company_sectors: list[str] | None = None,
-    crc_floor=None,
 ) -> tuple[list[str], dict]:
     score_threshold = new_format_score_threshold() if score_threshold is None else score_threshold
     raw_prediction_values = [int(value) for value in raw_predictions]
@@ -603,7 +599,7 @@ def filter_new_format_runtime_predictions(
     threshold_positive = [
         (key, score)
         for key, score in raw_positive
-        if score >= (label_thresholds or {}).get(key, score_threshold)
+        if score >= score_threshold
     ]
     candidate_positive = [
         (key, score)
@@ -612,52 +608,14 @@ def filter_new_format_runtime_predictions(
     ]
     candidate_positive.sort(key=lambda item: (-item[1], item[0]))
 
-    # Sector-conditioned suppression of over-reach families. Default OFF (guard is None)
-    # leaves the emitted set unchanged. Never adds keys; only drops over-reach keys
-    # for narrow-scope sectors. See sector_threshold_guard.py.
-    sector_suppressed: list[str] = []
-    if sector_guard is not None:
-        kept_keys, sector_suppressed = sector_guard.filter_keys(
-            [key for key, _ in candidate_positive], company_sectors or []
-        )
-        kept_set = set(kept_keys)
-        candidate_positive = [item for item in candidate_positive if item[0] in kept_set]
-
-    excluded_non_candidate_count = (
-        len(threshold_positive) - len(candidate_positive) - len(sector_suppressed)
-    )
-
-    # CRC recall floor (default OFF, crc_floor is None): the configured standard-level
-    # floor. Runs LAST and only ADDS keys — for every standard whose max
-    # column score reaches lambda but has no emitted child key, it adds the standard's
-    # top candidate child. It intentionally overrides sector-guard suppression: the
-    # floor is the recall guarantee, the guard is a precision lever. See crc_recall_floor.py.
-    crc_added: list[str] = []
-    if crc_floor is not None:
-        score_by_key = dict(zip(esrs_columns, [float(s) for s in scores]))
-        crc_added = crc_floor.augment_keys(
-            emitted_keys=[key for key, _ in candidate_positive],
-            esrs_columns=esrs_columns,
-            scores=scores,
-            candidate_predicate=is_new_format_candidate_key,
-        )
-        candidate_positive.extend((key, score_by_key[key]) for key in crc_added)
+    excluded_non_candidate_count = len(threshold_positive) - len(candidate_positive)
 
     metadata = {
         "new_format_score_threshold": score_threshold,
-        "per_label_threshold_count": len(label_thresholds or {}),
         "raw_positive_key_count": len(raw_positive),
         "threshold_positive_key_count": len(threshold_positive),
         "excluded_non_candidate_key_count": excluded_non_candidate_count,
         "emitted_positive_key_count": len(candidate_positive),
-        "sector_guard_active": sector_guard is not None,
-        "sector_guard_suppressed_count": len(sector_suppressed),
-        "sector_guard_suppressed_keys": sector_suppressed,
-        "crc_recall_floor_active": crc_floor is not None,
-        "crc_lambda": crc_floor.lambda_ if crc_floor is not None else None,
-        "crc_version": crc_floor.version if crc_floor is not None else None,
-        "crc_added_key_count": len(crc_added),
-        "crc_added_keys": crc_added,
     }
 
     return [key for key, _score in candidate_positive], metadata
@@ -712,9 +670,6 @@ def predict_esrs(company_data: CompanyData):
         feature_metadata=feature_metadata,
         mapping_metadata={
             "mapping_status": "external_laravel_mapping",
-            "runtime_activation": "runtime_enabled"
-            if profile.runtime_enabled
-            else "shadow_only_profile_not_endpoint_enabled",
         },
         evidence_refs=[],
     )
@@ -722,19 +677,11 @@ def predict_esrs(company_data: CompanyData):
     if industry_basis:
         prediction.mapping_metadata["industry_basis"] = industry_basis
     if len(predictions) == 1:
-        from crc_recall_floor import load_crc_recall_floor
-        from per_label_thresholds import load_label_thresholds
-        from sector_threshold_guard import load_sector_guard
-
         scores = new_format_positive_scores(clf, df, len(esrs_columns))
         positive_keys, filter_metadata = filter_new_format_runtime_predictions(
             esrs_columns=esrs_columns,
             raw_predictions=predictions[0],
             scores=scores,
-            label_thresholds=load_label_thresholds(profile.artifact_dir),
-            sector_guard=load_sector_guard(),
-            company_sectors=company_data.sector_list,
-            crc_floor=load_crc_recall_floor(profile.name),
         )
         positive_key_set = set(positive_keys)
         prediction.esrs.update({
