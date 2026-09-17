@@ -35,7 +35,6 @@ The production installation documented here does not use `app/compose.public.yml
 | Caddy/TLS | Provisioned by operator | No Caddyfile included | Expose only Caddy and frontend. |
 | SMTP mail | Provisioned by operator | `config/mail.php` | External credentials, sender and deliverability. |
 | Google/Microsoft OAuth | Provisioned by operator | Socialite routes | External apps, exact redirect and secrets. |
-| ClamAV | Provisioned by operator | `UploadVirusScanner` | Operational binary before enabling scanning. |
 | Document S3/MinIO | Requires development before enabling | `CharacterizationDocument::STORAGE_DISK = 'local'` | Does not work automatically for documents. |
 | Document extraction | Requires development before enabling | Laravel calls `POST /extract-document`; FastAPI does not provide it | Keep `P6_DOCUMENT_UPLOAD_ENABLED=false`. |
 

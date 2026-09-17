@@ -101,8 +101,6 @@ Check: review provider authentication logs and Laravel/FastAPI errors without ex
 | `FILESYSTEM_DISK` | Laravel | Yes | `local` | Documents are forced to local disk by model. |
 | `AWS_ACCESS_KEY_ID` and related | Laravel | Only other integrations | non-secret example | Do not enable P6 documents automatically. |
 | `P6_DOCUMENT_UPLOAD_ENABLED` | Laravel | Yes | `false` | Must remain `false` until `/extract-document` exists. |
-| `P6_DOCUMENT_SCAN_ENABLED` | Laravel/ClamAV | Only future documents | `false` | Enable only with operational scanner. |
-| `P6_DOCUMENT_SCAN_BINARY` | Laravel/ClamAV | If scanning | `clamdscan` | Binary executable by Laravel. |
 | `P6_DOCUMENT_EXTRACT_TIMEOUT` | Laravel | Future | `240` | Does not fix missing endpoint. |
 | `P6_DOCUMENT_EXTRACT_JOB_TIMEOUT` | Laravel | Future | `300` | Does not fix missing endpoint. |
 | `LARAVEL_API_ORIGIN` | Next.js | Yes | `http://web:8000` | Rewrites work. |
@@ -125,8 +123,7 @@ QUEUE_CONNECTION=redis
 CHARACTERIZATION_GATEWAY=api
 CHARACTERIZATION_API_BASE_URL=http://ai-service:8001
 P6_DOCUMENT_UPLOAD_ENABLED=false
-P6_DOCUMENT_SCAN_ENABLED=false
 SOCIAL_LOGIN_ENABLED=false
 ```
 
-OAuth, Turnstile and ClamAV are enabled only when their providers are configured and verified. Document upload remains disabled until a service compatible with `POST /extract-document` exists.
+OAuth and Turnstile are enabled only when their providers are configured and verified. Document upload remains disabled until a service compatible with `POST /extract-document` exists.

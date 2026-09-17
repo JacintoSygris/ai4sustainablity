@@ -73,10 +73,6 @@ Comprobacion: ejecutar checklist de [aceptacion y diagnostico](acceptance-diagno
 
 Rotar `APP_KEY` solo con un procedimiento especifico de Laravel y ventana de mantenimiento, porque afecta datos cifrados y sesiones. Rotar contrasenas de PostgreSQL, Redis, SMTP y OAuth de forma individual, verificando cada dependencia antes de revocar la anterior.
 
-## Antivirus
-
-ClamAV es opcional y solo debe activarse cuando sea operativo. Si `P6_DOCUMENT_SCAN_ENABLED=true` y el binario falta o falla, el codigo rechaza la carga de forma cerrada. No activar escaneo documental mientras `P6_DOCUMENT_UPLOAD_ENABLED=false` salvo pruebas controladas.
-
 ## Acciones ante error
 
 1. Identificar servicio afectado.

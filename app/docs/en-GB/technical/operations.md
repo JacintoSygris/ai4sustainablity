@@ -73,10 +73,6 @@ Check: run the post-deployment block in [acceptance and diagnostics](acceptance-
 
 Rotate `APP_KEY` only with a specific Laravel procedure and maintenance window because it affects encrypted data and sessions. Rotate PostgreSQL, Redis, SMTP and OAuth passwords individually, verifying each dependency before revoking the previous one.
 
-## Antivirus
-
-ClamAV is optional and should only be enabled when operational. If `P6_DOCUMENT_SCAN_ENABLED=true` and the binary is missing or fails, the code rejects the upload fail-closed. Do not enable document scanning while `P6_DOCUMENT_UPLOAD_ENABLED=false` except for controlled tests.
-
 ## Incident Actions
 
 1. Identify the affected service.
