@@ -1,0 +1,1997 @@
+{
+  "version": "esrs2023-ar16-dr-v1",
+  "source": {
+    "name": "IA4S AR16 to ESRS DR fine mapping (ESRS 2023)",
+    "status": "approved"
+  },
+  "methodology": "Each selectable AR16 sustainability matter is mapped to explicit ESRS 2023 Disclosure Requirements rather than whole standards. The mapping uses ESRS Set 1 disclosure structure and the EFRAG IG 3 datapoint corpus to keep topic-level scope at Disclosure Requirement level. Matter-agnostic requirements within a material standard apply across the relevant matters of that standard, while metric requirements are assigned only where the matter subject is covered by the requirement and supporting datapoints. Matters without a dedicated metric requirement retain the common requirements for their standard and are not padded with unsupported disclosure requirements.",
+  "limitations": "The ESRS delegated regulation is authoritative if it differs from the supporting datapoint corpus. The mapping expresses binary topic-to-Disclosure Requirement applicability and does not assign materiality weights, thresholds, assurance conclusions, or legal interpretations. It is intended to scope platform datapoint collection and report-package preparation, with human confirmation of materiality remaining part of the workflow.",
+  "coverage": {
+    "ar16_topic_count": 89,
+    "unique_disclosure_requirement_count": 83,
+    "needs_review_topic_ids": []
+  },
+  "mappings": [
+    {
+      "ar16_topic_id": 1,
+      "ar16_topic_key": "esrs_e1_climate_change_adaptation",
+      "ar16_topic_label": "Climate change — Adaptation to climate change",
+      "ar16_topic_label_es": "Cambio climático — Adaptación al cambio climático",
+      "esrs_code": "E1",
+      "disclosure_requirements": [
+        "E1.IRO-1",
+        "E1.SBM-3",
+        "E1.GOV-3",
+        "E1-2",
+        "E1-3",
+        "E1-4",
+        "E1-9"
+      ],
+      "rationale": "ESRS E1 matter-agnostic DRs apply to every material climate matter: IRO process (E1.IRO-1), material IROs and resilience (E1.SBM-3), climate in remuneration (E1.GOV-3), policies (E1-2), actions (E1-3) and targets (E1-4; MDR-T covers GHG and any other climate target). E1-9 added: its datapoints quantify assets and revenue at material physical climate risk and the effect of adaptation actions. Mitigation-specific DRs (E1-1 transition plan, E1-6 GHG, E1-7 removals, E1-8 carbon pricing) and the energy metric (E1-5) are not pulled in by adaptation alone.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E1-9 includes datapoint 'Assets at material physical risk before considering climate change adaptation actions'",
+        "esrs_datapoints_ig3.json: E1-9 includes datapoint 'Percentage of assets at material physical risk addressed by climate change adaptation actions'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 2,
+      "ar16_topic_key": "esrs_e1_climate_change_mitigation",
+      "ar16_topic_label": "Climate change — Climate change mitigation",
+      "ar16_topic_label_es": "Cambio climático — Mitigación del cambio climático",
+      "esrs_code": "E1",
+      "disclosure_requirements": [
+        "E1.IRO-1",
+        "E1.SBM-3",
+        "E1.GOV-3",
+        "E1-2",
+        "E1-3",
+        "E1-4",
+        "E1-1",
+        "E1-5",
+        "E1-6",
+        "E1-7",
+        "E1-8",
+        "E1-9"
+      ],
+      "rationale": "ESRS E1 matter-agnostic DRs apply to every material climate matter: IRO process (E1.IRO-1), material IROs and resilience (E1.SBM-3), climate in remuneration (E1.GOV-3), policies (E1-2), actions (E1-3) and targets (E1-4; MDR-T covers GHG and any other climate target). Mitigation additionally activates the transition plan (E1-1), energy consumption and mix (E1-5, the decarbonisation baseline metric), gross GHG emissions (E1-6), GHG removals and credits (E1-7), internal carbon pricing (E1-8) and financial effects including transition risk (E1-9).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E1-1 includes datapoint 'Disclosure of transition plan for climate change mitigation'",
+        "esrs_datapoints_ig3.json: E1-6 includes datapoint 'Gross Scopes 1, 2, 3 and Total GHG emissions - GHG emissions per scope [table]'",
+        "esrs_datapoints_ig3.json: E1-9 includes datapoint 'Assets at material transition risk before considering climate mitigation actions'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 3,
+      "ar16_topic_key": "esrs_e1_energy_use",
+      "ar16_topic_label": "Climate change — Energy",
+      "ar16_topic_label_es": "Cambio climático — Energía",
+      "esrs_code": "E1",
+      "disclosure_requirements": [
+        "E1.IRO-1",
+        "E1.SBM-3",
+        "E1.GOV-3",
+        "E1-2",
+        "E1-3",
+        "E1-4",
+        "E1-5",
+        "E1-9"
+      ],
+      "rationale": "ESRS E1 matter-agnostic DRs apply to every material climate matter: IRO process (E1.IRO-1), material IROs and resilience (E1.SBM-3), climate in remuneration (E1.GOV-3), policies (E1-2), actions (E1-3) and targets (E1-4; MDR-T covers GHG and any other climate target). Energy activates E1-5 (energy consumption and mix). E1-9 included by reviewer decision (2026-06-11): its financial-effects datapoints carry energy-relevant content (real estate assets by energy efficiency class, expected cost savings from mitigation actions, revenue from coal/oil/gas-related customers), so energy materiality also reports anticipated financial effects.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E1-5 includes datapoint 'Total energy consumption related to own operations'",
+        "esrs_datapoints_ig3.json: E1-9 includes datapoint 'Total carrying amount of real estate assets by energy efficiency classes'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 4,
+      "ar16_topic_key": "esrs_e2_air_pollution",
+      "ar16_topic_label": "Pollution — air pollution",
+      "ar16_topic_label_es": "Contaminación — Contaminación del aire",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-4"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-4 added: it carries the emissions-to-air metric datapoints.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-4 includes datapoint 'Emissions to air by pollutant'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 5,
+      "ar16_topic_key": "esrs_e2_water_pollution",
+      "ar16_topic_label": "Pollution — Water pollution",
+      "ar16_topic_label_es": "Contaminación — Contaminación del agua",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-4"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-4 added: it carries the emissions-to-water metric datapoints.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-4 includes datapoint 'Emissions to water by pollutant [+ by sectors/Geographical Area/Type of source/Site location]'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 6,
+      "ar16_topic_key": "esrs_e2_soil_pollution",
+      "ar16_topic_label": "Pollution — Soil pollution",
+      "ar16_topic_label_es": "Contaminación — Contaminación del suelo",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-4"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-4 added: it carries the emissions-to-soil metric datapoints.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-4 includes datapoint 'Emissions to soil by pollutant [+ by sectors/Geographical Area/Type of source/Site location]'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 7,
+      "ar16_topic_key": "esrs_e2_impact_on_ecosystems_and_human_health",
+      "ar16_topic_label": "Pollution — Contamination of living organisms and food resources",
+      "ar16_topic_label_es": "Contaminación — Contaminación de organismos vivos y recursos alimentarios",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-4"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-4 included by reviewer decision (2026-06-11) as the vector metric: contamination of living organisms and food resources occurs through pollutant emissions to air, water and soil, which E2-4 quantifies by pollutant; IG3 has no effect-level datapoint for this matter.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-4 includes datapoint 'Pollution of air, water and soil [multiple dimensions: at site level or by type of source, by sector or by geo'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 8,
+      "ar16_topic_key": "esrs_e2_susbtances_of_concern",
+      "ar16_topic_label": "Pollution — Substances of concern",
+      "ar16_topic_label_es": "Contaminación — Sustancias preocupantes",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-5"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-5 added: it quantifies substances of concern generated, used or procured.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-5 includes datapoint 'Total amount of substances of concern that are generated or used during production or that are procured, break'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 9,
+      "ar16_topic_key": "esrs_e2_substances_of_very_high_concern",
+      "ar16_topic_label": "Pollution — Substances of extremely high concern",
+      "ar16_topic_label_es": "Contaminación — Sustancias extremadamente preocupantes",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-5"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-5 added: it covers substances of very high concern alongside substances of concern.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-5 includes datapoint 'Total amount of substances of concern that are generated or used during production or that are procured, break'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 10,
+      "ar16_topic_key": "esrs_e2_microplastics",
+      "ar16_topic_label": "Pollution — Microplastics",
+      "ar16_topic_label_es": "Contaminación — Microplásticos",
+      "esrs_code": "E2",
+      "disclosure_requirements": [
+        "E2.IRO-1",
+        "E2-1",
+        "E2-2",
+        "E2-3",
+        "E2-6",
+        "E2-4"
+      ],
+      "rationale": "ESRS E2 matter-agnostic DRs apply to every material pollution matter: IRO process (E2.IRO-1), policies (E2-1), actions (E2-2), targets (E2-3) and anticipated financial effects (E2-6). E2-4 added: it contains the dedicated microplastics datapoints.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E2-4 includes datapoint 'Microplastics generated and used'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 11,
+      "ar16_topic_key": "esrs_e3_water_consumption",
+      "ar16_topic_label": "Water and marine resources — Water — Water consumption",
+      "ar16_topic_label_es": "Agua y recursos marinos — Agua — Consumo de agua",
+      "esrs_code": "E3",
+      "disclosure_requirements": [
+        "E3.IRO-1",
+        "E3-1",
+        "E3-2",
+        "E3-3",
+        "E3-5",
+        "E3-4"
+      ],
+      "rationale": "ESRS E3 matter-agnostic DRs apply to every material water/marine matter: IRO process (E3.IRO-1), policies (E3-1), actions (E3-2), targets (E3-3) and anticipated financial effects (E3-5). E3-4 added: water consumption is its core metric.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E3-4 includes datapoint 'Total water consumption'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 12,
+      "ar16_topic_key": "esrs_e3_water_withdrawal",
+      "ar16_topic_label": "Water and marine resources — Water — Water extractions",
+      "ar16_topic_label_es": "Agua y recursos marinos — Agua — Extracciones de agua",
+      "esrs_code": "E3",
+      "disclosure_requirements": [
+        "E3.IRO-1",
+        "E3-1",
+        "E3-2",
+        "E3-3",
+        "E3-5",
+        "E3-4"
+      ],
+      "rationale": "ESRS E3 matter-agnostic DRs apply to every material water/marine matter: IRO process (E3.IRO-1), policies (E3-1), actions (E3-2), targets (E3-3) and anticipated financial effects (E3-5). E3-4 added: it includes the water withdrawals metric.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E3-4 includes datapoint 'Total water withdrawals'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 13,
+      "ar16_topic_key": "esrs_e3_water_discharge",
+      "ar16_topic_label": "Water and marine resources — Water — water spills",
+      "ar16_topic_label_es": "Agua y recursos marinos — Agua — Vertidos de agua",
+      "esrs_code": "E3",
+      "disclosure_requirements": [
+        "E3.IRO-1",
+        "E3-1",
+        "E3-2",
+        "E3-3",
+        "E3-5",
+        "E3-4"
+      ],
+      "rationale": "ESRS E3 matter-agnostic DRs apply to every material water/marine matter: IRO process (E3.IRO-1), policies (E3-1), actions (E3-2), targets (E3-3) and anticipated financial effects (E3-5). E3-4 added: it includes the water discharges metric matching this matter (AR16 water discharges / \"vertidos de agua\").",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E3-4 includes datapoint 'Total water discharges'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 14,
+      "ar16_topic_key": "esrs_e3_water_discharge_into_oceans",
+      "ar16_topic_label": "Water and marine resources — Water — Water spills into the oceans",
+      "ar16_topic_label_es": "Agua y recursos marinos — Agua — Vertidos de agua en los océanos",
+      "esrs_code": "E3",
+      "disclosure_requirements": [
+        "E3.IRO-1",
+        "E3-1",
+        "E3-2",
+        "E3-3",
+        "E3-5",
+        "E3-4"
+      ],
+      "rationale": "ESRS E3 matter-agnostic DRs apply to every material water/marine matter: IRO process (E3.IRO-1), policies (E3-1), actions (E3-2), targets (E3-3) and anticipated financial effects (E3-5). E3-4 confirmed by reviewer decision (2026-06-11): discharges into oceans are a subset of water discharges (Total water discharges); IG3 has no ocean-specific datapoint.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E3-4 includes datapoint 'Total water discharges'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 15,
+      "ar16_topic_key": "esrs_e3_extraction_and_use_of_marine_resources",
+      "ar16_topic_label": "Water and marine resources — Marine resources — Extraction and use of marine resources",
+      "ar16_topic_label_es": "Agua y recursos marinos — Recursos marinos — Extracción y utilización de los recursos marinos",
+      "esrs_code": "E3",
+      "disclosure_requirements": [
+        "E3.IRO-1",
+        "E3-1",
+        "E3-2",
+        "E3-3",
+        "E3-5"
+      ],
+      "rationale": "ESRS E3 matter-agnostic DRs apply to every material water/marine matter: IRO process (E3.IRO-1), policies (E3-1), actions (E3-2), targets (E3-3) and anticipated financial effects (E3-5). Reviewer decision (2026-06-11): no metric DR is mapped because no IG3 metric DR addresses extraction and use of marine resources (E3-4 is water-volume oriented); entity-specific metrics may be added at reporting time.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 16,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_climate_change",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Climate change",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Cambio climático",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 17,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_land_and_water_use_change",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Land use change, freshwater use change and sea use change",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Cambio del uso de la tierra, cambio del uso de las aguas dulces y cambio del uso del mar",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 18,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_direct_exploitation",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Direct exploitation",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Explotación directa",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 19,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_exotic_species",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Invasive alien species",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Especies exóticas invasoras",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 20,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_pollution",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Pollution",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Contaminación",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 21,
+      "ar16_topic_key": "esrs_e4_direct_impact_on_biodiversity_loss_other_factors",
+      "ar16_topic_label": "Biodiversity and ecosystems — Factors of direct impact on the loss of biodiversity — Others",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Factores de incidencia directa sobre la pérdida de biodiversidad — Otros",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set. Reviewer decision (2026-06-11): the residual \"Others\" driver receives the same full E4 DR set as the named drivers.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 22,
+      "ar16_topic_key": "esrs_e4_status_of_species_species_population",
+      "ar16_topic_label": "Biodiversity and ecosystems — Incidents on the status of the species",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Incidencias sobre el estado de las especies",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 23,
+      "ar16_topic_key": "esrs_e4_status_of_ecosystems_soil_degradation",
+      "ar16_topic_label": "Biodiversity and ecosystems — Incidents on the extent and state of ecosystems",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Incidencias sobre la extensión y el estado de los ecosistemas",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 24,
+      "ar16_topic_key": "esrs_e4_impacts_ecosystem_services",
+      "ar16_topic_label": "Biodiversity and ecosystems — Incidents on ecosystem services and dependencies on these services",
+      "ar16_topic_label_es": "Biodiversidad y ecosistemas — Incidencias sobre los servicios ecosistémicos y dependencias de estos servicios",
+      "esrs_code": "E4",
+      "disclosure_requirements": [
+        "E4.IRO-1",
+        "E4.SBM-3",
+        "E4-1",
+        "E4-2",
+        "E4-3",
+        "E4-4",
+        "E4-5",
+        "E4-6"
+      ],
+      "rationale": "ESRS E4 defines its DRs holistically for biodiversity and ecosystems without per-driver or per-state splits: transition plan/resilience (E4-1), IRO process (E4.IRO-1), material sites (E4.SBM-3), policies (E4-2), actions (E4-3), targets (E4-4), impact metrics (E4-5) and financial effects (E4-6) all address the biodiversity matter as a whole, so every E4 matter maps to the full E4 DR set.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E4-2 includes datapoint 'Policies to manage material impacts, risks, dependencies and opportunities related to biodiversity and ecosyst'",
+        "esrs_datapoints_ig3.json: E4-5 includes datapoint 'Number of sites owned, leased or managed in or near protected areas or key biodiversity areas that undertaking'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 25,
+      "ar16_topic_key": "esrs_e5_resource_input",
+      "ar16_topic_label": "Circular economy — Resource inputs, including resource utilization",
+      "ar16_topic_label_es": "Economía circular — Entradas de recursos, incluida la utilización de los recursos",
+      "esrs_code": "E5",
+      "disclosure_requirements": [
+        "E5.IRO-1",
+        "E5-1",
+        "E5-2",
+        "E5-3",
+        "E5-6",
+        "E5-4"
+      ],
+      "rationale": "ESRS E5 matter-agnostic DRs apply to every material circular-economy matter: IRO process (E5.IRO-1), policies (E5-1), actions (E5-2), targets (E5-3) and financial effects (E5-6). E5-4 added: it discloses material resource inflows.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E5-4 includes datapoint 'Disclosure of information on material resource inflows'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 26,
+      "ar16_topic_key": "esrs_e5_resource_output",
+      "ar16_topic_label": "Circular economy — Resource outflows related to products and services",
+      "ar16_topic_label_es": "Economía circular — Salidas de recursos relacionadas con productos y servicios",
+      "esrs_code": "E5",
+      "disclosure_requirements": [
+        "E5.IRO-1",
+        "E5-1",
+        "E5-2",
+        "E5-3",
+        "E5-6",
+        "E5-5"
+      ],
+      "rationale": "ESRS E5 matter-agnostic DRs apply to every material circular-economy matter: IRO process (E5.IRO-1), policies (E5-1), actions (E5-2), targets (E5-3) and financial effects (E5-6). E5-5 added: it covers resource outflows related to products and services (durability, reparability, recyclable content).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E5-5 includes datapoint 'Disclosure of the reparability of products'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 27,
+      "ar16_topic_key": "esrs_e5_waste_management",
+      "ar16_topic_label": "Circular economy — Waste",
+      "ar16_topic_label_es": "Economía circular — Residuos",
+      "esrs_code": "E5",
+      "disclosure_requirements": [
+        "E5.IRO-1",
+        "E5-1",
+        "E5-2",
+        "E5-3",
+        "E5-6",
+        "E5-5"
+      ],
+      "rationale": "ESRS E5 matter-agnostic DRs apply to every material circular-economy matter: IRO process (E5.IRO-1), policies (E5-1), actions (E5-2), targets (E5-3) and financial effects (E5-6). E5-5 added: the waste metrics (total waste generated, diverted, disposed, hazardous) live inside E5-5 in the IG3 corpus.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: E5-5 includes datapoint 'Total Waste generated'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 28,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_safe_employment",
+      "ar16_topic_label": "Own staff — Working conditions — Secure employment",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Empleo seguro",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-11"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-11 added: social protection coverage is the metric ESRS links to secure employment.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-11 includes datapoint 'All employees in own workforce are covered by social protection, through public programs or through benefits o'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 29,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_working_time",
+      "ar16_topic_label": "Own staff — Working conditions — Working time",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Tiempo de trabajo",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. Reviewer decision (2026-06-11): no metric DR is mapped because IG3 has no working-time metric; S1-15 stays with work-life balance (topic 34).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 30,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_fair_salary",
+      "ar16_topic_label": "Own staff — Working conditions — Adequate salaries",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Salarios adecuados",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-10"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-10 added: adequate-wage coverage is the metric for adequate salaries. S1-16 (remuneration ratio) is intentionally left with gender equality/equal pay; flag for review if reviewers want the annual total remuneration ratio here too.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-10 includes datapoint 'All employees are paid adequate wage, in line with applicable benchmarks'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 31,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_social_dialogue",
+      "ar16_topic_label": "Own staff — Working conditions — Social dialogue",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Diálogo social",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-8"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-8 added: collective bargaining coverage and social dialogue metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-8 includes datapoint 'Percentage of total employees covered by collective bargaining agreements'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 32,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_association",
+      "ar16_topic_label": "Own staff — Working conditions — Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Libertad de asociación, la existencia de comités de empresa y los derechos de información, consulta y participación de los trabajadores",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-8"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-8 added: freedom of association is reported through collective bargaining coverage and social dialogue metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-8 includes datapoint 'Percentage of total employees covered by collective bargaining agreements'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 33,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_bargaining",
+      "ar16_topic_label": "Own staff — Working conditions — Collective bargaining, including the proportion of workers covered by collective agreements",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Negociación colectiva, incluida la proporción de trabajadores cubiertos por convenios colectivos",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-8"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-8 added: collective bargaining coverage is its core metric.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-8 includes datapoint 'Percentage of total employees covered by collective bargaining agreements'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 34,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_reconciling",
+      "ar16_topic_label": "Own staff — Working conditions — Work conciliation",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Conciliación laboral",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-15"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-15 added: work-life balance (family-related leave) metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-15 includes datapoint 'Percentage of employees entitled to take family-related leave'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 35,
+      "ar16_topic_key": "esrs_s1_own_working_conditions_own_health_safety",
+      "ar16_topic_label": "Own staff — Working conditions — Health and safety",
+      "ar16_topic_label_es": "Personal propio — Condiciones de trabajo — Salud y seguridad",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-14"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-14 added: health and safety metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-14 includes datapoint 'Percentage of people in its own workforce who are covered by health and safety management system based on lega'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 36,
+      "ar16_topic_key": "esrs_s1_own_equality_own_gender_equality",
+      "ar16_topic_label": "Own staff — Equal treatment and opportunities for all — Gender equality and equal pay for work of equal value",
+      "ar16_topic_label_es": "Personal propio — Igualdad de trato y oportunidades para todos — Igualdad de género e igualdad de remuneración por un trabajo de igual valor",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-9",
+        "S1-16"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-9 (gender distribution) and S1-16 (gender pay gap, remuneration ratio) added as the equal treatment and equal pay metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-9 includes datapoint 'Gender distribution in number of employees (head count) at top management level'",
+        "esrs_datapoints_ig3.json: S1-16 includes datapoint 'Gender pay gap'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 37,
+      "ar16_topic_key": "esrs_s1_own_equality_own_training",
+      "ar16_topic_label": "Own staff — Equal treatment and opportunities for all — Training and capacity development",
+      "ar16_topic_label_es": "Personal propio — Igualdad de trato y oportunidades para todos — Formación y desarrollo de capacidades",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-13"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-13 added: training and skills development metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-13 includes datapoint 'Training and skills development indicators gender [table]'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 38,
+      "ar16_topic_key": "esrs_s1_own_equality_own_disabilities",
+      "ar16_topic_label": "Own staff — Equal treatment and opportunities for all — Employment and inclusion of people with disabilities",
+      "ar16_topic_label_es": "Personal propio — Igualdad de trato y oportunidades para todos — Empleo e inclusión de las personas con discapacidad",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-12"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-12 added: employment of persons with disabilities metric.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-12 includes datapoint 'Percentage of persons with disabilities amongst employees, subject to legal restrictions on collection of data'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 39,
+      "ar16_topic_key": "esrs_s1_own_equality_own_harassment",
+      "ar16_topic_label": "Own staff — Equal treatment and opportunities for all — Measures against violence and harassment in the workplace",
+      "ar16_topic_label_es": "Personal propio — Igualdad de trato y oportunidades para todos — Medidas contra la violencia y el acoso en el lugar de trabajo",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-17"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-17 added: incidents of discrimination including harassment, complaints and related fines.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-17 includes datapoint 'Number of incidents of discrimination [table]'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 40,
+      "ar16_topic_key": "esrs_s1_own_equality_own_diversity",
+      "ar16_topic_label": "Own staff — Equal treatment and opportunities for all — Diversity",
+      "ar16_topic_label_es": "Personal propio — Igualdad de trato y oportunidades para todos — Diversidad",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-9"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-9 added: diversity metrics (gender and age distribution).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-9 includes datapoint 'Distribution of employees (head count) under 30 years old'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 41,
+      "ar16_topic_key": "esrs_s1_own_other_rights_own_child_labour",
+      "ar16_topic_label": "Own staff — Other labor rights — child labor",
+      "ar16_topic_label_es": "Personal propio — Otros derechos laborales — Trabajo infantil",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-17"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-17 added: child labour incidents fall under severe human rights issues and incidents connected to own workforce.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-17 includes datapoint 'Number of severe human rights issues and incidents connected to own workforce'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 42,
+      "ar16_topic_key": "esrs_s1_own_other_rights_own_forced_labour",
+      "ar16_topic_label": "Own staff — Other labor rights — Forced labor",
+      "ar16_topic_label_es": "Personal propio — Otros derechos laborales — Trabajo forzoso",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7",
+        "S1-17"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. S1-17 added: forced labour incidents fall under severe human rights issues and incidents connected to own workforce.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: S1-17 includes datapoint 'Number of severe human rights issues and incidents connected to own workforce'"
+      ],
+      "confidence": "medium",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 43,
+      "ar16_topic_key": "esrs_s1_own_other_rights_own_housing",
+      "ar16_topic_label": "Own staff — Other labor rights — Adequate housing",
+      "ar16_topic_label_es": "Personal propio — Otros derechos laborales — Vivienda adecuada",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. Reviewer decision (2026-06-11): no metric DR is mapped because IG3 has no adequate-housing metric for own workforce; the common DRs (policies, actions, targets, remediation channels) carry the matter.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 44,
+      "ar16_topic_key": "esrs_s1_own_other_rights_own_privacy",
+      "ar16_topic_label": "Own staff — Other labor rights — Privacy",
+      "ar16_topic_label_es": "Personal propio — Otros derechos laborales — Privacidad",
+      "esrs_code": "S1",
+      "disclosure_requirements": [
+        "S1.SBM-3",
+        "S1-1",
+        "S1-2",
+        "S1-3",
+        "S1-4",
+        "S1-5",
+        "S1-6",
+        "S1-7"
+      ],
+      "rationale": "ESRS S1 matter-agnostic DRs apply to every material own-workforce matter: scope of material IROs (S1.SBM-3), policies (S1-1), engagement (S1-2), remediation channels (S1-3), actions (S1-4), targets (S1-5) and the general workforce characteristics metrics S1-6/S1-7, which ESRS S1 requires whenever own-workforce IROs are material regardless of the specific matter. Reviewer decision (2026-06-11): no metric DR is mapped; S1-17 (severe human rights incidents) was considered as a privacy proxy and rejected as speculative.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 45,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_safe_employment",
+      "ar16_topic_label": "Value chain workers — Working conditions — Secure employment",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Empleo seguro",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 46,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_working_time",
+      "ar16_topic_label": "Value chain workers — Working conditions — Working time",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Tiempo de trabajo",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 47,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_fair_salary",
+      "ar16_topic_label": "Value chain workers — Working conditions — Adequate salaries",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Salarios adecuados",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 48,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_social_dialogue",
+      "ar16_topic_label": "Value chain workers — Working conditions — Social dialogue",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Diálogo social",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 49,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_association",
+      "ar16_topic_label": "Value chain workers — Working conditions — Freedom of association, including the existence of works councils",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Libertad de asociación, incluida la existencia de comités de empresa",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 50,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_bargaining",
+      "ar16_topic_label": "Value chain workers — Working conditions — Collective bargaining",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Negociación colectiva",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 51,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_reconciling",
+      "ar16_topic_label": "Value chain workers — Working conditions — Work conciliation",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Conciliación laboral",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 52,
+      "ar16_topic_key": "esrs_s2_chain_working_conditions_chain_health_safety",
+      "ar16_topic_label": "Value chain workers — Working conditions — Health and safety",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Condiciones de trabajo — Salud y seguridad",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 53,
+      "ar16_topic_key": "esrs_s2_chain_equality_chain_gender_equality",
+      "ar16_topic_label": "Value chain workers — Equal treatment and opportunities for all — Gender equality and equal pay for work of equal value",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Igualdad de trato y oportunidades para todos — Igualdad de género e igualdad de remuneración por un trabajo de igual valor",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 54,
+      "ar16_topic_key": "esrs_s2_chain_equality_chain_training",
+      "ar16_topic_label": "Value chain workers — Equal treatment and opportunities for all — Training and capacity development",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Igualdad de trato y oportunidades para todos — Formación y desarrollo de capacidades",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 55,
+      "ar16_topic_key": "esrs_s2_chain_equality_chain_disabilities",
+      "ar16_topic_label": "Value chain workers — Equal treatment and opportunities for all — Employment and inclusion of people with disabilities",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Igualdad de trato y oportunidades para todos — El empleo y la inclusión de las personas con discapacidad",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 56,
+      "ar16_topic_key": "esrs_s2_chain_equality_chain_harassment",
+      "ar16_topic_label": "Value chain workers — Equal treatment and opportunities for all — Measures against violence and harassment in the workplace",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Igualdad de trato y oportunidades para todos — Medidas contra la violencia y el acoso en el lugar de trabajo",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 57,
+      "ar16_topic_key": "esrs_s2_chain_equality_chain_diversity",
+      "ar16_topic_label": "Value chain workers — Equal treatment and opportunities for all — Diversity",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Igualdad de trato y oportunidades para todos — Diversidad",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 58,
+      "ar16_topic_key": "esrs_s2_chain_other_rights_chain_child_labour",
+      "ar16_topic_label": "Value chain workers — Other labor rights — child labor",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Otros derechos laborales — Trabajo infantil",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 59,
+      "ar16_topic_key": "esrs_s2_chain_other_rights_chain_forced_labour",
+      "ar16_topic_label": "Value chain workers — Other labor rights — Forced labor",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Otros derechos laborales — Trabajo forzoso",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 60,
+      "ar16_topic_key": "esrs_s2_chain_other_rights_chain_housing",
+      "ar16_topic_label": "Value chain workers — Other labor rights — Adequate housing",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Otros derechos laborales — Vivienda adecuada",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 61,
+      "ar16_topic_key": "esrs_s2_chain_other_rights_chain_water_sanitation",
+      "ar16_topic_label": "Value chain workers — Other labor rights — Water and sanitation",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Otros derechos laborales — Agua y saneamiento",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR. Note: this matter (water and sanitation for value chain workers) has no approved python_esrs_key in ar16_to_python_esrs_mapping_new_format_732_v1.json; the derived provisional slug used as ar16_topic_key was accepted by reviewer decision (2026-06-11).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 62,
+      "ar16_topic_key": "esrs_s2_chain_other_rights_chain_privacy",
+      "ar16_topic_label": "Value chain workers — Other labor rights — Privacy",
+      "ar16_topic_label_es": "Trabajadores de la cadena de valor — Otros derechos laborales — Privacidad",
+      "esrs_code": "S2",
+      "disclosure_requirements": [
+        "S2.SBM-3",
+        "S2-1",
+        "S2-2",
+        "S2-3",
+        "S2-4",
+        "S2-5"
+      ],
+      "rationale": "ESRS S2 contains only matter-agnostic DRs (scope of material IROs (S2.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material value-chain-workers matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 63,
+      "ar16_topic_key": "esrs_s3_economic_rights_communities_housing",
+      "ar16_topic_label": "Affected groups — Economic, social and cultural rights of groups — Adequate housing",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos económicos, sociales y culturales de los colectivos — Vivienda adecuada",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 64,
+      "ar16_topic_key": "esrs_s3_economic_rights_communities_food",
+      "ar16_topic_label": "Affected groups — Economic, social and cultural rights of groups — Proper nutrition",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos económicos, sociales y culturales de los colectivos — Alimentación adecuada",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 65,
+      "ar16_topic_key": "esrs_s3_economic_rights_communities_water",
+      "ar16_topic_label": "Affected groups — Economic, social and cultural rights of groups — Water and sanitation",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos económicos, sociales y culturales de los colectivos — Agua y saneamiento",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 66,
+      "ar16_topic_key": "esrs_s3_economic_rights_communities_land_incidents",
+      "ar16_topic_label": "Affected groups — Economic, social and cultural rights of groups — Land-related incidents",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos económicos, sociales y culturales de los colectivos — Incidencias relacionadas con la tierra",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 67,
+      "ar16_topic_key": "esrs_s3_economic_rights_communities_security_incidents",
+      "ar16_topic_label": "Affected groups — Economic, social and cultural rights of groups — Security-related incidents",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos económicos, sociales y culturales de los colectivos — Incidencias relacionadas con la seguridad",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 68,
+      "ar16_topic_key": "esrs_s3_civil_rights_expression",
+      "ar16_topic_label": "Affected groups — Civil and political rights of groups — Freedom of expression",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos civiles y políticos de los colectivos — Libertad de expresión",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 69,
+      "ar16_topic_key": "esrs_s3_civil_rights_assembly",
+      "ar16_topic_label": "Affected groups — Civil and political rights of groups — Freedom of assembly",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos civiles y políticos de los colectivos — Libertad de reunión",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 70,
+      "ar16_topic_key": "esrs_s3_civil_rights_human_rights",
+      "ar16_topic_label": "Affected groups — Civil and political rights of groups — Incidents on human rights defenders",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos civiles y políticos de los colectivos — Incidencias sobre los defensores de los derechos humanos",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 71,
+      "ar16_topic_key": "esrs_s3_indigenous_rights_consent",
+      "ar16_topic_label": "Affected groups — Rights of indigenous peoples — Free, prior and informed consent",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos de pueblos indígenas — Consentimiento libre, previo e informado",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 72,
+      "ar16_topic_key": "esrs_s3_indigenous_rights_self_determination",
+      "ar16_topic_label": "Affected groups — Rights of indigenous peoples — Self-determination",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos de pueblos indígenas — Autodeterminación",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 73,
+      "ar16_topic_key": "esrs_s3_indigenous_rights_cultural_rights",
+      "ar16_topic_label": "Affected groups — Rights of indigenous peoples — Cultural rights",
+      "ar16_topic_label_es": "Colectivos afectados — Derechos de pueblos indígenas — Derechos culturales",
+      "esrs_code": "S3",
+      "disclosure_requirements": [
+        "S3.SBM-3",
+        "S3-1",
+        "S3-2",
+        "S3-3",
+        "S3-4",
+        "S3-5"
+      ],
+      "rationale": "ESRS S3 contains only matter-agnostic DRs (scope of material IROs (S3.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material affected-communities matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 74,
+      "ar16_topic_key": "esrs_s4_consumer_information_privacy",
+      "ar16_topic_label": "Consumers and end users — Incidents related to information for consumers or end users — Privacy",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Incidencias relacionadas con la información para los consumidores o usuarios finales — Privacidad",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 75,
+      "ar16_topic_key": "esrs_s4_consumer_information_freedom_expression",
+      "ar16_topic_label": "Consumers and end users — Incidents related to information for consumers or end users — Freedom of expression",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Incidencias relacionadas con la información para los consumidores o usuarios finales — Libertad de expresión",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 76,
+      "ar16_topic_key": "esrs_s4_consumer_information_access_information",
+      "ar16_topic_label": "Consumers and end users — Incidents related to information for consumers or end users — Access to information (quality)",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Incidencias relacionadas con la información para los consumidores o usuarios finales — Acceso a la información (de calidad)",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 77,
+      "ar16_topic_key": "esrs_s4_personal_safety_health_safety_products",
+      "ar16_topic_label": "Consumers and end users — Personal safety of consumers or end users — Health and safety",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Seguridad personal de los consumidores o usuarios finales — Salud y seguridad",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 78,
+      "ar16_topic_key": "esrs_s4_personal_safety_security_individals",
+      "ar16_topic_label": "Consumers and end users — Personal safety of consumers or end users — Safety of a person",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Seguridad personal de los consumidores o usuarios finales — Seguridad de una persona",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 79,
+      "ar16_topic_key": "esrs_s4_personal_safety_child_protection",
+      "ar16_topic_label": "Consumers and end users — Personal safety of consumers or end users — Protection of children",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Seguridad personal de los consumidores o usuarios finales — Protección de los niños",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 80,
+      "ar16_topic_key": "esrs_s4_social_inclusion_non_discrimination",
+      "ar16_topic_label": "Consumers and end users — Social inclusion of consumers or end users — Non-discrimination",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Inclusión social de los consumidores o usuarios finales — No discriminación",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 81,
+      "ar16_topic_key": "esrs_s4_social_inclusion_access_products",
+      "ar16_topic_label": "Consumers and end users — Social inclusion of consumers or end users — Access to products and services",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Inclusión social de los consumidores o usuarios finales — Acceso a productos y servicios",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 82,
+      "ar16_topic_key": "esrs_s4_social_inclusion_marketing",
+      "ar16_topic_label": "Consumers and end users — Social inclusion of consumers or end users — Responsible marketing practices",
+      "ar16_topic_label_es": "Consumidores y usuarios finales — Inclusión social de los consumidores o usuarios finales — Prácticas de marketing responsables",
+      "esrs_code": "S4",
+      "disclosure_requirements": [
+        "S4.SBM-3",
+        "S4-1",
+        "S4-2",
+        "S4-3",
+        "S4-4",
+        "S4-5"
+      ],
+      "rationale": "ESRS S4 contains only matter-agnostic DRs (scope of material IROs (S4.SBM-3), policies, engagement, remediation, actions, targets); the standard defines no per-matter metric DRs, so every material consumers/end-users matter maps to the same six DRs. Entity-specific metrics fall under ESRS 2 MDR.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 83,
+      "ar16_topic_key": "esrs_g1_corporate_conduct",
+      "ar16_topic_label": "Business conduct — Corporate culture",
+      "ar16_topic_label_es": "Conducta empresarial — Cultura corporativa",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-1"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-1 added: it covers business conduct policies and how corporate culture is established, developed, promoted and evaluated.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-1 includes datapoint 'Description of how the undertaking establishes, develops, promotes and evaluates its corporate culture'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 84,
+      "ar16_topic_key": "esrs_g1_whistleblower",
+      "ar16_topic_label": "Business conduct — Protection of whistleblowers",
+      "ar16_topic_label_es": "Conducta empresarial — Protección de los denunciantes",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-1"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-1 added: whistleblower-protection datapoints (safeguards for reporting irregularities, whistle-blower policies) live in G1-1.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-1 includes datapoint 'Disclosure of safeguards for reporting irregularities including whistleblowing protection'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 85,
+      "ar16_topic_key": "esrs_g1_animal_welfare",
+      "ar16_topic_label": "Business conduct — animal welfare",
+      "ar16_topic_label_es": "Conducta empresarial — Bienestar animal",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-1"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-1 added: it contains the only animal-welfare datapoint (existence of animal welfare policies). Reviewer decision (2026-06-11): thin coverage confirmed as the ESRS 2023/IG3 scope for this matter; anything further is entity-specific reporting, not part of this map.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-1 includes datapoint 'Policies with respect to animal welfare are in place'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 86,
+      "ar16_topic_key": "esrs_g1_lobbying_activities",
+      "ar16_topic_label": "Business conduct — Political commitment and pressure group activities",
+      "ar16_topic_label_es": "Conducta empresarial — Compromiso político y actividades de los grupos de presión",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-5"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-5 added: political influence and lobbying activities (contributions, lobbying expenses, transparency register).",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-5 includes datapoint 'Amount of internal and external lobbying expenses'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 87,
+      "ar16_topic_key": "esrs_g1_supply_chain_conduct",
+      "ar16_topic_label": "Business conduct — Supplier relationship management, including payment practices",
+      "ar16_topic_label_es": "Conducta empresarial — Gestión de las relaciones con los proveedores, incluidas las prácticas de pago",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-2",
+        "G1-6"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-2 added for management of relationships with suppliers and G1-6 for payment practices metrics.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-2 includes datapoint 'Description of policy to prevent late payments, especially to SMEs'",
+        "esrs_datapoints_ig3.json: G1-6 includes datapoint 'Average number of days to pay invoice from date when contractual or statutory term of payment starts to be cal'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 88,
+      "ar16_topic_key": "esrs_g1_anti_corruption_prevention",
+      "ar16_topic_label": "Business conduct — Corruption and bribery — Prevention and detection, including training",
+      "ar16_topic_label_es": "Conducta empresarial — Corrupción y soborno — Prevención y detección, incluida la formación",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-1",
+        "G1-3"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-3 added: prevention and detection of corruption or bribery including training programmes. G1-1 added: anti-corruption/anti-bribery policy datapoints live in G1-1. Reviewer decision (2026-06-11): G1-4 stays with the incidents matter (topic 89); prevention action plans are already covered by the conditional ESRS 2 MDR block that P9 activates for material matters.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-3 includes datapoint 'Information about nature, scope and depth of anti-corruption or anti-bribery training programmes offered or required'",
+        "esrs_datapoints_ig3.json: G1-1 includes datapoint 'No policies on anti-corruption or anti-bribery consistent with United Nations Convention against Corruption are in place'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    },
+    {
+      "ar16_topic_id": 89,
+      "ar16_topic_key": "esrs_g1_anti_corruption_incidents",
+      "ar16_topic_label": "Business conduct — Corruption and bribery — Cases",
+      "ar16_topic_label_es": "Conducta empresarial — Corrupción y soborno — Casos",
+      "esrs_code": "G1",
+      "disclosure_requirements": [
+        "G1.GOV-1",
+        "G1-4"
+      ],
+      "rationale": "G1.GOV-1 (role of administrative, management and supervisory bodies on business conduct) is matter-agnostic within ESRS G1 and applies whenever any business-conduct matter is material. G1-4 added: confirmed incidents of corruption or bribery, convictions and fines.",
+      "evidence_refs": [
+        "ESRS 1 AR 16, Commission Delegated Regulation (EU) 2023/2772, Annex I (matter as encoded in app/web/data/esrs_topics.json)",
+        "esrs_datapoints_ig3.json: G1-4 includes datapoint 'Number of confirmed incidents of corruption or bribery'"
+      ],
+      "confidence": "high",
+      "needs_review": false
+    }
+  ]
+}

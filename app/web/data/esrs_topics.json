@@ -1,0 +1,3857 @@
+[
+  {
+    "esrs": "E1",
+    "theme": {
+      "es": "Cambio climático",
+      "en": "Climate change"
+    },
+    "subtheme": {
+      "es": "Adaptación al cambio climático",
+      "en": "Adaptation to climate change"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Implementación de infraestructuras resilientes ante eventos climáticos extremos.",
+        "Desarrollo de planes de gestión de riesgos climáticos en la cadena de suministro."
+      ],
+      "en": [
+        "Implementation of resilient infrastructure in the face of extreme climate events.",
+        "Development of climate risk management plans in the supply chain."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": true,
+        "competency_2": true,
+        "competency_3": true
+      },
+      "regulations": {
+        "regulation_1": true,
+        "regulation_2": true,
+        "regulation_3": true
+      },
+      "internal": {
+        "strategy": true,
+        "activities": true,
+        "policies": true,
+        "regulations": true
+      }
+    },
+    "consolidated": true
+  },
+  {
+    "esrs": "E1",
+    "theme": {
+      "es": "Cambio climático",
+      "en": "Climate change"
+    },
+    "subtheme": {
+      "es": "Mitigación del cambio climático",
+      "en": "Climate change mitigation"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Reducción de emisiones de carbono mediante eficiencia energética en operaciones.",
+        "Compensación de emisiones a través de proyectos de reforestación y captura de carbono."
+      ],
+      "en": [
+        "Reduction of carbon emissions through energy efficiency in operations.",
+        "Offsetting emissions through reforestation and carbon capture projects."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E1",
+    "theme": {
+      "es": "Cambio climático",
+      "en": "Climate change"
+    },
+    "subtheme": {
+      "es": "Energía",
+      "en": "Energy"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Inversión en fuentes de energía renovable (solar, eólica, hidrógeno verde).",
+        "Implementación de tecnologías de almacenamiento de energía para estabilidad en la red."
+      ],
+      "en": [
+        "Investment in renewable energy sources (solar, wind, green hydrogen).",
+        "Implementation of energy storage technologies for network stability."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Contaminación del aire",
+      "en": "air pollution"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Control de emisiones industriales mediante filtros y tecnologías de captura de partículas.",
+        "Regulación de emisiones vehiculares y promoción de movilidad sostenible."
+      ],
+      "en": [
+        "Control of industrial emissions through filters and particle capture technologies.",
+        "Regulation of vehicle emissions and promotion of sustainable mobility."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Contaminación del agua",
+      "en": "Water pollution"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Monitoreo y reducción de vertidos de aguas residuales industriales.",
+        "Desarrollo de tecnologías para la descontaminación de cuerpos de agua."
+      ],
+      "en": [
+        "Monitoring and reduction of industrial wastewater discharges.",
+        "Development of technologies for the decontamination of water bodies."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Contaminación del suelo",
+      "en": "Soil pollution"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Programas de remediación de suelos contaminados por actividades industriales.",
+        "Regulaciones para la reducción de uso de agroquímicos en agricultura."
+      ],
+      "en": [
+        "Remediation programs for soils contaminated by industrial activities.",
+        "Regulations to reduce the use of agrochemicals in agriculture."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Contaminación de organismos vivos y recursos alimentarios",
+      "en": "Contamination of living organisms and food resources"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Control de residuos tóxicos en la producción y procesamiento de alimentos.",
+        "Regulación de contaminantes en productos de consumo (metales pesados, pesticidas)."
+      ],
+      "en": [
+        "Control of toxic waste in food production and processing.",
+        "Regulation of contaminants in consumer products (heavy metals, pesticides)."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Sustancias preocupantes",
+      "en": "Substances of concern"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Eliminación progresiva de plásticos de un solo uso en la industria alimentaria.",
+        "Sustitución de productos químicos tóxicos en la fabricación de bienes de consumo."
+      ],
+      "en": [
+        "Progressive elimination of single-use plastics in the food industry.",
+        "Replacing toxic chemicals in the manufacturing of consumer goods."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Sustancias extremadamente preocupantes",
+      "en": "Substances of extremely high concern"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Restricción del uso de PFAS y otras sustancias de larga duración en productos industriales.",
+        "Desarrollo de alternativas biodegradables a compuestos químicos peligrosos."
+      ],
+      "en": [
+        "Restricting the use of PFAS and other long-lasting substances in industrial products.",
+        "Development of biodegradable alternatives to dangerous chemical compounds."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E2",
+    "theme": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "subtheme": {
+      "es": "Microplásticos",
+      "en": "Microplastics"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Regulaciones para la reducción de microplásticos en cosméticos y productos de higiene.",
+        "Programas de limpieza y prevención de contaminación plástica en océanos y ríos."
+      ],
+      "en": [
+        "Regulations for the reduction of microplastics in cosmetics and hygiene products.",
+        "Cleaning and prevention programs for plastic pollution in oceans and rivers."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E3",
+    "theme": {
+      "es": "Agua y recursos marinos",
+      "en": "Water and marine resources"
+    },
+    "subtheme": {
+      "es": "Agua",
+      "en": "Water"
+    },
+    "subtopic": {
+      "es": "Consumo de agua",
+      "en": "Water consumption"
+    },
+    "examples": {
+      "es": [
+        "Implementación de tecnologías de eficiencia hídrica en procesos industriales.",
+        "Uso de sistemas de reciclaje y reutilización de agua en operaciones agrícolas y manufactureras."
+      ],
+      "en": [
+        "Implementation of water efficiency technologies in industrial processes.",
+        "Use of water recycling and reuse systems in agricultural and manufacturing operations."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E3",
+    "theme": {
+      "es": "Agua y recursos marinos",
+      "en": "Water and marine resources"
+    },
+    "subtheme": {
+      "es": "Agua",
+      "en": "Water"
+    },
+    "subtopic": {
+      "es": "Extracciones de agua",
+      "en": "Water extractions"
+    },
+    "examples": {
+      "es": [
+        "Control y monitoreo de la extracción de agua subterránea para evitar sobreexplotación.",
+        "Regulaciones para limitar el uso de fuentes de agua dulce en industrias de alto consumo."
+      ],
+      "en": [
+        "Control and monitoring of groundwater extraction to avoid overexploitation.",
+        "Regulations to limit the use of fresh water sources in high consumption industries."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E3",
+    "theme": {
+      "es": "Agua y recursos marinos",
+      "en": "Water and marine resources"
+    },
+    "subtheme": {
+      "es": "Agua",
+      "en": "Water"
+    },
+    "subtopic": {
+      "es": "Vertidos de agua",
+      "en": "water spills"
+    },
+    "examples": {
+      "es": [
+        "Tratamiento avanzado de aguas residuales antes de su descarga en cuerpos de agua.",
+        "Implementación de normativas para la reducción de contaminantes en vertidos industriales."
+      ],
+      "en": [
+        "Advanced treatment of wastewater before discharge into bodies of water.",
+        "Implementation of regulations for the reduction of contaminants in industrial discharges."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E3",
+    "theme": {
+      "es": "Agua y recursos marinos",
+      "en": "Water and marine resources"
+    },
+    "subtheme": {
+      "es": "Agua",
+      "en": "Water"
+    },
+    "subtopic": {
+      "es": "Vertidos de agua en los océanos",
+      "en": "Water spills into the oceans"
+    },
+    "examples": {
+      "es": [
+        "Regulación de descargas de desechos químicos y plásticos en mares y océanos.",
+        "Estrategias para reducir la contaminación por microplásticos y metales pesados en ecosistemas marinos."
+      ],
+      "en": [
+        "Regulation of discharges of chemical and plastic waste into seas and oceans.",
+        "Strategies to reduce pollution by microplastics and heavy metals in marine ecosystems."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E3",
+    "theme": {
+      "es": "Agua y recursos marinos",
+      "en": "Water and marine resources"
+    },
+    "subtheme": {
+      "es": "Recursos marinos",
+      "en": "Marine resources"
+    },
+    "subtopic": {
+      "es": "Extracción y utilización de los recursos marinos",
+      "en": "Extraction and use of marine resources"
+    },
+    "examples": {
+      "es": [
+        "Promoción de la pesca sostenible y certificaciones ecológicas en la industria pesquera.",
+        "Desarrollo de biotecnología marina para aprovechar recursos sin comprometer ecosistemas."
+      ],
+      "en": [
+        "Promotion of sustainable fishing and ecological certifications in the fishing industry.",
+        "Development of marine biotechnology to take advantage of resources without compromising ecosystems."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Cambio climático",
+      "en": "Climate change"
+    },
+    "examples": {
+      "es": [
+        "Evaluación de los efectos del calentamiento global sobre hábitats naturales.",
+        "Medidas de conservación de ecosistemas vulnerables al aumento de temperaturas."
+      ],
+      "en": [
+        "Evaluation of the effects of global warming on natural habitats.",
+        "Conservation measures for ecosystems vulnerable to increased temperatures."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Cambio del uso de la tierra, cambio del uso de las aguas dulces y cambio del uso del mar",
+      "en": "Land use change, freshwater use change and sea use change"
+    },
+    "examples": {
+      "es": [
+        "Restricciones a la deforestación y conversión de hábitats naturales en tierras agrícolas.",
+        "Restauración de humedales y zonas costeras afectadas por el desarrollo urbano."
+      ],
+      "en": [
+        "Restrictions on deforestation and conversion of natural habitats to agricultural land.",
+        "Restoration of wetlands and coastal areas affected by urban development."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Explotación directa",
+      "en": "Direct exploitation"
+    },
+    "examples": {
+      "es": [
+        "Regulaciones para evitar la sobreexplotación de especies en peligro de extinción.",
+        "Políticas de manejo sostenible de recursos naturales en la industria extractiva."
+      ],
+      "en": [
+        "Regulations to prevent overexploitation of endangered species.",
+        "Policies for sustainable management of natural resources in the extractive industry."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Especies exóticas invasoras",
+      "en": "Invasive alien species"
+    },
+    "examples": {
+      "es": [
+        "Programas de control y erradicación de especies invasoras en ecosistemas sensibles.",
+        "Regulaciones sobre la introducción y comercialización de especies foráneas."
+      ],
+      "en": [
+        "Control and eradication programs of invasive species in sensitive ecosystems.",
+        "Regulations on the introduction and commercialization of foreign species."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Contaminación",
+      "en": "Pollution"
+    },
+    "examples": {
+      "es": [
+        "Reducción de vertidos tóxicos en hábitats naturales para evitar la degradación ecológica.",
+        "Monitoreo de la calidad del aire y agua en áreas protegidas y de alto valor ecológico."
+      ],
+      "en": [
+        "Reduction of toxic discharges in natural habitats to avoid ecological degradation.",
+        "Monitoring air and water quality in protected areas of high ecological value."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Factores de incidencia directa sobre la pérdida de biodiversidad",
+      "en": "Factors of direct impact on the loss of biodiversity"
+    },
+    "subtopic": {
+      "es": "Otros",
+      "en": "Others"
+    },
+    "examples": {
+      "es": [
+        "Impacto de la urbanización y expansión de infraestructuras en la biodiversidad.",
+        "Consecuencias de la minería y extracción de recursos en ecosistemas frágiles."
+      ],
+      "en": [
+        "Impact of urbanization and infrastructure expansion on biodiversity.",
+        "Consequences of mining and resource extraction in fragile ecosystems."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Incidencias sobre el estado de las especies",
+      "en": "Incidents on the status of the species"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Tamaño de la población de las especies",
+        "Riesgo de extinción de las especies a escala mundial"
+      ],
+      "en": [
+        "Species population size",
+        "Risk of extinction of species on a global scale"
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Incidencias sobre la extensión y el estado de los ecosistemas",
+      "en": "Incidents on the extent and state of ecosystems"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Degradación de tierras",
+        "Desertificación",
+        "Sellado del suelo"
+      ],
+      "en": [
+        "Land degradation",
+        "Desertification",
+        "Soil sealing"
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E4",
+    "theme": {
+      "es": "Biodiversidad y ecosistemas",
+      "en": "Biodiversity and ecosystems"
+    },
+    "subtheme": {
+      "es": "Incidencias sobre los servicios ecosistémicos y dependencias de estos servicios",
+      "en": "Incidents on ecosystem services and dependencies on these services"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Evaluación del impacto de la actividad empresarial en la disponibilidad de agua y regulación del clima.",
+        "Implementación de soluciones basadas en la naturaleza para mitigar la pérdida de biodiversidad."
+      ],
+      "en": [
+        "Evaluation of the impact of business activity on water availability and climate regulation.",
+        "Implementation of nature-based solutions to mitigate biodiversity loss."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E5",
+    "theme": {
+      "es": "Economía circular",
+      "en": "Circular economy"
+    },
+    "subtheme": {
+      "es": "Entradas de recursos, incluida la utilización de los recursos",
+      "en": "Resource inputs, including resource utilization"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Uso de materiales reciclados y renovables en la producción.",
+        "Reducción de la extracción de recursos naturales mediante estrategias de eficiencia."
+      ],
+      "en": [
+        "Use of recycled and renewable materials in production.",
+        "Reduction of the extraction of natural resources through efficiency strategies."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E5",
+    "theme": {
+      "es": "Economía circular",
+      "en": "Circular economy"
+    },
+    "subtheme": {
+      "es": "Salidas de recursos relacionadas con productos y servicios",
+      "en": "Resource outflows related to products and services"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Diseño de productos para facilitar su reutilización y reciclaje al final de su vida útil.",
+        "Implementación de modelos de negocio basados en la reutilización y remanufactura."
+      ],
+      "en": [
+        "Design of products to facilitate their reuse and recycling at the end of their useful life.",
+        "Implementation of business models based on reuse and remanufacturing."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "E5",
+    "theme": {
+      "es": "Economía circular",
+      "en": "Circular economy"
+    },
+    "subtheme": {
+      "es": "Residuos",
+      "en": "Waste"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Reducción y reciclaje de residuos industriales mediante procesos circulares.",
+        "Implementación de estrategias de cero residuos en operaciones empresariales."
+      ],
+      "en": [
+        "Reduction and recycling of industrial waste through circular processes.",
+        "Implementation of zero waste strategies in business operations."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Empleo seguro",
+      "en": "Secure employment"
+    },
+    "examples": {
+      "es": [
+        "Políticas de contratación estable con reducción del empleo temporal y precario.",
+        "Implementación de estándares laborales que garanticen estabilidad contractual."
+      ],
+      "en": [
+        "Stable hiring policies with a reduction in temporary and precarious employment.",
+        "Implementation of labor standards that guarantee contractual stability."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Tiempo de trabajo",
+      "en": "Working time"
+    },
+    "examples": {
+      "es": [
+        "Flexibilización de horarios para mejorar la calidad de vida de los trabajadores.",
+        "Cumplimiento de regulaciones sobre la jornada laboral y horas extra."
+      ],
+      "en": [
+        "Flexibility of schedules to improve the quality of life of workers.",
+        "Compliance with regulations on working hours and overtime."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Salarios adecuados",
+      "en": "Adequate salaries"
+    },
+    "examples": {
+      "es": [
+        "Implementación de políticas salariales basadas en el costo de vida y la equidad de género.",
+        "Pago de un salario digno por encima del mínimo legal en todas las operaciones."
+      ],
+      "en": [
+        "Implementation of salary policies based on the cost of living and gender equality.",
+        "Payment of a living wage above the legal minimum in all operations."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Diálogo social",
+      "en": "Social dialogue"
+    },
+    "examples": {
+      "es": [
+        "Establecimiento de canales formales de comunicación entre empleados y dirección.",
+        "Realización de encuestas y foros de consulta sobre condiciones laborales."
+      ],
+      "en": [
+        "Establishment of formal communication channels between employees and management.",
+        "Conducting surveys and consultation forums on working conditions."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Libertad de asociación, la existencia de comités de empresa y los derechos de información, consulta y participación de los trabajadores",
+      "en": "Freedom of association, the existence of works councils and the rights of information, consultation and participation of workers"
+    },
+    "examples": {
+      "es": [
+        "Apoyo a la creación de comités de trabajadores en todas las unidades operativas.",
+        "Transparencia en la comunicación de cambios organizacionales a los empleados."
+      ],
+      "en": [
+        "Support for the creation of workers' committees in all operational units.",
+        "Transparency in the communication of organizational changes to employees."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Negociación colectiva, incluida la proporción de trabajadores cubiertos por convenios colectivos",
+      "en": "Collective bargaining, including the proportion of workers covered by collective agreements"
+    },
+    "examples": {
+      "es": [
+        "Asegurar que todos los empleados tengan acceso a negociación colectiva.",
+        "Publicación de acuerdos laborales y promoción del diálogo con sindicatos."
+      ],
+      "en": [
+        "Ensure that all employees have access to collective bargaining.",
+        "Publication of labor agreements and promotion of dialogue with unions."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Conciliación laboral",
+      "en": "Work conciliation"
+    },
+    "examples": {
+      "es": [
+        "Implementación de políticas de teletrabajo y horarios flexibles.",
+        "Desarrollo de programas de apoyo a la parentalidad y licencias extendidas."
+      ],
+      "en": [
+        "Implementation of teleworking and flexible schedule policies.",
+        "Development of parenting support programs and extended leaves."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Salud y seguridad",
+      "en": "Health and safety"
+    },
+    "examples": {
+      "es": [
+        "Programas de prevención de riesgos laborales y bienestar en el trabajo.",
+        "Monitoreo de condiciones laborales y ergonomía para reducir accidentes."
+      ],
+      "en": [
+        "Occupational risk prevention and well-being programs at work.",
+        "Monitoring working conditions and ergonomics to reduce accidents."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Igualdad de género e igualdad de remuneración por un trabajo de igual valor",
+      "en": "Gender equality and equal pay for work of equal value"
+    },
+    "examples": {
+      "es": [
+        "Implementación de auditorías salariales para eliminar brechas de género.",
+        "Políticas de promoción equitativa para asegurar la representación femenina en puestos de liderazgo."
+      ],
+      "en": [
+        "Implementation of salary audits to eliminate gender gaps.",
+        "Equitable promotion policies to ensure female representation in leadership positions."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Formación y desarrollo de capacidades",
+      "en": "Training and capacity development"
+    },
+    "examples": {
+      "es": [
+        "Programas de capacitación continua para empleados en nuevas tecnologías y habilidades.",
+        "Desarrollo de planes de carrera personalizados para fomentar el crecimiento profesional."
+      ],
+      "en": [
+        "Continuous training programs for employees in new technologies and skills.",
+        "Development of personalized career plans to promote professional growth."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Empleo e inclusión de las personas con discapacidad",
+      "en": "Employment and inclusion of people with disabilities"
+    },
+    "examples": {
+      "es": [
+        "Adaptación de espacios de trabajo y herramientas tecnológicas para accesibilidad.",
+        "Políticas de contratación inclusiva y formación en diversidad para los equipos de trabajo."
+      ],
+      "en": [
+        "Adaptation of work spaces and technological tools for accessibility.",
+        "Inclusive hiring policies and diversity training for work teams."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Medidas contra la violencia y el acoso en el lugar de trabajo",
+      "en": "Measures against violence and harassment in the workplace"
+    },
+    "examples": {
+      "es": [
+        "Implementación de protocolos de denuncia y protección para víctimas de acoso.",
+        "Campañas de sensibilización y formación sobre ambientes laborales libres de violencia."
+      ],
+      "en": [
+        "Implementation of reporting and protection protocols for victims of harassment.",
+        "Awareness and training campaigns on work environments free of violence."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Diversidad",
+      "en": "Diversity"
+    },
+    "examples": {
+      "es": [
+        "Creación de comités de diversidad e inclusión en la empresa.",
+        "Políticas activas de contratación para grupos subrepresentados (LGBTQ+, minorías étnicas, etc.)."
+      ],
+      "en": [
+        "Creation of diversity and inclusion committees in the company.",
+        "Active hiring policies for underrepresented groups (LGBTQ+, ethnic minorities, etc.)."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Trabajo infantil",
+      "en": "child labor"
+    },
+    "examples": {
+      "es": [
+        "Evaluaciones de la cadena de suministro para evitar la participación de menores en actividades laborales.",
+        "Requisitos estrictos a proveedores para garantizar la no explotación infantil."
+      ],
+      "en": [
+        "Supply chain evaluations to prevent the participation of minors in labor activities.",
+        "Strict requirements for suppliers to guarantee non-exploitation of children."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Trabajo forzoso",
+      "en": "Forced labor"
+    },
+    "examples": {
+      "es": [
+        "Auditorías de cumplimiento de derechos laborales en la cadena de suministro.",
+        "Políticas de transparencia y certificación de proveedores libres de trabajo forzado."
+      ],
+      "en": [
+        "Labor rights compliance audits in the supply chain.",
+        "Transparency policies and certification of suppliers free of forced labor."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Vivienda adecuada",
+      "en": "Adequate housing"
+    },
+    "examples": {
+      "es": [
+        "Programas de apoyo a empleados para acceso a vivienda digna.",
+        "Iniciativas de mejora de condiciones de vivienda para trabajadores temporales o desplazados."
+      ],
+      "en": [
+        "Support programs for employees to access decent housing.",
+        "Initiatives to improve housing conditions for temporary or displaced workers."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S1",
+    "theme": {
+      "es": "Personal propio",
+      "en": "Own staff"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Privacidad",
+      "en": "Privacy"
+    },
+    "examples": {
+      "es": [
+        "Protección de datos personales de empleados y clientes según normativas de privacidad.",
+        "Formación sobre ciberseguridad y confidencialidad de la información corporativa."
+      ],
+      "en": [
+        "Protection of personal data of employees and clients according to privacy regulations.",
+        "Training on cybersecurity and confidentiality of corporate information."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Empleo seguro",
+      "en": "Secure employment"
+    },
+    "examples": {
+      "es": [
+        "Implementación de auditorías laborales en la cadena de suministro para evitar despidos injustificados.",
+        "Acuerdos con proveedores para garantizar contratos laborales formales y estables."
+      ],
+      "en": [
+        "Implementation of labor audits in the supply chain to avoid unjustified dismissals.",
+        "Agreements with suppliers to guarantee formal and stable employment contracts."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Tiempo de trabajo",
+      "en": "Working time"
+    },
+    "examples": {
+      "es": [
+        "Supervisión del cumplimiento de las horas laborales y prevención de jornadas excesivas.",
+        "Establecimiento de turnos rotativos para evitar la fatiga laboral en fábricas y centros de producción."
+      ],
+      "en": [
+        "Supervision of compliance with working hours and prevention of excessive working hours.",
+        "Establishment of rotating shifts to avoid work fatigue in factories and production centers."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Salarios adecuados",
+      "en": "Adequate salaries"
+    },
+    "examples": {
+      "es": [
+        "Evaluación y ajuste de salarios en función del costo de vida en cada región.",
+        "Implementación de incentivos y beneficios adicionales para trabajadores en la cadena de valor."
+      ],
+      "en": [
+        "Evaluation and adjustment of salaries based on the cost of living in each region.",
+        "Implementation of incentives and additional benefits for workers in the value chain."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Diálogo social",
+      "en": "Social dialogue"
+    },
+    "examples": {
+      "es": [
+        "Creación de espacios de comunicación entre empleados y proveedores para resolver conflictos laborales.",
+        "Promoción de reuniones periódicas para abordar inquietudes laborales en la cadena de suministro."
+      ],
+      "en": [
+        "Creation of communication spaces between employees and suppliers to resolve labor conflicts.",
+        "Promoting periodic meetings to address labor concerns in the supply chain."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Libertad de asociación, incluida la existencia de comités de empresa",
+      "en": "Freedom of association, including the existence of works councils"
+    },
+    "examples": {
+      "es": [
+        "Revisión de contratos de proveedores para garantizar el respeto a sindicatos y asociaciones laborales.",
+        "Apoyo a la creación de comités de trabajadores en fábricas y centros de producción."
+      ],
+      "en": [
+        "Review of supplier contracts to guarantee respect for unions and labor associations.",
+        "Support for the creation of workers' committees in factories and production centers."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Negociación colectiva",
+      "en": "Collective bargaining"
+    },
+    "examples": {
+      "es": [
+        "Fomento de acuerdos entre empleadores y sindicatos para garantizar condiciones justas.",
+        "Revisión de convenios colectivos en la cadena de valor para evaluar su cumplimiento."
+      ],
+      "en": [
+        "Promotion of agreements between employers and unions to guarantee fair conditions.",
+        "Review of collective agreements in the value chain to evaluate their compliance."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Conciliación laboral",
+      "en": "Work conciliation"
+    },
+    "examples": {
+      "es": [
+        "Establecimiento de horarios flexibles para trabajadores en la producción y logística.",
+        "Implementación de políticas de licencias pagadas y permisos familiares."
+      ],
+      "en": [
+        "Establishment of flexible schedules for workers in production and logistics.",
+        "Implementation of paid leave and family leave policies."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Condiciones de trabajo",
+      "en": "Working conditions"
+    },
+    "subtopic": {
+      "es": "Salud y seguridad",
+      "en": "Health and safety"
+    },
+    "examples": {
+      "es": [
+        "Aplicación de medidas de seguridad en fábricas y almacenes para evitar accidentes laborales.",
+        "Supervisión de condiciones laborales en sectores de alto riesgo como la construcción y la minería."
+      ],
+      "en": [
+        "Application of safety measures in factories and warehouses to avoid workplace accidents.",
+        "Supervision of working conditions in high-risk sectors such as construction and mining."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Igualdad de género e igualdad de remuneración por un trabajo de igual valor",
+      "en": "Gender equality and equal pay for work of equal value"
+    },
+    "examples": {
+      "es": [
+        "Eliminación de brechas salariales entre hombres y mujeres en la cadena de valor.",
+        "Capacitación en equidad de género para proveedores y subcontratistas."
+      ],
+      "en": [
+        "Elimination of salary gaps between men and women in the value chain.",
+        "Training in gender equality for suppliers and subcontractors."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Formación y desarrollo de capacidades",
+      "en": "Training and capacity development"
+    },
+    "examples": {
+      "es": [
+        "Programas de capacitación en habilidades técnicas para trabajadores en la cadena de suministro.",
+        "Alianzas con ONGs y organismos gubernamentales para mejorar la formación laboral."
+      ],
+      "en": [
+        "Technical skills training programs for workers in the supply chain.",
+        "Alliances with NGOs and government organizations to improve job training."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "El empleo y la inclusión de las personas con discapacidad",
+      "en": "Employment and inclusion of people with disabilities"
+    },
+    "examples": {
+      "es": [
+        "Adaptación de puestos de trabajo para personas con discapacidad en fábricas y centros de distribución.",
+        "Políticas de contratación inclusiva en la cadena de valor."
+      ],
+      "en": [
+        "Adaptation of jobs for people with disabilities in factories and distribution centers.",
+        "Inclusive hiring policies in the value chain."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Medidas contra la violencia y el acoso en el lugar de trabajo",
+      "en": "Measures against violence and harassment in the workplace"
+    },
+    "examples": {
+      "es": [
+        "Implementación de protocolos contra la violencia y el acoso en la cadena de suministro.",
+        "Supervisión de políticas de prevención en empresas subcontratadas."
+      ],
+      "en": [
+        "Implementation of protocols against violence and harassment in the supply chain.",
+        "Supervision of prevention policies in subcontracted companies."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Igualdad de trato y oportunidades para todos",
+      "en": "Equal treatment and opportunities for all"
+    },
+    "subtopic": {
+      "es": "Diversidad",
+      "en": "Diversity"
+    },
+    "examples": {
+      "es": [
+        "Promoción de la contratación de trabajadores de diversas etnias y culturas en la cadena de suministro.",
+        "Capacitación en inclusión y diversidad para proveedores y socios comerciales."
+      ],
+      "en": [
+        "Promotion of the hiring of workers of diverse ethnicities and cultures in the supply chain.",
+        "Inclusion and diversity training for suppliers and business partners."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Trabajo infantil",
+      "en": "child labor"
+    },
+    "examples": {
+      "es": [
+        "Verificación del cumplimiento de normativas internacionales para evitar la explotación infantil.",
+        "Auditorías en la cadena de suministro para eliminar el trabajo infantil en zonas de alto riesgo."
+      ],
+      "en": [
+        "Verification of compliance with international regulations to avoid child exploitation.",
+        "Supply chain audits to eliminate child labor in high-risk areas."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Trabajo forzoso",
+      "en": "Forced labor"
+    },
+    "examples": {
+      "es": [
+        "Monitoreo de condiciones laborales en proveedores para evitar la explotación forzosa.",
+        "Inclusión de cláusulas contractuales que prohíban el trabajo forzado en acuerdos comerciales."
+      ],
+      "en": [
+        "Monitoring working conditions at suppliers to avoid forced exploitation.",
+        "Inclusion of contractual clauses prohibiting forced labor in commercial agreements."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Vivienda adecuada",
+      "en": "Adequate housing"
+    },
+    "examples": {
+      "es": [
+        "Programas de acceso a vivienda para trabajadores migrantes en la cadena de suministro.",
+        "Mejoras en alojamientos proporcionados por empresas a empleados en zonas rurales."
+      ],
+      "en": [
+        "Housing access programs for migrant workers in the supply chain.",
+        "Improvements in accommodation provided by companies to employees in rural areas."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Agua y saneamiento",
+      "en": "Water and sanitation"
+    },
+    "examples": {
+      "es": [
+        "Implementación de acceso a agua potable en fábricas y centros de producción.",
+        "Supervisión del cumplimiento de estándares de higiene y saneamiento en instalaciones laborales."
+      ],
+      "en": [
+        "Implementation of access to drinking water in factories and production centers.",
+        "Supervision of compliance with hygiene and sanitation standards in work facilities."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S2",
+    "theme": {
+      "es": "Trabajadores de la cadena de valor",
+      "en": "Value chain workers"
+    },
+    "subtheme": {
+      "es": "Otros derechos laborales",
+      "en": "Other labor rights"
+    },
+    "subtopic": {
+      "es": "Privacidad",
+      "en": "Privacy"
+    },
+    "examples": {
+      "es": [
+        "Protección de datos personales de empleados en sistemas de gestión de proveedores.",
+        "Restricción del uso indebido de información privada de trabajadores en la cadena de valor."
+      ],
+      "en": [
+        "Protection of personal data of employees in supplier management systems.",
+        "Restriction of improper use of private information of workers in the value chain."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos económicos, sociales y culturales de los colectivos",
+      "en": "Economic, social and cultural rights of groups"
+    },
+    "subtopic": {
+      "es": "Vivienda adecuada",
+      "en": "Adequate housing"
+    },
+    "examples": {
+      "es": [
+        "Programas de acceso a vivienda digna para comunidades desplazadas por actividades empresariales.",
+        "Implementación de normativas de urbanización sostenible en proyectos industriales."
+      ],
+      "en": [
+        "Programs for access to decent housing for communities displaced by business activities.",
+        "Implementation of sustainable urbanization regulations in industrial projects."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos económicos, sociales y culturales de los colectivos",
+      "en": "Economic, social and cultural rights of groups"
+    },
+    "subtopic": {
+      "es": "Alimentación adecuada",
+      "en": "Proper nutrition"
+    },
+    "examples": {
+      "es": [
+        "Desarrollo de iniciativas de seguridad alimentaria en zonas afectadas por la actividad empresarial.",
+        "Implementación de programas de apoyo nutricional en comunidades vulnerables."
+      ],
+      "en": [
+        "Development of food security initiatives in areas affected by business activity.",
+        "Implementation of nutritional support programs in vulnerable communities."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos económicos, sociales y culturales de los colectivos",
+      "en": "Economic, social and cultural rights of groups"
+    },
+    "subtopic": {
+      "es": "Agua y saneamiento",
+      "en": "Water and sanitation"
+    },
+    "examples": {
+      "es": [
+        "Instalación de sistemas de acceso a agua potable en comunidades cercanas a operaciones industriales.",
+        "Implementación de programas de saneamiento básico en zonas rurales."
+      ],
+      "en": [
+        "Installation of access systems to drinking water in communities near industrial operations.",
+        "Implementation of basic sanitation programs in rural areas."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos económicos, sociales y culturales de los colectivos",
+      "en": "Economic, social and cultural rights of groups"
+    },
+    "subtopic": {
+      "es": "Incidencias relacionadas con la tierra",
+      "en": "Land-related incidents"
+    },
+    "examples": {
+      "es": [
+        "Prevención de despojo de tierras mediante auditorías de impacto social.",
+        "Aplicación de estándares internacionales en adquisiciones de terrenos."
+      ],
+      "en": [
+        "Prevention of land dispossession through social impact audits.",
+        "Application of international standards in land acquisitions."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos económicos, sociales y culturales de los colectivos",
+      "en": "Economic, social and cultural rights of groups"
+    },
+    "subtopic": {
+      "es": "Incidencias relacionadas con la seguridad",
+      "en": "Security-related incidents"
+    },
+    "examples": {
+      "es": [
+        "Medidas de protección a comunidades afectadas por conflictos relacionados con actividades empresariales.",
+        "Implementación de protocolos de seguridad para evitar violaciones de derechos humanos."
+      ],
+      "en": [
+        "Protection measures for communities affected by conflicts related to business activities.",
+        "Implementation of security protocols to avoid human rights violations."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos civiles y políticos de los colectivos",
+      "en": "Civil and political rights of groups"
+    },
+    "subtopic": {
+      "es": "Libertad de expresión",
+      "en": "Freedom of expression"
+    },
+    "examples": {
+      "es": [
+        "Protección de denunciantes y periodistas que informen sobre impactos negativos de la empresa.",
+        "Implementación de políticas internas de transparencia y acceso a la información."
+      ],
+      "en": [
+        "Protection of whistleblowers and journalists who report on negative impacts of the company.",
+        "Implementation of internal transparency and access to information policies."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos civiles y políticos de los colectivos",
+      "en": "Civil and political rights of groups"
+    },
+    "subtopic": {
+      "es": "Libertad de reunión",
+      "en": "Freedom of assembly"
+    },
+    "examples": {
+      "es": [
+        "Respeto a las protestas pacíficas relacionadas con el impacto de la empresa en comunidades.",
+        "Regulación de la seguridad privada para evitar represión de manifestaciones legítimas."
+      ],
+      "en": [
+        "Respect for peaceful protests related to the company's impact on communities.",
+        "Regulation of private security to avoid repression of legitimate demonstrations."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos civiles y políticos de los colectivos",
+      "en": "Civil and political rights of groups"
+    },
+    "subtopic": {
+      "es": "Incidencias sobre los defensores de los derechos humanos",
+      "en": "Incidents on human rights defenders"
+    },
+    "examples": {
+      "es": [
+        "Políticas de tolerancia cero a represalias contra activistas ambientales y sociales.",
+        "Colaboración con organismos internacionales para la protección de derechos humanos."
+      ],
+      "en": [
+        "Zero tolerance policies for retaliation against environmental and social activists.",
+        "Collaboration with international organizations for the protection of human rights."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos de pueblos indígenas",
+      "en": "Rights of indigenous peoples"
+    },
+    "subtopic": {
+      "es": "Consentimiento libre, previo e informado",
+      "en": "Free, prior and informed consent"
+    },
+    "examples": {
+      "es": [
+        "Aplicación de procesos de consulta previa con comunidades indígenas antes de proyectos industriales.",
+        "Transparencia en los acuerdos con pueblos indígenas sobre uso de recursos naturales."
+      ],
+      "en": [
+        "Application of prior consultation processes with indigenous communities before industrial projects.",
+        "Transparency in agreements with indigenous peoples on the use of natural resources."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos de pueblos indígenas",
+      "en": "Rights of indigenous peoples"
+    },
+    "subtopic": {
+      "es": "Autodeterminación",
+      "en": "Self-determination"
+    },
+    "examples": {
+      "es": [
+        "Reconocimiento del derecho de las comunidades indígenas a decidir sobre sus territorios.",
+        "Respeto a la gobernanza y estructuras tradicionales de los pueblos originarios."
+      ],
+      "en": [
+        "Recognition of the right of indigenous communities to decide about their territories.",
+        "Respect for the governance and traditional structures of indigenous peoples."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S3",
+    "theme": {
+      "es": "Colectivos afectados",
+      "en": "Affected groups"
+    },
+    "subtheme": {
+      "es": "Derechos de pueblos indígenas",
+      "en": "Rights of indigenous peoples"
+    },
+    "subtopic": {
+      "es": "Derechos culturales",
+      "en": "Cultural rights"
+    },
+    "examples": {
+      "es": [
+        "Protección del patrimonio cultural indígena ante proyectos extractivos.",
+        "Apoyo a la preservación de lenguas y tradiciones de comunidades autóctonas."
+      ],
+      "en": [
+        "Protection of indigenous cultural heritage against extractive projects.",
+        "Support for the preservation of languages ​​and traditions of native communities."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Incidencias relacionadas con la información para los consumidores o usuarios finales",
+      "en": "Incidents related to information for consumers or end users"
+    },
+    "subtopic": {
+      "es": "Privacidad",
+      "en": "Privacy"
+    },
+    "examples": {
+      "es": [
+        "Protección de datos personales de consumidores en plataformas digitales.",
+        "Regulaciones sobre el uso de información biométrica en servicios comerciales."
+      ],
+      "en": [
+        "Protection of personal data of consumers on digital platforms.",
+        "Regulations on the use of biometric information in commercial services."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Incidencias relacionadas con la información para los consumidores o usuarios finales",
+      "en": "Incidents related to information for consumers or end users"
+    },
+    "subtopic": {
+      "es": "Libertad de expresión",
+      "en": "Freedom of expression"
+    },
+    "examples": {
+      "es": [
+        "No censura de opiniones críticas en plataformas digitales de la empresa.",
+        "Políticas de transparencia en comunicación con consumidores."
+      ],
+      "en": [
+        "No censorship of critical opinions on the company's digital platforms.",
+        "Transparency policies in communication with consumers."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Incidencias relacionadas con la información para los consumidores o usuarios finales",
+      "en": "Incidents related to information for consumers or end users"
+    },
+    "subtopic": {
+      "es": "Acceso a la información (de calidad)",
+      "en": "Access to information (quality)"
+    },
+    "examples": {
+      "es": [
+        "Disponibilidad de información clara y veraz sobre productos y servicios.",
+        "Inclusión de etiquetado claro sobre impacto ambiental y social de los productos."
+      ],
+      "en": [
+        "Availability of clear and truthful information about products and services.",
+        "Inclusion of clear labeling on the environmental and social impact of products."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Seguridad personal de los consumidores o usuarios finales",
+      "en": "Personal safety of consumers or end users"
+    },
+    "subtopic": {
+      "es": "Salud y seguridad",
+      "en": "Health and safety"
+    },
+    "examples": {
+      "es": [
+        "Implementación de estándares de seguridad en productos para evitar riesgos sanitarios.",
+        "Estrategias de prevención de efectos adversos en la salud derivados del uso de productos."
+      ],
+      "en": [
+        "Implementation of safety standards in products to avoid health risks.",
+        "Strategies for preventing adverse health effects derived from the use of products."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Seguridad personal de los consumidores o usuarios finales",
+      "en": "Personal safety of consumers or end users"
+    },
+    "subtopic": {
+      "es": "Seguridad de una persona",
+      "en": "Safety of a person"
+    },
+    "examples": {
+      "es": [
+        "Medidas contra fraudes y estafas en la compra de bienes y servicios.",
+        "Protección contra prácticas comerciales engañosas y abusivas."
+      ],
+      "en": [
+        "Measures against fraud and scams in the purchase of goods and services.",
+        "Protection against deceptive and abusive business practices."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Seguridad personal de los consumidores o usuarios finales",
+      "en": "Personal safety of consumers or end users"
+    },
+    "subtopic": {
+      "es": "Protección de los niños",
+      "en": "Protection of children"
+    },
+    "examples": {
+      "es": [
+        "Regulaciones estrictas sobre publicidad dirigida a menores de edad.",
+        "Políticas de restricción del acceso de niños a productos y contenidos inapropiados."
+      ],
+      "en": [
+        "Strict regulations on advertising aimed at minors.",
+        "Policies restricting children's access to inappropriate products and content."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Inclusión social de los consumidores o usuarios finales",
+      "en": "Social inclusion of consumers or end users"
+    },
+    "subtopic": {
+      "es": "No discriminación",
+      "en": "Non-discrimination"
+    },
+    "examples": {
+      "es": [
+        "Eliminación de barreras para acceso igualitario a bienes y servicios.",
+        "Implementación de políticas de inclusión en atención al cliente."
+      ],
+      "en": [
+        "Elimination of barriers to equal access to goods and services.",
+        "Implementation of inclusion policies in customer service."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Inclusión social de los consumidores o usuarios finales",
+      "en": "Social inclusion of consumers or end users"
+    },
+    "subtopic": {
+      "es": "Acceso a productos y servicios",
+      "en": "Access to products and services"
+    },
+    "examples": {
+      "es": [
+        "Estrategias de accesibilidad para personas con discapacidad en plataformas comerciales.",
+        "Desarrollo de productos adaptados a diversas necesidades sociales."
+      ],
+      "en": [
+        "Accessibility strategies for people with disabilities on commercial platforms.",
+        "Development of products adapted to various social needs."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "S4",
+    "theme": {
+      "es": "Consumidores y usuarios finales",
+      "en": "Consumers and end users"
+    },
+    "subtheme": {
+      "es": "Inclusión social de los consumidores o usuarios finales",
+      "en": "Social inclusion of consumers or end users"
+    },
+    "subtopic": {
+      "es": "Prácticas de marketing responsables",
+      "en": "Responsible marketing practices"
+    },
+    "examples": {
+      "es": [
+        "Restricción de publicidad engañosa o que promueva consumo irresponsable.",
+        "Regulación de estrategias comerciales dirigidas a grupos vulnerables."
+      ],
+      "en": [
+        "Restriction of misleading advertising or advertising that promotes irresponsible consumption.",
+        "Regulation of commercial strategies aimed at vulnerable groups."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Cultura corporativa",
+      "en": "Corporate culture"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Desarrollo de principios éticos y códigos de conducta empresarial.",
+        "Promoción de una cultura de sostenibilidad e integridad en la empresa."
+      ],
+      "en": [
+        "Development of ethical principles and business codes of conduct.",
+        "Promotion of a culture of sustainability and integrity in the company."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Protección de los denunciantes",
+      "en": "Protection of whistleblowers"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Implementación de canales seguros y anónimos para denuncias internas.",
+        "Protección contra represalias a empleados que denuncien malas prácticas."
+      ],
+      "en": [
+        "Implementation of secure and anonymous channels for internal complaints.",
+        "Protection against retaliation for employees who report bad practices."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Bienestar animal",
+      "en": "animal welfare"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Políticas de no testeo en animales en la industria cosmética y farmacéutica.",
+        "Implementación de estándares de bienestar en la producción agropecuaria."
+      ],
+      "en": [
+        "Non-animal testing policies in the cosmetic and pharmaceutical industry.",
+        "Implementation of welfare standards in agricultural production."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Compromiso político y actividades de los grupos de presión",
+      "en": "Political commitment and pressure group activities"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Transparencia en las contribuciones a campañas políticas y lobbying.",
+        "Cumplimiento de regulaciones sobre financiación de grupos de presión."
+      ],
+      "en": [
+        "Transparency in contributions to political campaigns and lobbying.",
+        "Compliance with regulations on lobbying financing."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Gestión de las relaciones con los proveedores, incluidas las prácticas de pago",
+      "en": "Supplier relationship management, including payment practices"
+    },
+    "subtopic": null,
+    "examples": {
+      "es": [
+        "Implementación de prácticas de pago justo y oportuno a proveedores.",
+        "Evaluación de proveedores según criterios de responsabilidad social y ambiental."
+      ],
+      "en": [
+        "Implementation of fair and timely payment practices to suppliers.",
+        "Evaluation of suppliers according to social and environmental responsibility criteria."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Corrupción y soborno",
+      "en": "Corruption and bribery"
+    },
+    "subtopic": {
+      "es": "Prevención y detección, incluida la formación",
+      "en": "Prevention and detection, including training"
+    },
+    "examples": {
+      "es": [
+        "Capacitación interna en prevención de corrupción y soborno.",
+        "Implementación de auditorías sobre prácticas de integridad corporativa."
+      ],
+      "en": [
+        "Internal training in prevention of corruption and bribery.",
+        "Implementation of audits on corporate integrity practices."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  },
+  {
+    "esrs": "G1",
+    "theme": {
+      "es": "Conducta empresarial",
+      "en": "Business conduct"
+    },
+    "subtheme": {
+      "es": "Corrupción y soborno",
+      "en": "Corruption and bribery"
+    },
+    "subtopic": {
+      "es": "Casos",
+      "en": "Cases"
+    },
+    "examples": {
+      "es": [
+        "Registro y monitoreo de incidentes de corrupción en la empresa.",
+        "Medidas disciplinarias y correctivas en casos de soborno comprobado."
+      ],
+      "en": [
+        "Registration and monitoring of corruption incidents in the company.",
+        "Disciplinary and corrective measures in cases of proven bribery."
+      ]
+    },
+    "tags": {
+      "competencies": {
+        "competency_1": false,
+        "competency_2": false,
+        "competency_3": false
+      },
+      "regulations": {
+        "regulation_1": false,
+        "regulation_2": false,
+        "regulation_3": false
+      },
+      "internal": {
+        "strategy": false,
+        "activities": false,
+        "policies": false,
+        "regulations": false
+      }
+    },
+    "consolidated": false
+  }
+]

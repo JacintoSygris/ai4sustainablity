@@ -1,0 +1,76 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production.example
+web/.env
+web/.env.*
+!web/.env.example
+!web/.env.production.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+ai-service/.env
+ai-service/.env.*
+
+# Node and frontend builds
+node_modules/
+web/node_modules/
+frontend/node_modules/
+web/public/build/
+web/public/hot
+frontend/.next/
+frontend/.turbo/
+frontend/.vercel/
+frontend/out/
+
+# PHP and Laravel
+web/vendor/
+web/storage/*.key
+web/storage/pail/
+web/storage/framework/cache/
+web/storage/framework/sessions/
+web/storage/framework/testing/
+web/storage/framework/views/
+web/storage/logs/
+web/bootstrap/cache/*.php
+web/database/database.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ai-service/.venv/
+ai-service/venv/
+
+# Local credentials and keys
+*.key
+*.pem
+keys.properties
+ai-service/keys.properties
+ai-service/**/keys.properties
+
+# Docker Compose local overrides and volumes
+compose.override.yml
+docker-compose.override.yml
+*.local.yml
+.docker-data/
+.volumes/
+storage/
+tmp/

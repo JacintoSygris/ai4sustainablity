@@ -1,0 +1,242 @@
+export function humanizeKey(key) {
+  return String(key ?? "")
+    .replace(/^p\d+[_\s-]*/i, "")
+    .replace(/_/g, " ")
+    .replace(/[/?=&.-]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/^P\d+\s+/i, "")
+}
+
+const SECTION_LABELS = {
+  characterization: "Caracterización de la empresa",
+  materiality_proposal: "Propuesta de temas (IA)",
+  double_materiality_guide: "Guía de doble materialidad",
+  materiality_confirmation: "Confirmación de materialidad final",
+  esrs_datapoints: "Listado de datapoints",
+  datapoint_responses: "Respuestas de datapoints",
+  final_report_generation: "Paquete de informe",
+}
+
+const DOWNLOAD_LABELS = {
+  p8_decision_sheet: "Hoja de decisión de materialidad",
+  p9_responses_csv: "Respuestas de datapoints (CSV)",
+  p9_datapoints_csv: "Listado de datapoints (CSV)",
+  characterization_summary_pdf: "Resumen de caracterización (PDF)",
+  report_readiness: "Estado del informe (JSON)",
+  report_package_html: "Paquete HTML imprimible",
+  evidence_bundle_json: "Bundle de evidencias (JSON)",
+}
+
+const LIMITATION_MESSAGES = {
+  report_package_scope:
+    "El paquete prepara y organiza evidencias ESRS 2023. No sustituye filing oficial, aseguramiento, Taxonomía UE ni xHTML/iXBRL.",
+  exact_ar16_matter_to_dr_mapping_pending:
+    "Modo alcance: el listado de datapoints incluye los transversales (ESRS 2), pero los datapoints temáticos derivados de tus temas materiales no se generan hasta que la plataforma tenga configurado el mapa oficial tema→requisito.",
+  materiality_confirmation_stale:
+    "Tu confirmación de materialidad es anterior a tus últimos cambios en la propuesta de temas. Vuelve al paso 4 y confirma de nuevo.",
+  orphaned_datapoint_responses:
+    "Algunas respuestas guardadas corresponden a temas que ya no están en tu alcance. Se conservan y volverán a aparecer si recuperas esos temas.",
+}
+
+export function sectionLabel(key) {
+  return SECTION_LABELS[key] ?? humanizeKey(key)
+}
+
+export function downloadLabel(key) {
+  return DOWNLOAD_LABELS[key] ?? humanizeKey(key)
+}
+
+export function limitationMessage(limitation) {
+  return LIMITATION_MESSAGES[limitation?.key] ?? limitation?.message ?? ""
+}
+
+export function statusLabel(status) {
+  if (!status) {
+    return "-"
+  }
+
+  const labels = {
+    blocked: "Bloqueado",
+    complete: "Completo",
+    generation_pending: "Pendiente de generación",
+    incomplete: "Incompleto",
+    in_progress: "En curso",
+    missing: "Pendiente",
+    not_implemented: "No disponible en esta versión",
+    not_started: "Sin empezar",
+    ready: "Listo",
+    scoping_only: "Modo alcance",
+  }
+
+  return labels[status] ?? humanizeKey(status)
+}
+
+export function statusTone(status) {
+  if (status === "ready" || status === "complete") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800"
+  }
+
+  if (status === "generation_pending") {
+    return "border-blue-200 bg-blue-50 text-blue-800"
+  }
+
+  if (status === "not_implemented" || status === "blocked" || status === "scoping_only") {
+    return "border-amber-200 bg-amber-50 text-amber-800"
+  }
+
+  return "border-border bg-muted text-muted-foreground"
+}
+
+export function formatPercent(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "-"
+  }
+
+  return `${Math.round(value * 100)}%`
+}
+
+export function endpointHref(endpoint, apiUrl) {
+  if (endpoint.startsWith("/api/")) {
+    return apiUrl(endpoint.slice(4))
+  }
+
+  if (endpoint.startsWith("/characterization/")) {
+    return endpoint
+  }
+
+  return apiUrl(endpoint)
+}
+
+export function actionTarget(endpoint) {
+  if (endpoint === "/api/report/draft" || endpoint.includes("report/draft") || endpoint.includes("report/package")) {
+    return "/wizard/step-6"
+  }
+
+  if (endpoint.includes("characterization")) {
+    return "/wizard/step-1"
+  }
+
+  if (endpoint.includes("materiality-proposal")) {
+    return "/wizard/step-2"
+  }
+
+  if (endpoint.includes("materiality-confirmation")) {
+    return "/wizard/step-4"
+  }
+
+  if (endpoint.includes("esrs-datapoints")) {
+    return "/wizard/step-5"
+  }
+
+  return "/wizard/step-1"
+}
+
+export function actionLabel(endpoint) {
+  if (endpoint?.includes("characterization")) {
+    return "Completar la encuesta inicial (paso 1)"
+  }
+
+  if (endpoint?.includes("materiality-proposal")) {
+    return "Revisar la propuesta de temas (paso 2)"
+  }
+
+  if (endpoint?.includes("materiality-confirmation")) {
+    return "Confirmar la materialidad (paso 4)"
+  }
+
+  if (endpoint?.includes("esrs-datapoints")) {
+    return "Responder los datapoints (paso 5)"
+  }
+
+  if (endpoint === "/api/report/draft") {
+    return "Revisar el borrador (paso 6)"
+  }
+
+  if (endpoint === "/api/report/package") {
+    return "Abrir el paquete HTML (paso 6)"
+  }
+
+  return humanizeKey(
+    String(endpoint ?? "")
+      .replace(/^\/api\//, "")
+      .replace(/^\/characterization\//, "characterization_")
+      .replace(/[/?=&.-]+/g, "_"),
+  )
+}
+
+export function isScopingOnly(readiness, draft) {
+  if (readiness?.coverage_mode === "scoping_only" || draft?.coverage_mode === "scoping_only") {
+    return true
+  }
+
+  const mappingStatuses = [
+    readiness?.sections?.esrs_datapoints?.matter_to_dr_mapping_status,
+    draft?.datapoints?.matter_to_dr_mapping_status,
+  ]
+
+  return mappingStatuses.some((status) => status !== undefined && status !== null && status !== "loaded")
+}
+
+export function visibleNextActions(readiness) {
+  return (readiness?.next_actions ?? []).filter((endpoint) => actionTarget(endpoint) !== "/wizard/step-6")
+}
+
+export function allSectionsReady(readiness) {
+  const actions = readiness?.next_actions ?? []
+
+  return actions.length === 0 || actions.every((endpoint) => actionTarget(endpoint) === "/wizard/step-6")
+}
+
+export function sectionNumber(section) {
+  const countKeys = [
+    "topic_count",
+    "confirmed_topic_count",
+    "total_datapoint_count",
+    "decided_count",
+    "completed_count",
+  ]
+
+  for (const key of countKeys) {
+    const value = section?.[key]
+
+    if (typeof value === "number") {
+      return String(value)
+    }
+  }
+
+  return "-"
+}
+
+export function uniqueLimitations(readiness, draft) {
+  const seen = new Set()
+  const limitations = []
+
+  for (const limitation of [...(readiness?.limitations ?? []), ...(draft?.limitations ?? [])]) {
+    if (!limitation?.key || seen.has(limitation.key)) {
+      continue
+    }
+
+    seen.add(limitation.key)
+    limitations.push(limitation)
+  }
+
+  return limitations
+}
+
+export function reportDownloadRows(readiness, draft) {
+  const rows = new Map()
+
+  for (const [key, download] of Object.entries(readiness?.downloads ?? {})) {
+    rows.set(key, download)
+  }
+
+  for (const [key, download] of Object.entries(draft?.exports ?? {})) {
+    if (!rows.has(key)) {
+      rows.set(key, download)
+    }
+  }
+
+  return Array.from(rows.entries())
+}

@@ -1,0 +1,10 @@
+# Pinned compatibility set for the public new_format_732_v1_gpt41 model.
+# The classifier was serialized with scikit-learn 1.7.0.
+fastapi==0.141.1
+pydantic==2.13.5
+uvicorn[standard]==0.53.0
+joblib==1.6.0
+numpy==2.5.3
+pandas==3.0.5
+scipy==1.18.1
+scikit-learn==1.7.0

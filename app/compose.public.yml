@@ -1,0 +1,84 @@
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.public
+    environment:
+      APP_NAME: IA4Sustainability
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: http://localhost:3000
+      PUBLIC_COMPOSE_FRONTEND_URL: http://localhost:3000
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /tmp/ia4sustainability/database.sqlite
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: log
+      BROADCAST_CONNECTION: log
+      FILESYSTEM_DISK: local
+      CHARACTERIZATION_GATEWAY: api
+      CHARACTERIZATION_API_BASE_URL: http://ai-service:8001
+      CHARACTERIZATION_API_TIMEOUT: "60"
+      CHARACTERIZATION_AI_MODEL_PROFILE: new_format_732_v1_gpt41
+      SOCIAL_LOGIN_ENABLED: "false"
+      AUTH_REQUIRE_EMAIL_VERIFICATION: "false"
+      P6_DOCUMENT_UPLOAD_ENABLED: "false"
+      P6_DOCUMENT_SCAN_ENABLED: "false"
+    ports:
+      - "8000:8000"
+    tmpfs:
+      - /tmp/ia4sustainability
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/healthz >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.public
+      args:
+        LARAVEL_API_ORIGIN: http://web:8000
+        NEXT_PUBLIC_LARAVEL_API_BASE_URL: /api
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      LARAVEL_API_ORIGIN: http://web:8000
+      NEXT_PUBLIC_LARAVEL_API_BASE_URL: /api
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      - web
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile.public
+
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz', timeout=5).read()\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

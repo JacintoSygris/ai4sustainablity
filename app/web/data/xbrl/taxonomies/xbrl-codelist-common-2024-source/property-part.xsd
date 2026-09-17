@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--  Role schema for reference parts  -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:property-part="https://xbrl.org/taxonomy/int/codelist-common/2024/property-part"
+           xmlns:link="http://www.xbrl.org/2003/linkbase"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           xmlns:xbrli="http://www.xbrl.org/2003/instance"
+           targetNamespace="https://xbrl.org/taxonomy/int/codelist-common/2024/property-part"
+           attributeFormDefault="unqualified"
+           elementFormDefault="qualified">
+	<xs:import namespace="http://www.xbrl.org/2003/linkbase"
+	           schemaLocation="http://www.xbrl.org/2003/xbrl-linkbase-2003-12-31.xsd"/>
+	<xs:element name="ElementDeprecated" substitutionGroup="link:part" type="xs:boolean">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">Boolean value to indicate whether the element is withdrawn from use</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+	<xs:element name="DeprecatedDate" type="xs:date" substitutionGroup="link:part">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">The withdrawal date or validity end date of the element</xs:documentation>
+        </xs:annotation>
+	</xs:element>
+    <xs:element name="DeprecatedDateYM" type="xs:gYearMonth" substitutionGroup="link:part">
+      <xs:annotation>
+          <xs:documentation xml:lang="en">The withdrawal date or validity end date of the element (year-month format)</xs:documentation>
+      </xs:annotation>
+    </xs:element>
+    <xs:element name="DeprecatedDateDescription" type="xs:string" substitutionGroup="link:part">
+      <xs:annotation>
+          <xs:documentation xml:lang="en">Textual description of withdrawal date</xs:documentation>
+      </xs:annotation>
+    </xs:element>
+	<xs:element name="StatusRemark" type="xs:string" substitutionGroup="link:part">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">Remarks on the status of the element</xs:documentation>
+        </xs:annotation>
+    </xs:element>
+</xs:schema>

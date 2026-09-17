@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "version": "xbrl-country-current-2024-snapshot",
+  "published_date": "2026-09-17",
+  "source_base_url": "https://www.xbrl.org/taxonomy/int/country/current/",
+  "source_directory": "data/xbrl/taxonomies/xbrl-country-current-2024-source",
+  "zip_path": "data/xbrl/taxonomies/xbrl-country-current-2024-snapshot.zip",
+  "zip_sha256": "bbcaa6097bdbfa67880b3f1e7435fc203eaa8ed24fdb6c093efa75687fcf4e55",
+  "zip_size": 35563,
+  "member_count": 9,
+  "taxonomy_package_member": "xbrl-country-current-2024-snapshot/META-INF/taxonomyPackage.xml",
+  "catalog_member": "xbrl-country-current-2024-snapshot/META-INF/catalog.xml",
+  "source_members": [
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/entry-en.xsd",
+      "filename": "entry-en.xsd",
+      "size": 699,
+      "sha256": "6fba8e332c8281002556958efa3c43aa81aec7e1805b5672e51a6bfdb165d324",
+      "local_member": "xbrl-country-current-2024-snapshot/entry-en.xsd"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/entry.xsd",
+      "filename": "entry.xsd",
+      "size": 1064,
+      "sha256": "3e54e44c492274b51d2f95e451fd3c49f680746043329122917e1d90e8cb1078",
+      "local_member": "xbrl-country-current-2024-snapshot/entry.xsd"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/elts.xsd",
+      "filename": "elts.xsd",
+      "size": 44035,
+      "sha256": "1fd8d58b0e07d24611c6baa0b4f88ea1d67d6a65ec9937547b253d2b2cc56bcc",
+      "local_member": "xbrl-country-current-2024-snapshot/elts.xsd"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/label-en.xml",
+      "filename": "label-en.xml",
+      "size": 175580,
+      "sha256": "7dc28252ea18a2d9261689c4100bef8154461bf282e104cf16131c39601ba155",
+      "local_member": "xbrl-country-current-2024-snapshot/label-en.xml"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/label-code.xml",
+      "filename": "label-code.xml",
+      "size": 265189,
+      "sha256": "3979fbf969ef766e930cbc0e46fe080e25be4b5331c8cbab6098cd72ae1fd2fa",
+      "local_member": "xbrl-country-current-2024-snapshot/label-code.xml"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/reference.xml",
+      "filename": "reference.xml",
+      "size": 160952,
+      "sha256": "59fb5844edccd044c0109a84cb2f651b9a2ce3a67377218e34ab87ace15f1612",
+      "local_member": "xbrl-country-current-2024-snapshot/reference.xml"
+    },
+    {
+      "source_url": "https://www.xbrl.org/taxonomy/int/country/current/definition.xml",
+      "filename": "definition.xml",
+      "size": 93071,
+      "sha256": "d4e7fc1b17a635ceef2c36d5304597145e51b1e824200becb4fca29c72a8d973",
+      "local_member": "xbrl-country-current-2024-snapshot/definition.xml"
+    }
+  ],
+  "zip_members": [
+    {
+      "path": "xbrl-country-current-2024-snapshot/META-INF/catalog.xml",
+      "size": 217,
+      "sha256": "29d9b95995ab2f5ab53a4501904b0ddb3c5a12095252e52fecd9bfd9ffac43f1"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/META-INF/taxonomyPackage.xml",
+      "size": 772,
+      "sha256": "49dfc85ad913876a3a32be47ca7133c646464765ee35a9c263a14a9a707deae8"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/entry-en.xsd",
+      "size": 699,
+      "sha256": "6fba8e332c8281002556958efa3c43aa81aec7e1805b5672e51a6bfdb165d324"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/entry.xsd",
+      "size": 1064,
+      "sha256": "3e54e44c492274b51d2f95e451fd3c49f680746043329122917e1d90e8cb1078"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/elts.xsd",
+      "size": 44035,
+      "sha256": "1fd8d58b0e07d24611c6baa0b4f88ea1d67d6a65ec9937547b253d2b2cc56bcc"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/label-en.xml",
+      "size": 175580,
+      "sha256": "7dc28252ea18a2d9261689c4100bef8154461bf282e104cf16131c39601ba155"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/label-code.xml",
+      "size": 265189,
+      "sha256": "3979fbf969ef766e930cbc0e46fe080e25be4b5331c8cbab6098cd72ae1fd2fa"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/reference.xml",
+      "size": 160952,
+      "sha256": "59fb5844edccd044c0109a84cb2f651b9a2ce3a67377218e34ab87ace15f1612"
+    },
+    {
+      "path": "xbrl-country-current-2024-snapshot/definition.xml",
+      "size": 93071,
+      "sha256": "d4e7fc1b17a635ceef2c36d5304597145e51b1e824200becb4fca29c72a8d973"
+    }
+  ],
+  "runtime_dependency": true,
+  "supersedes": "xbrl-country-current-CR-2023-08-23 plus generated current alias adapter"
+}

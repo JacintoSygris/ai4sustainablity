@@ -1,0 +1,86 @@
+{
+  "schema_version": "ar16-materiality-topic-aliases-v1-20260610",
+  "policy": "Aliases are evidence discovery aids for company-specific materiality wording. They require manual review and must not auto-promote child labels.",
+  "aliases": [
+    {
+      "term": "Ethics and compliance",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_g1_corporate_conduct",
+        "esrs_g1_whistleblower",
+        "esrs_g1_anti_corruption_prevention",
+        "esrs_g1_anti_corruption_incidents"
+      ]
+    },
+    {
+      "term": "Diversity, equality and inclusion",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_s1_own_equality_own_gender_equality",
+        "esrs_s1_own_equality_own_disabilities",
+        "esrs_s1_own_equality_own_harassment",
+        "esrs_s1_own_equality_own_diversity"
+      ]
+    },
+    {
+      "term": "Diversity, equity and inclusion",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Common company wording for equal treatment and opportunities.",
+      "python_esrs_keys": [
+        "esrs_s1_own_equality_own_gender_equality",
+        "esrs_s1_own_equality_own_disabilities",
+        "esrs_s1_own_equality_own_harassment",
+        "esrs_s1_own_equality_own_diversity"
+      ]
+    },
+    {
+      "term": "Talent management",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_s1_own_equality_own_training",
+        "esrs_s1_own_working_conditions_own_safe_employment"
+      ]
+    },
+    {
+      "term": "Human rights and fundamental freedoms",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_s1_own_other_rights_own_child_labour",
+        "esrs_s1_own_other_rights_own_forced_labour",
+        "esrs_s2_chain_other_rights_chain_child_labour",
+        "esrs_s2_chain_other_rights_chain_forced_labour",
+        "esrs_s3_civil_rights_human_rights"
+      ]
+    },
+    {
+      "term": "Customer relations",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_s4_consumer_information_access_information",
+        "esrs_s4_personal_safety_health_safety_products",
+        "esrs_s4_social_inclusion_access_products",
+        "esrs_s4_social_inclusion_marketing"
+      ]
+    },
+    {
+      "term": "Responsible corporate governance",
+      "role": "materiality_topic_alias_review",
+      "review_policy": "manual_review_required",
+      "source": "Observed as a material topic phrase in company materiality tables.",
+      "python_esrs_keys": [
+        "esrs_g1_corporate_conduct"
+      ]
+    }
+  ]
+}
