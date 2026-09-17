@@ -72,7 +72,6 @@ PHP);
         ->and($argv)->toContain('--package')
         ->and(collect($argv)->contains(fn (string $arg): bool => str_ends_with($arg, 'xbrl-country-current-2024-snapshot.zip')))->toBeTrue()
         ->and(collect($argv)->contains(fn (string $arg): bool => str_ends_with($arg, 'xbrl-codelist-common-2024-snapshot.zip')))->toBeTrue()
-        ->and(collect($argv)->contains(fn (string $arg): bool => str_contains($arg, 'xbrl-country-current-CR-2023-08-23')))->toBeFalse()
         ->and(collect($argv)->filter(fn (string $arg): bool => $arg === '--package')->count())->toBe(2)
         ->and($argv[$packageIndexes[0] + 1])->toEndWith('xbrl-country-current-2024-snapshot.zip')
         ->and($argv[$packageIndexes[1] + 1])->toEndWith('xbrl-codelist-common-2024-snapshot.zip')

@@ -108,6 +108,5 @@
       "sha256": "d4e7fc1b17a635ceef2c36d5304597145e51b1e824200becb4fca29c72a8d973"
     }
   ],
-  "runtime_dependency": true,
-  "supersedes": "xbrl-country-current-CR-2023-08-23 plus generated current alias adapter"
+  "runtime_dependency": true
 }
