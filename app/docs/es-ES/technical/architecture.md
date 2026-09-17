@@ -23,11 +23,10 @@ web:8000       Laravel privado
    |-- postgres:5432 PostgreSQL privado
    |-- redis:6379 Redis privado
    |-- worker Laravel privado (queue:work redis)
-   |-- laravel_storage volumen local persistente
-   \-- clamav opcional, privado u operativo dentro del runtime web
+   \-- laravel_storage volumen local persistente
 ```
 
-Solo Caddy y el frontend deben quedar alcanzables desde Internet. Laravel, FastAPI, PostgreSQL, Redis, worker y ClamAV permanecen en redes privadas de Compose/Podman y sin puertos publicados al host publico.
+Solo Caddy y el frontend deben quedar alcanzables desde Internet. Laravel, FastAPI, PostgreSQL, Redis y worker permanecen en redes privadas de Compose/Podman y sin puertos publicados al host publico.
 
 ## Redes y puertos
 
@@ -40,7 +39,6 @@ Solo Caddy y el frontend deben quedar alcanzables desde Internet. Laravel, FastA
 | PostgreSQL | `5432` | Privada | Datos persistentes. |
 | Redis | `6379` | Privada | Sesion, cache y cola. |
 | Worker Laravel | sin puerto | Privada | Procesamiento de jobs. |
-| ClamAV | segun modo | Privada | Escaneo opcional de documentos. |
 
 ## Flujos
 
@@ -65,7 +63,7 @@ Comprobacion: desde el host publico, el firewall solo debe admitir entrada a `80
 
 ### Archivos y colas
 
-Los documentos, si se activan en el futuro, se guardan en disco local persistente porque el modelo `CharacterizationDocument` fuerza el disco `local`. El controlador acepta PDF/DOCX hasta 50 MB, valida extension y magic bytes, y puede invocar ClamAV si `P6_DOCUMENT_SCAN_ENABLED=true`.
+Los documentos, si se activan en el futuro, se guardan en disco local persistente porque el modelo `CharacterizationDocument` fuerza el disco `local`. El controlador acepta PDF/DOCX hasta 50 MB, valida extension y magic bytes, y debe conservar validaciones de seguridad de archivos verificadas y controles de seguridad de carga.
 
 La extraccion no esta disponible con el codigo incluido: el job llama `POST /extract-document`, pero el FastAPI publico solo expone `/healthz`, `/model-profiles` y `/predict`. Mantener `P6_DOCUMENT_UPLOAD_ENABLED=false`.
 

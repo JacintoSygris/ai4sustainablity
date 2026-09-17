@@ -29,7 +29,6 @@ Fuentes oficiales citadas por la auditoria y usadas como referencia tecnica. Fec
 | Google OAuth web server | <https://developers.google.com/identity/protocols/oauth2/web-server> |
 | Microsoft identity platform | <https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols> |
 | Microsoft redirect URI restrictions | <https://learn.microsoft.com/en-us/entra/identity-platform/reply-url> |
-| ClamAV scanning | <https://docs.clamav.net/manual/Usage/Scanning.html> |
 | Arelle command line | <https://arelle.readthedocs.io/en/latest/command_line.html> |
 | EFRAG ESRS XBRL Taxonomy | <https://www.efrag.org/en/projects/esrs-xbrl-taxonomy/concluded> |
 

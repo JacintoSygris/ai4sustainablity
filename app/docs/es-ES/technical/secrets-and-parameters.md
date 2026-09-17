@@ -101,8 +101,6 @@ Comprobacion: revisar logs de autenticacion del proveedor y errores de Laravel/F
 | `FILESYSTEM_DISK` | Laravel | Si | `local` | Documentos usan disco local forzado por modelo. |
 | `AWS_ACCESS_KEY_ID` y relacionadas | Laravel | Solo otras integraciones | ejemplo no secreto | No habilitan documentos P6 automaticamente. |
 | `P6_DOCUMENT_UPLOAD_ENABLED` | Laravel | Si | `false` | Debe seguir `false` hasta existir `/extract-document`. |
-| `P6_DOCUMENT_SCAN_ENABLED` | Laravel/ClamAV | Solo si documentos futuros | `false` | Activar solo con scanner operativo. |
-| `P6_DOCUMENT_SCAN_BINARY` | Laravel/ClamAV | Si escaneo | `clamdscan` | Binario ejecutable por Laravel. |
 | `P6_DOCUMENT_EXTRACT_TIMEOUT` | Laravel | Futuro | `240` | No arregla endpoint ausente. |
 | `P6_DOCUMENT_EXTRACT_JOB_TIMEOUT` | Laravel | Futuro | `300` | No arregla endpoint ausente. |
 | `LARAVEL_API_ORIGIN` | Next.js | Si | `http://web:8000` | Rewrites funcionan. |
@@ -125,8 +123,7 @@ QUEUE_CONNECTION=redis
 CHARACTERIZATION_GATEWAY=api
 CHARACTERIZATION_API_BASE_URL=http://ai-service:8001
 P6_DOCUMENT_UPLOAD_ENABLED=false
-P6_DOCUMENT_SCAN_ENABLED=false
 SOCIAL_LOGIN_ENABLED=false
 ```
 
-OAuth, Turnstile y ClamAV se activan solo cuando sus proveedores estan configurados y verificados. La carga documental permanece desactivada hasta que exista un servicio compatible con `POST /extract-document`.
+OAuth y Turnstile se activan solo cuando sus proveedores estan configurados y verificados. La carga documental permanece desactivada hasta que exista un servicio compatible con `POST /extract-document`.

@@ -23,11 +23,10 @@ web:8000       private Laravel
    |-- postgres:5432 private PostgreSQL
    |-- redis:6379 private Redis
    |-- private Laravel worker (queue:work redis)
-   |-- laravel_storage persistent local volume
-   \-- optional ClamAV, private or operational inside the web runtime
+   \-- laravel_storage persistent local volume
 ```
 
-Only Caddy and the frontend should be reachable from the Internet. Laravel, FastAPI, PostgreSQL, Redis, worker and ClamAV remain on private Compose/Podman networks and have no ports published on the public host.
+Only Caddy and the frontend should be reachable from the Internet. Laravel, FastAPI, PostgreSQL, Redis and worker remain on private Compose/Podman networks and have no ports published on the public host.
 
 ## Networks And Ports
 
@@ -40,7 +39,6 @@ Only Caddy and the frontend should be reachable from the Internet. Laravel, Fast
 | PostgreSQL | `5432` | Private | Persistent data. |
 | Redis | `6379` | Private | Session, cache and queue. |
 | Laravel worker | no port | Private | Job processing. |
-| ClamAV | mode-dependent | Private | Optional document scanning. |
 
 ## Flows
 
@@ -65,7 +63,7 @@ Check: from the public host, the firewall should only allow inbound `80` and `44
 
 ### Files And Queues
 
-Documents, if enabled in future, are stored on persistent local disk because `CharacterizationDocument` forces the `local` disk. The controller accepts PDF/DOCX up to 50 MB, validates extension and magic bytes, and can call ClamAV if `P6_DOCUMENT_SCAN_ENABLED=true`.
+Documents, if enabled in future, are stored on persistent local disk because `CharacterizationDocument` forces the `local` disk. The controller accepts PDF/DOCX up to 50 MB, validates extension and magic bytes, and must keep verified file-security validation and file-upload security controls.
 
 Extraction is not available with the included code: the job calls `POST /extract-document`, but the public FastAPI exposes only `/healthz`, `/model-profiles` and `/predict`. Keep `P6_DOCUMENT_UPLOAD_ENABLED=false`.
 

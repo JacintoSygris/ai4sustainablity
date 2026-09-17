@@ -13,7 +13,6 @@ Internet -> Caddy (80/443, TLS) -> public Next.js -> private Laravel
                                            |-> private Laravel worker
                                            |-> local document volume
                                            |-> private FastAPI AI
-                                           |-> optional operational ClamAV
 ```
 
 `app/compose.public.yml` is not production. It exposes internal services, uses ephemeral SQLite and the Laravel startup script runs `php artisan migrate:fresh --seed --force`, which destroys data.
@@ -28,7 +27,7 @@ Internet -> Caddy (80/443, TLS) -> public Next.js -> private Laravel
 6. [Services and deployment](services-deployment.md): build, startup, migrations, `optimize`, worker and health checks.
 7. [Proxy and TLS](proxy-tls.md): reference Caddyfile, headers, body limit and validation.
 8. [Mail and OAuth](mail-oauth.md): SMTP, Google Cloud, Microsoft Entra and common errors.
-9. [Operations](operations.md): queues, logs, observability, updates, antivirus and incident actions.
+9. [Operations](operations.md): queues, logs, observability, updates and incident actions.
 10. [Backup and recovery](backup-recovery.md): backups, restore, RPO/RTO and post-restore verification.
 11. [AI, mapping and reporting](ai-mapping-reporting.md): FastAPI, ESRS mapping, P9/P10, Arelle and candidate iXBRL.
 12. [Document extraction](document-extraction.md): functional block, minimum contract and acceptance criteria.

@@ -16,7 +16,6 @@ Por tanto, mantener:
 
 ```dotenv
 P6_DOCUMENT_UPLOAD_ENABLED=false
-P6_DOCUMENT_SCAN_ENABLED=false
 ```
 
 Ninguna variable, Compose, clave externa, token ni URL arregla una ruta que no existe.
@@ -71,9 +70,9 @@ Estados admitidos por Laravel:
 - Endpoint `POST /extract-document` implementado y accesible solo desde Laravel.
 - Lectura segura del `document_path` local o contrato alternativo implementado en Laravel.
 - Timeouts y limites alineados con `P6_DOCUMENT_EXTRACT_TIMEOUT` y `P6_DOCUMENT_EXTRACT_JOB_TIMEOUT`.
-- Escaneo ClamAV operativo si `P6_DOCUMENT_SCAN_ENABLED=true`.
+- Validaciones de seguridad de archivos verificadas y controles de seguridad de carga.
 - Logs sin contenido documental completo.
-- Pruebas funcionales con PDF/DOCX benignos, archivo infectado de prueba controlado y documento sin evidencia util.
+- Pruebas funcionales con PDF/DOCX benignos y documento sin evidencia util.
 - Documentacion actualizada para retirar el bloqueo.
 
 Hasta cumplir todo lo anterior, no describir la extraccion como caracteristica disponible.
