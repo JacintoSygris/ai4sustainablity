@@ -11,41 +11,41 @@ const copy = {
   es: {
     title: "Qué vas a hacer aquí",
     intro:
-      "Esta guía te ayuda a ordenar información y decisiones relacionadas con ESRS. Cada paso explica qué se registra y qué debe revisar tu equipo.",
+      "Esta guía te ayuda a ordenar el trabajo ASG (ambiental, social y de gobernanza), CSRD y ESRS. Cada paso explica qué se registra y qué debe revisar tu equipo.",
     steps: [
       "describe la organización y el ejercicio de referencia",
-      "revisa los temas candidatos propuestos por la aplicación",
+      "revisa los asuntos ASG candidatos propuestos por la aplicación",
       "ordena el análisis de doble materialidad con tu equipo",
-      "confirma la lista final de temas materiales",
-      "registra información, pendientes y no aplicables justificados",
-      "revisa el resumen de preparación y descarga resultados",
+      "confirma la lista final de asuntos materiales",
+      "registra indicadores/datos ESRS, pendientes y no aplicables justificados",
+      "revisa el resumen y descarga resultados, incluido XHTML/iXBRL si procede",
     ],
     needsTitle: "Qué necesitas",
     needs:
       "Conocer actividad, plantilla, facturación aproximada, alcance y poder contrastar impactos, riesgos y oportunidades con personas responsables.",
     outcomeTitle: "Qué obtienes",
     outcome:
-      "Propuestas revisadas, decisiones guardadas, una lista de información y un resumen de preparación. No es un informe final.",
+      "Propuestas revisadas, decisiones guardadas, una lista de requisitos de divulgación e indicadores/datos, y un resumen de preparación. No es un informe final.",
     dismiss: "Ocultar",
   },
   en: {
     title: "What you will do here",
     intro:
-      "This guide takes you through the materiality process for the European ESRS standard in 6 steps. You do not need previous knowledge: each step explains what to do.",
+      "This guide helps you organise ESG work (environmental, social and governance; ASG in Spanish), CSRD and ESRS. Each step explains what is recorded and what your team must review.",
     steps: [
-      "tell us what your company is like (10-15 min)",
-      "review the candidate topics proposed by AI for your sector (15-30 min)",
-      "learn how to analyze each topic with your team, outside the application (the guide is meant to take away; the analysis can take days)",
-      "confirm your final list of material topics (15-30 min)",
-      "review the specific data you will need to collect (1-2 h the first pass)",
-      "review your report status and download the results (10 min)",
+      "describe the organisation and reporting year",
+      "review the ESG candidate matters proposed by the application",
+      "organise double materiality assessment with your team",
+      "confirm the final list of material matters",
+      "record ESRS indicators/data, pending items and justified non-applicable items",
+      "review the summary and download results, including XHTML/iXBRL where applicable",
     ],
     needsTitle: "What you need",
     needs:
-      "Know your company (activity, workforce, approximate revenue) and be able to speak with the people who know it from the inside.",
+      "Know activity, workforce, approximate turnover and scope, and be able to discuss impacts, risks and opportunities with responsible people.",
     outcomeTitle: "What you get",
     outcome:
-      "A justified list of material topics, the inventory of data requested by the standard, and downloads to share with your accountant or consultant.",
+      "Reviewed proposals, saved decisions, a list of Disclosure Requirements and indicators/data, and a preparation summary. It is not a final report.",
     dismiss: "Hide",
   },
 }

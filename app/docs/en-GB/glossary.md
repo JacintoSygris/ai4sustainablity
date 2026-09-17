@@ -4,12 +4,13 @@
 
 - **ESRS**: European Sustainability Reporting Standards. The application uses them to organise information.
 - **CSRD**: Corporate Sustainability Reporting Directive. The application does not decide by itself whether an organisation is in scope or compliant.
-- **Double materiality**: assessment of the organisation's impacts on people and the environment, and of financial risks or opportunities for the organisation. The final decision is human.
-- **Candidate topic**: an automatic proposal that must be reviewed. It is not a materiality decision.
-- **Confirmed material topic**: a topic a user has saved as material in the application. The system does not verify whether the underlying analysis is sufficient.
+- **ESG**: environmental, social and governance; ASG in Spanish. It is the functional area of sustainability work that the application helps organise.
+- **Double materiality**: assessment of the organisation's impacts on people and the environment, and of financial risks or opportunities for the organisation. It determines which matters and ESRS information must be addressed. The final decision is human.
+- **Candidate matter**: an automatic proposal that must be reviewed for double materiality assessment. It is not a materiality decision.
+- **Confirmed material matter**: a matter a user has saved as material in the application. The system does not verify whether the underlying analysis is sufficient.
 - **Evidence reference**: a note, internal link, file name or description pointing to the source used. It does not prove the content by itself.
 - **Coverage**: a counter of responses recorded or justified against the selected set. It does not by itself measure quality, completeness or compliance.
-- **Preparation summary**: an output showing identification, topics, statuses, counters and limits. It is not a drafted statement.
+- **Preparation summary**: an output showing identification, material matters, statuses, counters and limits. It is not a drafted statement.
 
 ## Technical Terms
 
@@ -18,8 +19,8 @@
 - **JSON**: structured format for integrations.
 - **XHTML**: strict HTML format used as a technical basis for some digital submissions.
 - **iXBRL**: XBRL tagging embedded in XHTML. In this repository it only appears as a conditional technical candidate, not as an official submission.
-- **Disclosure Requirement**: an ESRS unit that groups information that may need to be prepared.
-- **Information point**: an individual item in the ESRS inventory. Technical routes and fields may use `datapoint` for compatibility.
+- **Disclosure Requirement**: an ESRS unit that groups information that may need to be prepared when applicable.
+- **ESRS indicator/data point**: an individual item in the ESRS inventory that may require a figure, explanation or reference. Technical routes and fields may use `datapoint` for compatibility.
 
 ## Statuses
 

@@ -445,7 +445,7 @@ export function FinalTopicsSelection() {
           <h1 className="text-2xl font-semibold text-foreground">Selección final de temas relevantes</h1>
           <p className="mt-2 text-muted-foreground">
             Confirma los temas finales tras tu análisis de doble <Term k="materialidad">materialidad</Term> y revisa
-            cómo cambia tu lista de datapoints del paso 5.
+            cómo cambia tu lista de indicadores/datos ESRS del paso 5.
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowInfoModal(true)} className="text-muted-foreground">
@@ -474,7 +474,7 @@ export function FinalTopicsSelection() {
       ) : confirmation.p6_topic_ids.length === 0 ? (
         <StatePanel
           icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-          title="El paso 2 no tiene temas propuestos"
+          title="El paso 2 no tiene asuntos propuestos"
           description="La plataforma necesita una propuesta del paso 2 completada y no vacía antes de guardar la selección final."
           action={<Button type="button" variant="outline" onClick={reload}><RefreshCw className="h-4 w-4" /> Actualizar</Button>}
         />
@@ -491,7 +491,7 @@ export function FinalTopicsSelection() {
               </Card>
               <Card className={`cursor-pointer border ${mode === "guided" ? "border-primary" : ""}`} onClick={() => { setMode("guided"); setHasUserChosenMode(true) }}>
                 <CardContent className="pt-6">
-                  <div className="font-semibold">Ayúdame a decidir tema por tema</div>
+                  <div className="font-semibold">Ayúdame a decidir asunto por asunto</div>
                   <p className="text-sm text-muted-foreground mt-1">Guiado: 4 señales por tema (impacto, financiero, confianza, exposición). Sugerencias solo informan.</p>
                 </CardContent>
               </Card>
@@ -737,7 +737,7 @@ export function FinalTopicsSelection() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de datapoints del paso 5.</p>
+            <p>Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de indicadores/datos ESRS del paso 5.</p>
             <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /><span>Guardar confirma la selección final en la plataforma.</span></div>
           </div>
         </DialogContent>

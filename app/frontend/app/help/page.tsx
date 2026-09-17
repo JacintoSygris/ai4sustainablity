@@ -28,8 +28,8 @@ export default function HelpPage() {
             <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
             <h2 className="mt-3 text-lg font-medium text-foreground">Soporte</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Para esta release privada, contacta con el equipo responsable del despliegue si necesitas reactivar una
-              cuenta o revisar datos de prueba.
+              Contacta con el equipo responsable del servicio si necesitas reactivar una cuenta o revisar datos
+              registrados.
             </p>
           </section>
         </div>

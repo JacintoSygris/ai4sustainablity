@@ -343,7 +343,7 @@ export function MaterialTopicsForm() {
     <TooltipProvider>
       <div className="flex-1">
         <div className="mb-2 flex items-start justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Revisión de temas materiales</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Revisión de asuntos candidatos</h1>
           <button
             onClick={() => setIsInfoModalOpen(true)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -354,8 +354,8 @@ export function MaterialTopicsForm() {
         </div>
 
         <p className="mb-6 text-muted-foreground">
-          Revisa la propuesta de <Term k="materialidad">temas materiales</Term> generada desde la encuesta inicial y
-          deja trazada tu decisión por cada tema.
+          Revisa la propuesta de asuntos ASG generada desde la encuesta inicial para la{" "}
+          <Term k="doble_materialidad">doble materialidad</Term> y deja trazada tu decisión por cada asunto.
         </p>
 
         {errorMessage ? (
@@ -392,7 +392,7 @@ export function MaterialTopicsForm() {
               <div className="flex flex-wrap gap-2">
                 {characterization.status === "draft" || characterization.status === "failed" || characterization.status === "timed_out" ? (
                   <Button type="button" onClick={handleSubmitPrediction} disabled={!p5Complete || submittingPrediction}>
-                    {submittingPrediction ? "Generando..." : "Generar propuesta de temas candidatos con IA"}
+                    {submittingPrediction ? "Generando..." : "Generar propuesta de asuntos candidatos con IA"}
                   </Button>
                 ) : null}
                 <Button type="button" variant="outline" onClick={reload}>
@@ -406,7 +406,7 @@ export function MaterialTopicsForm() {
           <StatePanel
             icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
             title="Propuesta del paso 2 vacía"
-            description="La plataforma no ha devuelto temas propuestos para revisar."
+            description="La plataforma no ha devuelto asuntos propuestos para revisar."
             action={
               <Button type="button" variant="outline" onClick={reload}>
                 <RefreshCw className="h-4 w-4" />
@@ -463,7 +463,7 @@ export function MaterialTopicsForm() {
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar tema ESRS..."
+                  placeholder="Buscar asunto ESRS..."
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
@@ -520,13 +520,13 @@ export function MaterialTopicsForm() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
                   2
                 </div>
-                Revisión de temas materiales
+                Revisión de asuntos candidatos
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
                 La propuesta del paso 2 procede del estado de la encuesta inicial en la plataforma. Si está completada,
-                puedes confirmar tema por tema antes de pasar a la doble materialidad.
+                puedes revisar asunto por asunto antes de pasar al análisis de doble materialidad.
               </p>
               <div className="rounded-lg bg-muted/50 p-3">
                 <h4 className="mb-1 font-medium text-foreground">Nota importante</h4>
