@@ -30,14 +30,14 @@ The production installation documented here does not use `app/compose.public.yml
 | Laravel health | Included and verifiable | `GET /healthz` | Checks database and a basic queue signal. |
 | AR16 to ESRS/DR mapping | Included and verifiable | `data/ar16_to_esrs_dr_mapping_esrs2023_v1.json`, `esrs:validate-matter-dr-mapping` command | Enable with immutable, validated path. |
 | ESRS information, exports and technical candidate | Included and verifiable with prerequisites | `report/*` endpoints, Arelle and vendored taxonomies | Complete state, valid assets and passed technical validation. |
-| Production PostgreSQL | Provisioned by operator | Laravel supports `pgsql` configuration | Runtime with `pdo_pgsql`, backup and non-destructive migrations. |
-| Persistent Redis | Provisioned by operator | Laravel supports Redis for cache, session and queue | Configure persistence and password/ACL according to platform. |
-| Caddy/TLS | Provisioned by operator | No Caddyfile included | Expose only Caddy and frontend. |
-| SMTP mail | Provisioned by operator | `config/mail.php` | External credentials, sender and deliverability. |
-| Google/Microsoft OAuth | Provisioned by operator | Socialite routes | External apps, exact redirect and secrets. |
+| Production PostgreSQL | Configured during installation | Laravel supports `pgsql` configuration | Runtime with `pdo_pgsql`, backup and non-destructive migrations. |
+| Persistent Redis | Configured during installation | Laravel supports Redis for cache, session and queue | Configure persistence and password/ACL according to platform. |
+| Caddy/TLS | Configured during installation | No Caddyfile included | Expose only Caddy and frontend. |
+| SMTP mail | Configured during installation | `config/mail.php` | External credentials, sender and deliverability. |
+| Google/Microsoft OAuth | Configured during installation | Socialite routes | External apps, exact redirect and secrets. |
 | Document S3/MinIO | Requires development before enabling | `CharacterizationDocument::STORAGE_DISK = 'local'` | Does not work automatically for documents. |
 | Document extraction | Requires development before enabling | Laravel calls `POST /extract-document`; FastAPI does not provide it | Keep `P6_DOCUMENT_UPLOAD_ENABLED=false`. |
 
 ## Reading Rule
 
-When a section says `included`, there is code or an artefact in this repository that makes it verifiable. When it says `provisioned by operator`, the repository can integrate with that piece but does not supply it. When it says `requires development`, no variable, Compose file or external key makes that capability functional.
+When a section says `included`, there is code or an artefact in this repository that makes it verifiable. When it says `configured during installation`, the repository can integrate with that piece, but the installation must supply and configure it. When it says `requires development`, no variable, Compose file or external key makes that capability functional.
