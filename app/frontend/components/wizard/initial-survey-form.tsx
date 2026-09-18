@@ -41,6 +41,7 @@ type FormState = {
   stockListed: "" | "yes" | "no"
   reportingCurrency: string
   productServiceType: string
+  entityIdentifier: string
   regions: string[]
   valueChain: string[]
   employeeCountRange: string
@@ -87,6 +88,7 @@ function emptyFormState(): FormState {
     stockListed: "",
     reportingCurrency: "EUR",
     productServiceType: "",
+    entityIdentifier: "",
     regions: [],
     valueChain: [],
     employeeCountRange: "",
@@ -156,6 +158,7 @@ function stateFromCharacterization(characterization: LaravelCharacterization | n
     stockListed: companyProfile.stock_listed == null ? "" : companyProfile.stock_listed ? "yes" : "no",
     reportingCurrency: companyProfile.reporting_currency ?? "EUR",
     productServiceType: companyProfile.product_service_type ?? "",
+    entityIdentifier: companyProfile.entity_identifier ?? "",
     regions: stringArrayValue(operations.regions),
     valueChain: stringArrayValue(operations.value_chain),
     employeeCountRange: operations.employee_count_range ?? "",
@@ -204,6 +207,7 @@ function buildDraftPayload(formData: FormState) {
         stock_listed: formData.stockListed === "yes",
         reporting_currency: formData.reportingCurrency,
         product_service_type: formData.productServiceType,
+        entity_identifier: formData.entityIdentifier.trim() || null,
       },
       operations: {
         regions: formData.regions,
@@ -390,10 +394,23 @@ export function InitialSurveyForm() {
       }
 
       if (error instanceof LaravelApiError && error.status === 422) {
-        const naceMessage =
-          validationMessageFor(error, "nace_code") ?? "Selecciona un código NACE/CNAE válido del catálogo."
+        const nextFieldErrors: FieldErrors = {}
+        const naceMessage = validationMessageFor(error, "nace_code")
+        const entityIdentifierMessage = validationMessageFor(error, "form_data.company_profile.entity_identifier")
 
-        setFieldErrors({ naceCode: naceMessage })
+        if (naceMessage) {
+          nextFieldErrors.naceCode = naceMessage
+        }
+
+        if (entityIdentifierMessage) {
+          nextFieldErrors.entityIdentifier = entityIdentifierMessage
+        }
+
+        if (Object.keys(nextFieldErrors).length === 0) {
+          nextFieldErrors.naceCode = "Selecciona un código NACE/CNAE válido del catálogo."
+        }
+
+        setFieldErrors(nextFieldErrors)
       }
 
       setErrorMessage("La plataforma no ha podido guardar el borrador de la encuesta inicial. Revisa los campos e inténtalo de nuevo.")
@@ -548,6 +565,12 @@ export function InitialSurveyForm() {
                       label="Producto o servicio principal"
                       value={optionLabel(productServiceTypeOptions, formData.productServiceType)}
                     />
+                    {formData.entityIdentifier ? (
+                      <ReadOnlyField
+                        label="LEI de la entidad"
+                        value={`${formData.entityIdentifier} - permite preparar el contexto de entidad del candidato técnico.`}
+                      />
+                    ) : null}
                     <ReadOnlyField label="Regiones" value={optionLabels(regionOptions, formData.regions)} />
                     <ReadOnlyField
                       label="Posición en cadena de valor"
@@ -739,6 +762,29 @@ export function InitialSurveyForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="entityIdentifier">LEI de la entidad (opcional para la caracterización)</Label>
+                        <Input
+                          id="entityIdentifier"
+                          autoCapitalize="characters"
+                          maxLength={20}
+                          value={formData.entityIdentifier}
+                          onChange={(event) => updateForm({ entityIdentifier: event.target.value.trim().toUpperCase() })}
+                          aria-invalid={fieldErrors.entityIdentifier ? "true" : undefined}
+                          aria-describedby={
+                            fieldErrors.entityIdentifier ? "entityIdentifier-error" : "entityIdentifier-help"
+                          }
+                        />
+                        <p id="entityIdentifier-help" className="text-xs text-muted-foreground">
+                          Necesario para preparar un candidato técnico validado. Debe ser el LEI oficial de 20 caracteres; no uses NIF/CIF ni la razón social.
+                        </p>
+                        {fieldErrors.entityIdentifier ? (
+                          <p id="entityIdentifier-error" className="text-sm text-destructive">
+                            {fieldErrors.entityIdentifier}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </section>

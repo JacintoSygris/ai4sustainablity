@@ -4,13 +4,13 @@ use App\Models\Characterization;
 use App\Models\EsrsTopic;
 use App\Models\User;
 use App\Services\EsrsDatapointCorpusBuilder;
-use App\Services\Report\ArelleIxbrlCandidateValidator;
-use App\Services\Report\XbrlConceptMap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -72,7 +72,7 @@ it('returns report package readiness and download endpoints for the separate fro
 
     expect($response->json('data.sections.esrs_datapoints.total_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.sections.datapoint_responses.response_count'))->toBe(2);
-    expect($response->json('data.sections.datapoint_responses.completed_count'))->toBe(0);
+    expect($response->json('data.sections.datapoint_responses.completed_count'))->toBe(1);
     expect($response->json('data.next_actions'))->toContain('/api/esrs-datapoints/responses');
 });
 
@@ -161,7 +161,7 @@ it('exposes stale materiality confirmation in report readiness without changing 
     expect(collect($response->json('data.limitations'))->firstWhere('key', 'materiality_confirmation_stale'))
         ->toMatchArray([
             'key' => 'materiality_confirmation_stale',
-            'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm the material topics before using results.',
+            'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
         ]);
 
     $formData['materiality_confirmation']['p6_snapshot']['topic_ids'] = [$this->e2Topic->id, $s1Topic->id];
@@ -197,7 +197,7 @@ it('returns frontend-renderable report draft data from the current workflow stat
         ->assertJsonPath('data.materiality.confirmed_topic_count', 1)
         ->assertJsonPath('data.datapoints.response_status', 'in_progress')
         ->assertJsonPath('data.datapoints.response_count', 2)
-        ->assertJsonPath('data.datapoints.completed_count', 0)
+        ->assertJsonPath('data.datapoints.completed_count', 1)
         ->assertJsonPath('data.exports.report_readiness.endpoint', '/api/report')
         ->assertJsonPath('data.limitations.0.key', 'report_package_scope');
 
@@ -300,13 +300,13 @@ it('ignores malformed stored datapoint response rows in report readiness and dra
         ->getJson('/api/report')
         ->assertOk()
         ->assertJsonPath('data.sections.datapoint_responses.response_count', 1)
-        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 0);
+        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 1);
 
     $this->actingAs($this->user)
         ->getJson('/api/report/draft')
         ->assertOk()
         ->assertJsonPath('data.datapoints.response_count', 1)
-        ->assertJsonPath('data.datapoints.completed_count', 0);
+        ->assertJsonPath('data.datapoints.completed_count', 1);
 });
 
 it('returns next actions for the actual incomplete report blocker', function () {
@@ -390,11 +390,11 @@ it('treats not applicable datapoint responses as report-ready decisions', functi
         ->assertOk()
         ->assertJsonPath('data.status', 'incomplete')
         ->assertJsonPath('data.sections.double_materiality_guide.status', 'missing')
-        ->assertJsonPath('data.sections.datapoint_responses.status', 'in_progress')
+        ->assertJsonPath('data.sections.datapoint_responses.status', 'complete')
         ->assertJsonPath('data.sections.datapoint_responses.response_count', count($datapointIds))
         ->assertJsonPath('data.sections.datapoint_responses.completed_count', 0)
-        ->assertJsonPath('data.sections.datapoint_responses.not_applicable_count', 0)
-        ->assertJsonPath('data.sections.datapoint_responses.completion_ratio', 0);
+        ->assertJsonPath('data.sections.datapoint_responses.not_applicable_count', count($datapointIds))
+        ->assertJsonPath('data.sections.datapoint_responses.completion_ratio', 1);
 
     $report = $this->actingAs($this->user)
         ->getJson('/api/report')
@@ -407,13 +407,13 @@ it('treats not applicable datapoint responses as report-ready decisions', functi
     $this->actingAs($this->user)
         ->getJson('/api/report/draft')
         ->assertOk()
-        ->assertJsonPath('data.generation_status', 'frontend_rendered_draft')
-        ->assertJsonPath('data.readiness_status', 'incomplete')
-        ->assertJsonPath('data.datapoints.response_status', 'in_progress')
+        ->assertJsonPath('data.generation_status', 'report_preparation_package_ready')
+        ->assertJsonPath('data.readiness_status', 'ready')
+        ->assertJsonPath('data.datapoints.response_status', 'complete')
         ->assertJsonPath('data.datapoints.response_count', count($datapointIds))
         ->assertJsonPath('data.datapoints.completed_count', 0)
-        ->assertJsonPath('data.datapoints.not_applicable_count', 0)
-        ->assertJsonPath('data.datapoints.completion_ratio', 0);
+        ->assertJsonPath('data.datapoints.not_applicable_count', count($datapointIds))
+        ->assertJsonPath('data.datapoints.completion_ratio', 1);
 });
 
 it('exposes report download readiness metadata', function () {
@@ -436,7 +436,25 @@ it('exposes report download readiness metadata', function () {
 
     $readyUser = User::factory()->create();
     $readyCharacterization = reportReadyCharacterization($readyUser, $this->e2Topic);
-    completeReportDatapointResponses($readyCharacterization);
+    $corpus = app(EsrsDatapointCorpusBuilder::class)->build($readyCharacterization);
+    $datapointIds = reportDatapointIds($corpus);
+    $responses = collect($datapointIds)
+        ->mapWithKeys(fn (string $id): array => [
+            $id => [
+                'datapoint_id' => $id,
+                'status' => 'completed',
+                'updated_at' => now()->toJSON(),
+            ],
+        ])
+        ->all();
+
+    $formData = $readyCharacterization->form_data;
+    $formData['esrs_datapoint_responses'] = [
+        'schema_version' => 'v0',
+        'updated_at' => now()->toJSON(),
+        'responses' => $responses,
+    ];
+    $readyCharacterization->forceFill(['form_data' => $formData])->save();
     completeDoubleMaterialityProcess($readyCharacterization);
 
     $this->actingAs($readyUser)
@@ -476,7 +494,7 @@ it('generates a self-contained report package and evidence bundle when report in
         ->get('/api/report/package')
         ->assertOk()
         ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
-        ->assertSee('Resumen de preparación ESRS 2023', false)
+        ->assertSee('Paquete de preparación ESRS 2023', false)
         ->assertSee('Entidad Demo', false)
         ->assertSee('No sustituye la presentación oficial', false)
         ->getContent();
@@ -496,211 +514,6 @@ it('generates a self-contained report package and evidence bundle when report in
         ->assertJsonPath('data.bundle.readiness.status', 'ready')
         ->assertJsonPath('data.traceability.ar16_to_dr_mapping.status', 'loaded')
         ->assertJsonPath('data.traceability.source_endpoints.report_package', '/api/report/package');
-});
-
-it('requires authentication for the iXBRL candidate endpoint', function () {
-    $this->getJson('/api/report/ixbrl-candidate')
-        ->assertUnauthorized();
-});
-
-it('blocks the iXBRL candidate endpoint with safe reasons until report and facts are exportable', function () {
-    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
-    configureIxbrlCandidateCorpus();
-    completeDoubleMaterialityProcess($characterization);
-
-    $blocked = $this->actingAs($this->user)
-        ->getJson('/api/report/ixbrl-candidate')
-        ->assertStatus(409)
-        ->assertJsonPath('data.type', 'ixbrl_candidate_blocked')
-        ->assertJsonPath('data.status', 'blocked')
-        ->assertJsonPath('data.reason_codes.0', 'report_package_prerequisites_incomplete');
-
-    expect($blocked->getContent())
-        ->not->toContain('file://')
-        ->not->toContain(base_path());
-
-    completeIxbrlCandidateResponses($characterization, [
-        'BP-1_01' => [
-            reportValidFact([
-                'value' => 'Prepared <script>alert(1)</script> response.',
-                'concept' => reportIxbrlConcept('esrs:DescriptionOfBusinessModelAndValueChainExplanatory'),
-            ]),
-        ],
-        'E1-6_07' => [
-            reportValidFact([
-                'value_kind' => 'monetary',
-                'value' => '1234.50',
-                'decimals' => 2,
-                'unit' => ['measure' => 'iso4217:EUR'],
-                'evidence_reference' => 'Ledger 2025',
-                'concept' => reportIxbrlConcept('esrs:Revenue'),
-            ]),
-        ],
-    ]);
-
-    $formData = $characterization->fresh()->form_data;
-    $formData['esrs_datapoint_responses']['responses']['BP-1_01']['facts'][0]['context']['dimensions'] = [
-        ['axis' => 'bad:Axis', 'member' => 'esrs:BasisForPreparationOfSustainabilityStatementMember'],
-    ];
-    $characterization->forceFill(['form_data' => $formData])->save();
-
-    $dimensionBlocked = $this->actingAs($this->user)
-        ->getJson('/api/report/ixbrl-candidate')
-        ->assertStatus(409)
-        ->assertJsonPath('data.type', 'ixbrl_candidate_blocked')
-        ->assertJsonPath('data.blocking_datapoint_ids.0', 'BP-1_01');
-
-    expect($dimensionBlocked->json('data.reason_codes'))->toContain('unsupported_dimension_namespace');
-
-    expect($dimensionBlocked->getContent())
-        ->not->toContain('bad:Axis')
-        ->not->toContain('file://')
-        ->not->toContain(base_path());
-});
-
-it('blocks the iXBRL candidate endpoint when a stored exportable fact is missing its id', function () {
-    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
-    configureIxbrlCandidateCorpus();
-    completeDoubleMaterialityProcess($characterization);
-    completeIxbrlCandidateResponses($characterization, [
-        'BP-1_01' => [
-            reportValidFact([
-                'value' => 'Prepared response.',
-                'concept' => reportIxbrlConcept('esrs:DescriptionOfBusinessModelAndValueChainExplanatory'),
-            ]),
-        ],
-        'E1-6_07' => [
-            reportValidFact([
-                'value_kind' => 'percent',
-                'value' => '0.25',
-                'decimals' => 4,
-                'unit' => ['measure' => 'pure'],
-                'concept' => reportIxbrlConcept('esrs:PercentageOfScope1GreenhouseGasEmissionsReductionInTotalGreenhouseGasEmissionsReduction'),
-            ]),
-        ],
-    ]);
-
-    $formData = $characterization->fresh()->form_data;
-    unset($formData['esrs_datapoint_responses']['responses']['BP-1_01']['facts'][0]['fact_id']);
-    $characterization->forceFill(['form_data' => $formData])->save();
-
-    $this->actingAs($this->user)
-        ->getJson('/api/report/ixbrl-candidate')
-        ->assertStatus(409)
-        ->assertJsonPath('data.type', 'ixbrl_candidate_blocked')
-        ->assertJsonPath('data.status', 'blocked')
-        ->assertJsonPath('data.reason_codes.0', 'fact_id_missing')
-        ->assertJsonPath('data.blocking_datapoint_ids.0', 'BP-1_01');
-});
-
-it('streams deterministic XHTML iXBRL candidate only when report readiness and fact gates pass', function () {
-    bindPassingArelleValidator();
-
-    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
-    configureIxbrlCandidateCorpus();
-    completeDoubleMaterialityProcess($characterization);
-    completeIxbrlCandidateResponses($characterization, [
-        'BP-1_01' => [
-            reportValidFact([
-                'value' => 'Prepared <script>alert(1)</script> response.',
-                'evidence_reference' => 'Board pack',
-                'concept' => reportIxbrlConcept('esrs:DescriptionOfBusinessModelAndValueChainExplanatory'),
-            ]),
-        ],
-        'E1-6_07' => [
-            reportValidFact([
-                'value_kind' => 'percent',
-                'value' => '0.25',
-                'decimals' => 4,
-                'unit' => ['measure' => 'pure'],
-                'evidence_reference' => 'Emissions workbook',
-                'concept' => reportIxbrlConcept('esrs:PercentageOfScope1GreenhouseGasEmissionsReductionInTotalGreenhouseGasEmissionsReduction'),
-            ]),
-        ],
-    ]);
-
-    $readiness = $this->actingAs($this->user)
-        ->getJson('/api/report')
-        ->assertOk()
-        ->assertJsonPath('data.status', 'ready')
-        ->assertJsonPath('data.downloads.ixbrl_candidate.endpoint', '/api/report/ixbrl-candidate')
-        ->assertJsonPath('data.downloads.ixbrl_candidate.status', 'ready')
-        ->assertJsonPath('data.ixbrl_candidate.status', 'available')
-        ->json('data');
-
-    expect(collect($readiness['limitations'])->pluck('key')->all())
-        ->toContain('ixbrl_candidate_technical_package')
-        ->toContain('xhtml_ixbrl_generation_still_disabled');
-
-    $response = $this->actingAs($this->user)
-        ->get('/api/report/ixbrl-candidate')
-        ->assertOk()
-        ->assertHeader('Content-Type', 'application/xhtml+xml; charset=UTF-8')
-        ->assertHeader('Content-Disposition', 'attachment; filename="ixbrl-candidate-characterization-'.$characterization->id.'.xhtml"');
-
-    $bytes = $response->getContent();
-    $document = new DOMDocument();
-
-    expect($document->loadXML($bytes, LIBXML_NONET))->toBeTrue();
-    expect($bytes)
-        ->toContain('Candidato tecnico iXBRL; no presentacion oficial')
-        ->toContain('ix:header')
-        ->toContain('link:schemaRef')
-        ->toContain('taxonomies/esrs-set1-2024/xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd')
-        ->toContain('ix:nonNumeric')
-        ->toContain('ix:nonFraction')
-        ->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
-        ->not->toContain('<script>alert(1)</script>')
-        ->not->toContain('file://')
-        ->not->toContain(base_path());
-});
-
-it('blocks the iXBRL candidate endpoint when Arelle structural validation fails', function () {
-    app()->bind(ArelleIxbrlCandidateValidator::class, fn () => new class extends ArelleIxbrlCandidateValidator
-    {
-        public function __construct() {}
-
-        public function validate(\App\Services\Report\IxbrlCandidateDocument $document): array
-        {
-            return [
-                'status' => 'failed',
-                'reason_codes' => ['arelle_validation_failed'],
-                'diagnostics' => ['ix:error'],
-            ];
-        }
-    });
-
-    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
-    configureIxbrlCandidateCorpus();
-    completeDoubleMaterialityProcess($characterization);
-    completeIxbrlCandidateResponses($characterization, [
-        'BP-1_01' => [
-            reportValidFact([
-                'concept' => reportIxbrlConcept('esrs:DescriptionOfBusinessModelAndValueChainExplanatory'),
-            ]),
-        ],
-        'E1-6_07' => [
-            reportValidFact([
-                'value_kind' => 'percent',
-                'value' => '0.25',
-                'decimals' => 4,
-                'unit' => ['measure' => 'pure'],
-                'concept' => reportIxbrlConcept('esrs:PercentageOfScope1GreenhouseGasEmissionsReductionInTotalGreenhouseGasEmissionsReduction'),
-            ]),
-        ],
-    ]);
-
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/report/ixbrl-candidate')
-        ->assertStatus(409)
-        ->assertJsonPath('data.type', 'arelle_validation_failed')
-        ->assertJsonPath('data.reason_codes.0', 'arelle_validation_failed')
-        ->assertJsonPath('data.diagnostics.0', 'ix:error');
-
-    expect($response->getContent())
-        ->not->toContain('ix:header')
-        ->not->toContain('file://')
-        ->not->toContain(base_path());
 });
 
 function reportBaselineFormData(): array
@@ -804,7 +617,8 @@ function completeReportDatapointResponses(Characterization $characterization): v
             $id => [
                 'datapoint_id' => $id,
                 'status' => 'completed',
-                'facts' => [reportValidFact(['value' => "Prepared response for {$id}.", 'evidence_reference' => "Evidence pack {$id}"])],
+                'value' => "Prepared response for {$id}.",
+                'evidence_reference' => "Evidence pack {$id}",
                 'updated_at' => now()->toJSON(),
             ],
         ])
@@ -812,162 +626,12 @@ function completeReportDatapointResponses(Characterization $characterization): v
 
     $formData = $characterization->form_data;
     $formData['esrs_datapoint_responses'] = [
-        'schema_version' => 'v1',
+        'schema_version' => 'v0',
         'updated_at' => now()->toJSON(),
-        'reporting_entity' => [
-            'identifier_scheme' => 'scheme',
-            'identifier' => 'entity-1',
-            'name' => 'Entidad Demo',
-        ],
         'responses' => $responses,
     ];
 
     $characterization->forceFill(['form_data' => $formData])->save();
-}
-
-function configureIxbrlCandidateCorpus(): void
-{
-    bindCompatibleIxbrlConceptMap();
-
-    app()->bind(EsrsDatapointCorpusBuilder::class, fn () => new class extends EsrsDatapointCorpusBuilder
-    {
-        public function __construct() {}
-
-        public function build(Characterization $characterization): array
-        {
-            return [
-                'summary' => ['total_datapoint_count' => 2],
-                'generation' => [
-                    'coverage_status' => 'loaded',
-                    'matter_to_dr_mapping_status' => 'loaded',
-                    'mapping_granularity' => 'test',
-                    'matter_dr_mapping_source' => 'test',
-                    'source_name' => 'Test corpus',
-                    'source_url' => null,
-                    'source_sha256' => null,
-                    'workbook_version' => 'test',
-                ],
-                'blocks' => [
-                    [
-                        'key' => 'test',
-                        'title' => 'Test block',
-                        'datapoints' => [
-                            ['id' => 'BP-1_01', 'data_type' => 'narrative', 'selection' => ['default_selected' => true]],
-                            ['id' => 'E1-6_07', 'data_type' => 'percent', 'selection' => ['default_selected' => true]],
-                        ],
-                    ],
-                ],
-            ];
-        }
-    });
-}
-
-function bindCompatibleIxbrlConceptMap(): void
-{
-    app()->bind(XbrlConceptMap::class, fn () => new class extends XbrlConceptMap
-    {
-        public function conceptFor(string $datapointId): ?array
-        {
-            return match ($datapointId) {
-                'E1-6_07' => reportIxbrlConcept('esrs:PercentageOfScope1GreenhouseGasEmissionsReductionInTotalGreenhouseGasEmissionsReduction'),
-                default => reportIxbrlConcept('esrs:DescriptionOfBusinessModelAndValueChainExplanatory'),
-            };
-        }
-    });
-}
-
-function completeIxbrlCandidateResponses(Characterization $characterization, array $factsByDatapoint): void
-{
-    $responses = collect($factsByDatapoint)
-        ->mapWithKeys(function (array $facts, string $id): array {
-            $normalizedFacts = collect($facts)
-                ->values()
-                ->map(function (array $fact, int $index) use ($id): array {
-                    $fact['fact_id'] ??= deterministicReportFactId($id, $index);
-
-                    return $fact;
-                })
-                ->all();
-
-            return [
-                $id => [
-                    'datapoint_id' => $id,
-                    'status' => 'completed',
-                    'facts' => $normalizedFacts,
-                    'updated_at' => now()->toJSON(),
-                ],
-            ];
-        })
-        ->all();
-
-    $formData = $characterization->form_data;
-    $formData['esrs_datapoint_responses'] = [
-        'schema_version' => 'v1',
-        'updated_at' => now()->toJSON(),
-        'reporting_entity' => [
-            'identifier_scheme' => 'https://example.test/entity',
-            'identifier' => 'entity-1',
-            'name' => 'Entidad Demo',
-        ],
-        'responses' => $responses,
-    ];
-
-    $characterization->forceFill(['form_data' => $formData])->save();
-}
-
-function deterministicReportFactId(string $datapointId, int $index): string
-{
-    $hex = substr(hash('sha256', $datapointId.'#'.$index), 0, 32);
-
-    return substr($hex, 0, 8)
-        .'-'.substr($hex, 8, 4)
-        .'-4'.substr($hex, 13, 3)
-        .'-8'.substr($hex, 17, 3)
-        .'-'.substr($hex, 20, 12);
-}
-
-function reportValidFact(array $overrides = []): array
-{
-    return array_replace_recursive([
-        'value_kind' => 'narrative',
-        'value' => 'Prepared response.',
-        'decimals' => null,
-        'unit' => null,
-        'context' => [
-            'period_type' => 'duration',
-            'start_date' => '2025-01-01',
-            'end_date' => '2025-12-31',
-            'instant_date' => null,
-            'dimensions' => [],
-        ],
-        'evidence_reference' => 'Evidence pack 2025',
-    ], $overrides);
-}
-
-function reportIxbrlConcept(string $conceptId): array
-{
-    return [
-        'concept_id' => $conceptId,
-        'taggable_state' => 'mapped',
-        'reason_code' => null,
-    ];
-}
-
-function bindPassingArelleValidator(): void
-{
-    app()->bind(ArelleIxbrlCandidateValidator::class, fn () => new class extends ArelleIxbrlCandidateValidator
-    {
-        public function __construct() {}
-
-        public function validate(\App\Services\Report\IxbrlCandidateDocument $document): array
-        {
-            return [
-                'status' => 'passed',
-                'reason_codes' => [],
-                'diagnostics' => [],
-            ];
-        }
-    });
 }
 
 function completeDoubleMaterialityProcess(Characterization $characterization): void

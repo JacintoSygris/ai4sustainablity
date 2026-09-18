@@ -36,9 +36,10 @@ Desde `app/`:
 
 ```sh
 docker compose -f compose.public.yml exec web php artisan report:validate-assets --no-ansi
-docker compose -f compose.public.yml exec web php artisan taxonomy:validate-assets esrs-set1-2024 --no-ansi
-docker compose -f compose.public.yml exec web /opt/arelle/bin/arelleCmdLine --version
+"${ESRS_ARELLE_COMMAND:?Configure ESRS_ARELLE_COMMAND first}" --version
 ```
 
-La disponibilidad o versión de Arelle solo confirma que la herramienta está en
-el contenedor; no demuestra que una salida sea aceptada por un regulador.
+El candidato XHTML/iXBRL requiere una instalación externa de la taxonomía EFRAG,
+un manifiesto privado con SHA-256 y un ejecutable Arelle configurado. Consulte
+`../docs/es-ES/technical/external-efrag-taxonomy.md`; la disponibilidad de
+Arelle no demuestra aceptación regulatoria.

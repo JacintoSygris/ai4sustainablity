@@ -15,9 +15,13 @@ The summary may include organisation identification, reporting year, activity co
 - **Responses CSV**: structured responses and references entered.
 - **Summary JSON**: preparation status, coverage and technical traceability.
 - **HTML package**: printable preparation, topic and coverage summary.
-- **Guided DOCX document**: structure with guidance and spaces to complete.
-- **XHTML/iXBRL candidate**: technical output conditional on requirements, structured data, validation and approval.
+- **Factual HTML, factual DOCX and evidence bundle**: approved-snapshot outputs containing only reviewed factual data and structured evidence references.
+- **XHTML/iXBRL candidate**: protected technical output, not offered as an ordinary download. It requires an approved snapshot, compatible data, LEI, external EFRAG taxonomy and Arelle validation.
+
+## Factual data and snapshot
+
+A P9 response is not automatically an approved factual datum. In P10, the datum is recorded, reviewed through a declaration and included in a snapshot. The snapshot retains the state used for the output; if characterisation, a fact or the reporting profile changes, it is no longer current and another must be prepared and approved.
 
 ## How To Read Ready
 
-A ready download means the application allows it to be generated with the current state. It does not mean the content is complete, accurate, assured, legally sufficient or accepted by a regulator.
+A ready factual download means a fresh approved snapshot allows it to be generated. It does not mean the content is complete, accurate, assured, legally sufficient or accepted by a regulator.

@@ -34,7 +34,7 @@ export const WIZARD_STEPS = [
   {
     id: 6,
     title: "Resultados",
-    description: "Revisa el resumen y las descargas disponibles, incluido XHTML/iXBRL si procede.",
+    description: "Revisa el resumen y las descargas de preparación disponibles.",
   },
 ]
 

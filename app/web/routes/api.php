@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\GuidedReportController;
 use App\Http\Controllers\Api\MaterialityConfirmationController;
 use App\Http\Controllers\Api\MaterialityProposalController;
 use App\Http\Controllers\Api\NaceCodeController;
+use App\Http\Controllers\Api\ReportFactController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReportSnapshotController;
 use Illuminate\Support\Facades\Route;
 
 // Public (no-auth) config for the pre-login register page: Turnstile site key
@@ -78,8 +80,26 @@ Route::middleware(['web', 'auth', 'verified.required'])->group(function () {
         ->name('api.report.package');
     Route::get('report/evidence-bundle', [ReportController::class, 'evidenceBundle'])
         ->name('api.report.evidence-bundle');
-    Route::get('report/ixbrl-candidate', [ReportController::class, 'ixbrlCandidate'])
-        ->name('api.report.ixbrl-candidate');
+    Route::get('report/taxonomy', [ReportController::class, 'taxonomy'])
+        ->name('api.report.taxonomy');
+    Route::get('report/html', [GuidedReportController::class, 'html'])
+        ->name('api.report.html');
+    Route::get('report/xhtml-ixbrl-candidate', [GuidedReportController::class, 'xhtmlIxbrlCandidate'])
+        ->name('api.report.xhtml-ixbrl-candidate');
+    Route::get('report/facts', [ReportFactController::class, 'index'])
+        ->name('api.report.facts.index');
+    Route::put('report/facts', [ReportFactController::class, 'update'])
+        ->name('api.report.facts.update');
+    Route::post('report/facts/{fact}/review', [ReportFactController::class, 'review'])
+        ->whereNumber('fact')
+        ->name('api.report.facts.review');
+    Route::post('report/snapshot', [ReportSnapshotController::class, 'store'])
+        ->name('api.report.snapshot.store');
+    Route::get('report/snapshots', [ReportSnapshotController::class, 'index'])
+        ->name('api.report.snapshots.index');
+    Route::post('report/snapshots/{snapshot}/approve', [ReportSnapshotController::class, 'approve'])
+        ->whereNumber('snapshot')
+        ->name('api.report.snapshots.approve');
     Route::get('report', [ReportController::class, 'show'])
         ->name('api.report.show');
     Route::get('guided-report/docx', [GuidedReportController::class, 'docx'])

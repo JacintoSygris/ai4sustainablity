@@ -98,6 +98,8 @@ Comprobacion: revisar logs de autenticacion del proveedor y errores de Laravel/F
 | `CHARACTERIZATION_API_TOKEN` | Laravel/FastAPI | No usado por FastAPI incluido | vacio | No asumir autenticacion si el servicio no la implementa. |
 | `CHARACTERIZATION_PREDICTION_MAPPING_PATH` | Laravel | Opcional | vacio o ruta interna | Mapping de claves existe si se personaliza. |
 | `ESRS_MATTER_DR_MAPPING_PATH` | Laravel | Si para P9/P10 completo | `/var/www/html/data/ar16_to_esrs_dr_mapping_esrs2023_v1.json` | `esrs:validate-matter-dr-mapping`. |
+| `ESRS_EXTERNAL_TAXONOMY_MANIFEST_PATH` | Laravel | Solo candidato XHTML/iXBRL | ruta absoluta a manifiesto privado | El manifiesto verifica perfil, entrypoint, ZIP externo y SHA-256. |
+| `ESRS_ARELLE_COMMAND` | Laravel | Solo candidato XHTML/iXBRL | ruta absoluta a `arelleCmdLine` | Arelle se ejecuta offline; su ausencia bloquea el candidato. |
 | `FILESYSTEM_DISK` | Laravel | Si | `local` | Documentos usan disco local forzado por modelo. |
 | `AWS_ACCESS_KEY_ID` y relacionadas | Laravel | Solo otras integraciones | ejemplo no secreto | No habilitan documentos P6 automaticamente. |
 | `P6_DOCUMENT_UPLOAD_ENABLED` | Laravel | Si | `false` | Debe seguir `false` hasta existir `/extract-document`. |

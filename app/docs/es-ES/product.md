@@ -31,7 +31,7 @@ El recorrido público debe leerse como tareas:
 3. Realiza con tu equipo el análisis de doble materialidad fuera o dentro de tus herramientas habituales.
 4. Confirma en la aplicación la selección final y los motivos que decidas registrar.
 5. Reúne indicadores/datos ESRS, marca lo pendiente y justifica lo que no aplique.
-6. Consulta el resumen de preparación y descarga las salidas disponibles, incluido el candidato XHTML/iXBRL cuando se cumplan las condiciones.
+6. En P10, registra y revisa los datos factuales que se usarán, prepara un snapshot y apruébalo antes de descargar salidas factuales.
 
 ## Qué salidas produce
 
@@ -42,8 +42,10 @@ Las salidas actuales se nombran por lo que contienen:
 - lista de requisitos de divulgación, indicadores/datos y respuestas en CSV;
 - resumen de preparación y cobertura en JSON;
 - paquete HTML imprimible con identificación, temas confirmados, contadores y límites;
-- documento DOCX guiado con estructura, orientaciones y espacios para completar;
-- candidato técnico XHTML con etiquetado iXBRL cuando se cumplen las condiciones técnicas y de validación.
+- HTML factual, DOCX factual y paquete JSON de evidencias generados desde un snapshot fresco y aprobado;
+- candidato técnico XHTML/iXBRL sólo mediante la ruta técnica protegida, tras validación externa de taxonomía y Arelle.
+
+Una respuesta P9 ayuda a organizar el trabajo, pero no se incorpora automáticamente al informe factual. Cada dato debe registrarse y revisarse; una modificación posterior obliga a preparar y aprobar otro snapshot. El candidato XHTML/iXBRL no es una descarga ordinaria del recorrido y nunca equivale a una presentación oficial.
 
 Ninguna de estas salidas equivale por sí sola a un informe ESRS desarrollado, presentado oficialmente o aceptado por una autoridad.
 

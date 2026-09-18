@@ -107,4 +107,9 @@ return [
         'matter_dr_mapping_path' => env('ESRS_MATTER_DR_MAPPING_PATH'),
     ],
 
+    'report' => [
+        'external_taxonomy_manifest_path' => env('ESRS_EXTERNAL_TAXONOMY_MANIFEST_PATH'),
+        'arelle_command' => env('ESRS_ARELLE_COMMAND'),
+    ],
+
 ];

@@ -68,6 +68,7 @@ export function statusLabel(status) {
     not_started: "Sin empezar",
     ready: "Listo",
     scoping_only: "Modo alcance",
+    verified: "Verificado",
   }
 
   return labels[status] ?? humanizeKey(status)

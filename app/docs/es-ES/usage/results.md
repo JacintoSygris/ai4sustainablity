@@ -15,9 +15,13 @@ El resumen puede incluir identificación de la organización, ejercicio, código
 - **Respuestas CSV**: respuestas estructuradas y referencias introducidas.
 - **Resumen JSON**: estado de preparación, cobertura y trazabilidad técnica.
 - **Paquete HTML**: resumen imprimible de preparación, temas y cobertura.
-- **Documento DOCX guiado**: estructura con orientaciones y espacios para completar.
-- **Candidato XHTML/iXBRL**: salida técnica condicionada a requisitos, datos estructurados, validación y aprobación.
+- **HTML factual, DOCX factual y paquete de evidencias**: salidas del snapshot aprobado que contienen sólo los datos factuales revisados y sus referencias de evidencia estructuradas.
+- **Candidato XHTML/iXBRL**: salida técnica protegida, no ofrecida como descarga ordinaria. Requiere snapshot aprobado, datos compatibles, LEI, taxonomía EFRAG externa y validación Arelle.
+
+## Datos factuales y snapshot
+
+Una respuesta P9 no es automáticamente un dato factual aprobado. En P10 se registra el dato, se revisa mediante una declaración y se incluye en un snapshot. El snapshot conserva el estado usado para la salida; si cambia la caracterización, un dato o el perfil de reporting, deja de estar vigente y debe prepararse y aprobarse otro.
 
 ## Cómo leer "listo"
 
-Una descarga lista significa que la aplicación permite generarla con el estado actual. No significa que el contenido sea completo, exacto, asegurado, legalmente suficiente ni aceptado por un regulador.
+Una descarga factual lista significa que existe un snapshot fresco y aprobado que permite generarla. No significa que el contenido sea completo, exacto, asegurado, legalmente suficiente ni aceptado por un regulador.

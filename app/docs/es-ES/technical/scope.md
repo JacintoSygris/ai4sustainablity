@@ -29,7 +29,7 @@ La instalacion de produccion documentada aqui no usa `app/compose.public.yml` co
 | Modelo IA publico | Incluido y verificable | perfil `new_format_732_v1_gpt41` | Salida candidata, no decision final. |
 | Health Laravel | Incluido y verificable | `GET /healthz` | Comprueba base y senal basica de cola. |
 | Mapping AR16 a ESRS/DR | Incluido y verificable | `data/ar16_to_esrs_dr_mapping_esrs2023_v1.json`, comando `esrs:validate-matter-dr-mapping` | Activar con ruta inmutable y validada. |
-| Informacion ESRS, exportaciones y candidato tecnico | Incluido y verificable con precondiciones | endpoints `report/*`, Arelle y taxonomias vendorizadas | Estado completo, assets validos y validacion tecnica pasada. |
+| Información ESRS, exportaciones y candidato técnico | Incluido y verificable con precondiciones | endpoints `report/*`, perfil de reporting y Arelle | HTML, DOCX y evidencias no usan el ZIP; el candidato XHTML/iXBRL requiere paquete EFRAG externo verificado. |
 | PostgreSQL produccion | Se configura al instalar | Laravel soporta `pgsql` por configuracion | Runtime con `pdo_pgsql`, backup y migraciones no destructivas. |
 | Redis persistente | Se configura al instalar | Laravel soporta Redis para cache, sesion y cola | Configurar persistencia y contrasena/ACL segun plataforma. |
 | Caddy/TLS | Se configura al instalar | No hay Caddyfile incluido | Exponer solo Caddy y frontend. |

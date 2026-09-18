@@ -31,11 +31,11 @@ curl -fsS https://app.example.org/api/auth/register-config
 docker compose exec web php artisan migrate:status
 docker compose exec web php artisan queue:failed
 docker compose exec web php artisan report:validate-assets
-docker compose exec web php artisan taxonomy:validate-assets esrs-set1-2024
+
 docker compose exec ai-service python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8001/model-profiles', timeout=5).read().decode())"
 ```
 
-Expected result: every command completes successfully. If a command fails, do not accept the installation until it is resolved or formally justified as not applicable.
+Expected result: every command completes successfully. The XHTML/iXBRL candidate additionally requires the external ZIP, manifest and configured Arelle described in [External EFRAG taxonomy](external-efrag-taxonomy.md); without them it must remain blocked. If a command fails, do not accept the installation until it is resolved or formally justified as not applicable.
 
 ## Diagnostics
 

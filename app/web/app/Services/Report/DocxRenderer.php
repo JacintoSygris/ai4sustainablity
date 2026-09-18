@@ -31,6 +31,7 @@ class DocxRenderer
         $doc = new PhpWord();
         $section = $doc->addSection();
         $section->addTitle(($ir['company']['name'] ?? 'Informe').' — Ejercicio '.($ir['company']['reporting_year'] ?? '-'), 1);
+        $claimsById = $this->claimsById($ir);
 
         foreach ($ir['disclaimers'] ?? [] as $disclaimer) {
             $section->addText($disclaimer, ['italic' => true]);
@@ -80,11 +81,14 @@ class DocxRenderer
                         $textrun = $section->addTextRun();
                         $textrun->addText(($slot['label'] ?? $nodeId).': ');
                         $textrun->addText($this->slotToken($nodeId));
-                        $textrun->addText(' ____________');
+                        $factValue = $this->factValueForSlot($slot, $claimsById);
+                        $textrun->addText($factValue === null ? ' ____________' : ' '.$factValue);
 
                         $slotMap[$nodeId] = [
                             'datapoint_id' => $block['datapoint_id'],
                             'xbrl_concept' => $slot['xbrl_concept'],
+                            'claim_id' => $slot['claim_id'] ?? null,
+                            'fact_id' => $slot['fact_id'] ?? null,
                         ];
                     }
                 }
@@ -156,11 +160,70 @@ class DocxRenderer
     }
 
     /**
+     * @param  array<string, mixed>  $ir
+     * @return array<string, array<string, mixed>>
+     */
+    private function claimsById(array $ir): array
+    {
+        $claims = [];
+
+        foreach ($ir['claims'] ?? [] as $claim) {
+            if (! is_array($claim) || ! isset($claim['claim_id'])) {
+                continue;
+            }
+
+            $claims[(string) $claim['claim_id']] = $claim;
+        }
+
+        return $claims;
+    }
+
+    /**
+     * @param  array<string, mixed>  $slot
+     * @param  array<string, array<string, mixed>>  $claimsById
+     */
+    private function factValueForSlot(array $slot, array $claimsById): ?string
+    {
+        $claimId = $slot['claim_id'] ?? null;
+        if (! is_string($claimId) || $claimId === '') {
+            return null;
+        }
+
+        $claim = $claimsById[$claimId] ?? null;
+        if (! is_array($claim)) {
+            throw new RuntimeException("Factual slot references missing claim_id={$claimId}.");
+        }
+
+        if (($claim['nil'] ?? false) === true) {
+            return null;
+        }
+
+        $value = $claim['value'] ?? null;
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            if (array_key_exists('text', $value) && is_string($value['text'])) {
+                return $value['text'];
+            }
+
+            throw new RuntimeException("Unsupported factual value shape for claim_id={$claimId}; expected value.text.");
+        }
+
+        if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
+            return is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
+        }
+
+        throw new RuntimeException("Unsupported factual value type for claim_id={$claimId}.");
+    }
+
+    /**
      * Wrap each slot's isolated placeholder run in a run-level w:sdt (content control)
      * tagged with its node_id, and add a Custom XML part mapping every node_id to its
      * {datapoint_id, xbrl_concept}.
      *
-     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed}>  $slotMap
+     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed,claim_id:mixed,fact_id:mixed}>  $slotMap
      */
     private function injectSdtAndCustomXml(string $path, array $slotMap): void
     {
@@ -215,7 +278,7 @@ class DocxRenderer
     }
 
     /**
-     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed}>  $slotMap
+     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed,claim_id:mixed,fact_id:mixed}>  $slotMap
      */
     private function addCustomXmlPart(ZipArchive $zip, array $slotMap): void
     {
@@ -223,7 +286,17 @@ class DocxRenderer
         foreach ($slotMap as $nodeId => $meta) {
             $custom .= '<slot node_id="'.htmlspecialchars((string) $nodeId, ENT_QUOTES | ENT_XML1).'"'
                 .' datapoint_id="'.htmlspecialchars((string) $meta['datapoint_id'], ENT_QUOTES | ENT_XML1).'"'
-                .' xbrl_concept="'.htmlspecialchars((string) $meta['xbrl_concept'], ENT_QUOTES | ENT_XML1).'"/>';
+                .' xbrl_concept="'.htmlspecialchars((string) $meta['xbrl_concept'], ENT_QUOTES | ENT_XML1).'"';
+
+            if (($meta['claim_id'] ?? null) !== null) {
+                $custom .= ' claim_id="'.htmlspecialchars((string) $meta['claim_id'], ENT_QUOTES | ENT_XML1).'"';
+            }
+
+            if (($meta['fact_id'] ?? null) !== null) {
+                $custom .= ' fact_id="'.htmlspecialchars((string) $meta['fact_id'], ENT_QUOTES | ENT_XML1).'"';
+            }
+
+            $custom .= '/>';
         }
         $custom .= '</slots>';
 

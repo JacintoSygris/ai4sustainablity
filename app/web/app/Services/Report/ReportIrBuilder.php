@@ -3,7 +3,10 @@
 namespace App\Services\Report;
 
 use App\Models\Characterization;
+use App\Models\ReportApproval;
+use App\Models\ReportSnapshot;
 use App\Services\EsrsDatapointCorpusBuilder;
+use DomainException;
 use Illuminate\Support\Arr;
 
 /**
@@ -22,6 +25,8 @@ class ReportIrBuilder
         private readonly RelatedDrMap $relatedDr,
         private readonly FloorProseComposer $prose,
         private readonly NotMaterialTopicResolver $notMaterial,
+        private readonly ReportClaimBuilder $claims,
+        private readonly ReportingProfileRepository $profiles,
     ) {}
 
     /**
@@ -45,11 +50,24 @@ class ReportIrBuilder
         }
 
         $disclaimers = [
-            'No es presentación oficial, aseguramiento, opinión legal, Taxonomía UE ni un documento iXBRL presentado.',
+            'No es presentación oficial, aseguramiento, Taxonomía UE ni un documento iXBRL presentado.',
         ];
 
         if ($omissions['is_stale']) {
             $disclaimers[] = $this->prose->staleDisclaimer($omissions['confirmed_at']);
+        }
+
+        $company = [
+            'name' => Arr::get($characterization->form_data ?? [], 'company_profile.company_name'),
+            'reporting_year' => Arr::get($characterization->form_data ?? [], 'company_profile.reporting_year'),
+        ];
+        $companyProfile = Arr::get($characterization->form_data ?? [], 'company_profile');
+        if (is_array($companyProfile)) {
+            foreach (['entity_identifier', 'entity_identifier_scheme'] as $key) {
+                if (array_key_exists($key, $companyProfile)) {
+                    $company[$key] = $companyProfile[$key];
+                }
+            }
         }
 
         $ir = [
@@ -59,10 +77,7 @@ class ReportIrBuilder
                 'xbrl' => $this->xbrl->version(),
                 'related_dr' => $this->relatedDr->version(),
             ],
-            'company' => [
-                'name' => Arr::get($characterization->form_data ?? [], 'company_profile.company_name'),
-                'reporting_year' => Arr::get($characterization->form_data ?? [], 'company_profile.reporting_year'),
-            ],
+            'company' => $company,
             'omission_section' => $this->omissionSection($omissions),
             'chapters' => $chapters,
             'disclaimers' => $disclaimers,
@@ -71,6 +86,168 @@ class ReportIrBuilder
         $ir['version_hash'] = hash('sha256', json_encode($ir, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
         return $ir;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildFromApprovedSnapshot(ReportSnapshot $snapshot): array
+    {
+        $approval = $this->approvedSnapshotApproval($snapshot);
+        $snapshotJson = is_array($snapshot->snapshot_json) ? $snapshot->snapshot_json : [];
+        $profileId = (string) ($snapshot->profile_id ?: Arr::get($snapshotJson, 'profile.profile_id'));
+
+        $profile = $this->profiles->load($profileId);
+        if ($profile->hash() !== $snapshot->profile_hash) {
+            throw new DomainException('report_snapshot_profile_hash_mismatch');
+        }
+
+        if (Arr::get($snapshotJson, 'profile.profile_hash') !== $snapshot->profile_hash) {
+            throw new DomainException('report_snapshot_payload_profile_hash_mismatch');
+        }
+
+        $characterizationPayload = Arr::get($snapshotJson, 'characterization');
+        if (! is_array($characterizationPayload)) {
+            throw new DomainException('report_snapshot_missing_characterization');
+        }
+
+        $facts = Arr::get($snapshotJson, 'facts');
+        if (! is_array($facts)) {
+            throw new DomainException('report_snapshot_missing_facts');
+        }
+
+        $characterization = $this->hydrateFrozenCharacterization($characterizationPayload);
+        $layout = $this->build($characterization);
+        unset($layout['version_hash']);
+
+        $claims = $this->claims->build($facts, $snapshot->snapshot_hash, $profileId);
+        $ir = [
+            'schema_version' => 'report_ir_v1',
+            'source' => [
+                'report_snapshot_id' => $snapshot->id,
+                'report_approval_id' => $approval->id,
+                'snapshot_hash' => $snapshot->snapshot_hash,
+                'profile_id' => $profileId,
+                'profile_hash' => $snapshot->profile_hash,
+                'approved_at' => $approval->approved_at?->toJSON(),
+            ],
+            'claims' => $claims,
+            'asset_versions' => $layout['asset_versions'],
+            'company' => $layout['company'],
+            'omission_section' => $layout['omission_section'],
+            'chapters' => $this->attachClaimsToDatapointBlocks($layout['chapters'], $claims),
+            'disclaimers' => $layout['disclaimers'],
+        ];
+
+        $ir['version_hash'] = hash('sha256', $this->canonicalJson($ir));
+
+        return $ir;
+    }
+
+    private function approvedSnapshotApproval(ReportSnapshot $snapshot): ReportApproval
+    {
+        $snapshot->loadMissing('approval');
+        $approval = $snapshot->approval;
+
+        if (! $approval instanceof ReportApproval) {
+            throw new DomainException('report_snapshot_approval_missing');
+        }
+
+        if ($approval->snapshot_hash !== $snapshot->snapshot_hash) {
+            throw new DomainException('report_snapshot_approval_hash_mismatch');
+        }
+
+        return $approval;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function hydrateFrozenCharacterization(array $payload): Characterization
+    {
+        $characterization = new Characterization();
+        $characterization->forceFill([
+            'id' => $payload['id'] ?? null,
+            'user_id' => $payload['user_id'] ?? null,
+            'status' => $payload['status'] ?? null,
+            'nace_code' => $payload['nace_code'] ?? null,
+            'esrs_topic_ids' => is_array($payload['esrs_topic_ids'] ?? null) ? $payload['esrs_topic_ids'] : [],
+            'form_data' => is_array($payload['form_data'] ?? null) ? $payload['form_data'] : [],
+            'result_data' => is_array($payload['result_data'] ?? null) ? $payload['result_data'] : [],
+        ]);
+        $characterization->exists = false;
+
+        return $characterization;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $chapters
+     * @param  list<array<string, mixed>>  $claims
+     * @return list<array<string, mixed>>
+     */
+    private function attachClaimsToDatapointBlocks(array $chapters, array $claims): array
+    {
+        $claimsByDatapoint = [];
+        $claimsById = [];
+        foreach ($claims as $claim) {
+            $datapointId = (string) ($claim['datapoint_id'] ?? '');
+            if ($datapointId === '') {
+                continue;
+            }
+
+            $claimsByDatapoint[$datapointId][] = $claim['claim_id'];
+            $claimsById[(string) $claim['claim_id']] = $claim;
+        }
+
+        foreach ($chapters as &$chapter) {
+            if (! isset($chapter['sections']) || ! is_array($chapter['sections'])) {
+                continue;
+            }
+
+            foreach ($chapter['sections'] as &$section) {
+                if (! isset($section['blocks']) || ! is_array($section['blocks'])) {
+                    continue;
+                }
+
+                foreach ($section['blocks'] as &$block) {
+                    if (! array_key_exists('datapoint_id', $block)) {
+                        continue;
+                    }
+
+                    $baseSlots = is_array($block['slots'] ?? null) ? $block['slots'] : [];
+                    $baseSlot = $baseSlots[0] ?? [];
+                    $blockClaims = $claimsByDatapoint[(string) $block['datapoint_id']] ?? [];
+                    $block['claims'] = $blockClaims;
+                    $block['slots'] = array_map(
+                        fn (string $claimId): array => $this->slotFromClaim($baseSlot, $claimsById[$claimId]),
+                        $blockClaims,
+                    );
+                }
+            }
+        }
+        unset($chapter, $section, $block);
+
+        return $chapters;
+    }
+
+    /**
+     * @param  array<string, mixed>  $baseSlot
+     * @param  array<string, mixed>  $claim
+     * @return array<string, mixed>
+     */
+    private function slotFromClaim(array $baseSlot, array $claim): array
+    {
+        $datapointId = (string) $claim['datapoint_id'];
+        $factId = (string) $claim['fact_id'];
+
+        return [
+            'node_id' => 'slot_'.$datapointId.'_'.$factId,
+            'claim_id' => (string) $claim['claim_id'],
+            'fact_id' => $factId,
+            'label' => $baseSlot['label'] ?? $datapointId,
+            'xbrl_concept' => $baseSlot['xbrl_concept'] ?? null,
+            'taggable_state' => $baseSlot['taggable_state'] ?? 'unmapped',
+        ];
     }
 
     /**
@@ -250,5 +427,32 @@ class ReportIrBuilder
         }
 
         return array_values(array_unique(array_filter($keys)));
+    }
+
+    private function canonicalJson(mixed $value): string
+    {
+        return json_encode(
+            $this->canonicalize($value),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function canonicalize(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            return array_map(fn (mixed $item): mixed => $this->canonicalize($item), $value);
+        }
+
+        ksort($value);
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->canonicalize($item);
+        }
+
+        return $value;
     }
 }
