@@ -30,14 +30,14 @@ La instalacion de produccion documentada aqui no usa `app/compose.public.yml` co
 | Health Laravel | Incluido y verificable | `GET /healthz` | Comprueba base y senal basica de cola. |
 | Mapping AR16 a ESRS/DR | Incluido y verificable | `data/ar16_to_esrs_dr_mapping_esrs2023_v1.json`, comando `esrs:validate-matter-dr-mapping` | Activar con ruta inmutable y validada. |
 | Informacion ESRS, exportaciones y candidato tecnico | Incluido y verificable con precondiciones | endpoints `report/*`, Arelle y taxonomias vendorizadas | Estado completo, assets validos y validacion tecnica pasada. |
-| PostgreSQL produccion | Provisionado por el operador | Laravel soporta `pgsql` por configuracion | Runtime con `pdo_pgsql`, backup y migraciones no destructivas. |
-| Redis persistente | Provisionado por el operador | Laravel soporta Redis para cache, sesion y cola | Configurar persistencia y contrasena/ACL segun plataforma. |
-| Caddy/TLS | Provisionado por el operador | No hay Caddyfile incluido | Exponer solo Caddy y frontend. |
-| Correo SMTP | Provisionado por el operador | `config/mail.php` | Credenciales externas, remitente y entregabilidad. |
-| OAuth Google/Microsoft | Provisionado por el operador | rutas Socialite | Apps externas, redirect exacto y secretos. |
+| PostgreSQL produccion | Se configura al instalar | Laravel soporta `pgsql` por configuracion | Runtime con `pdo_pgsql`, backup y migraciones no destructivas. |
+| Redis persistente | Se configura al instalar | Laravel soporta Redis para cache, sesion y cola | Configurar persistencia y contrasena/ACL segun plataforma. |
+| Caddy/TLS | Se configura al instalar | No hay Caddyfile incluido | Exponer solo Caddy y frontend. |
+| Correo SMTP | Se configura al instalar | `config/mail.php` | Credenciales externas, remitente y entregabilidad. |
+| OAuth Google/Microsoft | Se configura al instalar | rutas Socialite | Apps externas, redirect exacto y secretos. |
 | S3/MinIO documental | Requiere desarrollo antes de activar | `CharacterizationDocument::STORAGE_DISK = 'local'` | No funciona automaticamente para documentos. |
 | Extraccion documental | Requiere desarrollo antes de activar | Laravel llama `POST /extract-document`; FastAPI no lo ofrece | Mantener `P6_DOCUMENT_UPLOAD_ENABLED=false`. |
 
 ## Regla de lectura
 
-Cuando una seccion dice `incluido`, significa que hay codigo o artefactos en este repositorio que lo hacen comprobable. Cuando dice `provisionado por el operador`, significa que el repositorio puede integrarse con esa pieza, pero no la suministra. Cuando dice `requiere desarrollo`, ninguna variable, Compose o clave externa convierte esa capacidad en funcional.
+Cuando una seccion dice `incluido`, significa que hay codigo o artefactos en este repositorio que lo hacen comprobable. Cuando dice `se configura al instalar`, significa que el repositorio puede integrarse con esa pieza, pero la instalacion debe aportarla y configurarla. Cuando dice `requiere desarrollo`, ninguna variable, Compose o clave externa convierte esa capacidad en funcional.
