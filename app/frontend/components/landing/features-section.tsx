@@ -18,7 +18,7 @@ export function FeaturesSection() {
       icon: FileText,
       title: "Salidas de trabajo",
       description:
-        "Descarga hojas de decisión, listas CSV, resúmenes de preparación y candidatos XHTML/iXBRL condicionados para revisión.",
+        "Descarga hojas de decisión, listas CSV, resúmenes de preparación y trazabilidad de evidencias.",
     },
   ]
 

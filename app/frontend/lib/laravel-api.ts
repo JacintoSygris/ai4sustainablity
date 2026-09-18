@@ -61,6 +61,8 @@ export type LaravelCharacterizationCompanyProfile = {
   stock_listed?: boolean | null
   reporting_currency?: string | null
   product_service_type?: string | null
+  entity_identifier?: string | null
+  entity_identifier_scheme?: string | null
 }
 
 export type LaravelCharacterizationOperations = {
@@ -594,6 +596,20 @@ export type LaravelReportReadiness = {
   limitations: LaravelReportLimitation[]
 }
 
+export type LaravelReportTaxonomyStatus = {
+  type: "report_taxonomy_status"
+  version: string
+  taxonomy: {
+    name: "EFRAG ESRS XBRL Taxonomy Set 1" | string
+    version: "2023-12-22" | string
+  }
+  reporting_profile: "esrs-2023-preparatory-v1" | string
+  availability: {
+    state: "verified" | "blocked" | string
+    reason_code?: string
+  }
+}
+
 export type LaravelReportDraftCompany = {
   name: string | null
   nace_code: string | null
@@ -1029,6 +1045,16 @@ export function getLaravelReportReadiness(
   options: Omit<LaravelApiOptions, "body" | "method"> = {},
 ): Promise<LaravelApiEnvelope<LaravelReportReadiness | null>> {
   return laravelApi<LaravelApiEnvelope<LaravelReportReadiness | null>>("/report", {
+    cache: "no-store",
+    ...options,
+    method: "GET",
+  })
+}
+
+export function getLaravelReportTaxonomyStatus(
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportTaxonomyStatus>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportTaxonomyStatus>>("/report/taxonomy", {
     cache: "no-store",
     ...options,
     method: "GET",

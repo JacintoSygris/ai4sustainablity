@@ -119,9 +119,16 @@ test("session-based verification gate and 409 handling are wired", () => {
 test("P10 report surface shows a prominent scope disclaimer", () => {
   const source = read("components/wizard/report-draft-panel.tsx")
 
-  assert.match(source, /Alcance y límites de este informe/)
+  assert.match(source, /Alcance y límites de estas salidas/)
   assert.match(source, /No es una presentación oficial/)
   assert.match(source, /No es un servicio de aseguramiento/)
   assert.match(source, /Taxonomía de la UE/)
-  assert.match(source, /xHTML ni iXBRL/)
+  assert.match(source, /candidato XHTML\/iXBRL no se ofrece como descarga/)
+  assert.match(source, /Taxonomía ESRS externa/)
+  assert.doesNotMatch(source, /taxonomy_package_path|manifest_path|sha256/i)
+
+  const api = read("lib/laravel-api.ts")
+  assert.match(api, /EFRAG ESRS XBRL Taxonomy Set 1/)
+  assert.match(api, /2023-12-22/)
+  assert.match(api, /esrs-2023-preparatory-v1/)
 })

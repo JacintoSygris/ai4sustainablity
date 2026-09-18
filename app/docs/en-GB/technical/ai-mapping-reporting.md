@@ -62,23 +62,15 @@ Validate assets:
 ```sh
 # Directory: /srv/ia4sustainability
 docker compose exec web php artisan report:validate-assets
-docker compose exec web php artisan taxonomy:validate-assets esrs-set1-2024
 ```
 
-Expected result: both commands report `OK`.
+Expected result: `report:validate-assets` reports `OK`.
 
-## Arelle And Taxonomy
+## Arelle And External Taxonomy
 
-The public Dockerfile installs Arelle at `/opt/arelle/bin/arelleCmdLine` and the validator uses it by default. Validation runs offline with vendored packages. If the binary is missing, not executable or package integrity fails, the candidate iXBRL must be treated as technically failed.
+The XHTML/iXBRL candidate does not use a taxonomy included in the image or repository. The installation provides the authorised EFRAG ZIP separately, a private manifest with its SHA-256, and an absolute Arelle path. Laravel runs Arelle without network access; if the manifest, package, checksum or executable is missing, it blocks the candidate rather than declaring a valid download.
 
-Check:
-
-```sh
-# Directory: /srv/ia4sustainability
-docker compose exec web /opt/arelle/bin/arelleCmdLine --version
-```
-
-Expected result: Arelle returns a version. This does not prove regulatory acceptance.
+Follow the [external EFRAG taxonomy installation](external-efrag-taxonomy.md). `php artisan report:validate-assets` checks versioned assets and that taxonomy bytes have not been reintroduced into the repository; external ZIP validation occurs when the authenticated candidate is requested.
 
 ## Strict Interpretation Of Candidate XHTML/iXBRL
 

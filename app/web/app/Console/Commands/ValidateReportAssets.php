@@ -2,14 +2,19 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Report\ReportingProfileException;
+use App\Services\Report\ReportingProfileRepository;
 use Illuminate\Console\Command;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Throwable;
 
 class ValidateReportAssets extends Command
 {
     protected $signature = 'report:validate-assets';
 
-    protected $description = 'Validate the vendored assets required by the P10 report package.';
+    protected $description = 'Hard release gates for the P10 guided-report assets and external taxonomy contract.';
 
     private const BANNED = ['iXBRL-ready', 'iXBRL ready', 'filing-ready', 'filing ready', 'official filing'];
 
@@ -97,6 +102,30 @@ class ValidateReportAssets extends Command
             }
         }
 
+        // Gate 4: reporting profile contract and external taxonomy provisioning boundary.
+        try {
+            $profile = (new ReportingProfileRepository())->load('esrs-2023-preparatory-v1');
+
+            if (($profile->taxonomy()['provisioning_mode'] ?? null) !== 'external_package_required') {
+                $failures[] = 'invalid_profile_provisioning_mode';
+            }
+
+            if (! $profile->requiresExternalTaxonomyPackage()) {
+                $failures[] = 'invalid_profile_provisioning_mode';
+            }
+
+            if (! $profile->supportsValidatedCandidate() || $profile->supportsFilingReady()) {
+                $failures[] = 'invalid_profile_publication_states';
+            }
+        } catch (ReportingProfileException $e) {
+            $failures[] = $e->getMessage();
+        }
+
+        // Gate 5: never vendor EFRAG ESRS taxonomy package/schema material under data.
+        foreach ($this->forbiddenTaxonomyArtifacts() as $artifact) {
+            $failures[] = "taxonomy_repo_artifact_forbidden:{$artifact}";
+        }
+
         if ($failures !== []) {
             foreach ($failures as $f) {
                 $this->error($f);
@@ -108,5 +137,41 @@ class ValidateReportAssets extends Command
         $this->info('report:validate-assets OK');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function forbiddenTaxonomyArtifacts(): array
+    {
+        $root = base_path('data');
+        if (! is_dir($root)) {
+            return [];
+        }
+
+        $forbidden = [];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        /** @var SplFileInfo $file */
+        foreach ($iterator as $file) {
+            if (! $file->isFile()) {
+                continue;
+            }
+
+            $relativePath = str_replace(base_path().'/', '', $file->getPathname());
+            $normalized = str_replace('\\', '/', strtolower($relativePath));
+
+            if (! str_contains($normalized, 'esrs-set1-2024')
+                && ! str_contains($normalized, 'xbrl.efrag.org')
+                && ! preg_match('/(^|\/)esrs[^\/]*\.(zip|xsd|xbrl)$/', $normalized)) {
+                continue;
+            }
+
+            $forbidden[] = $relativePath;
+        }
+
+        return $forbidden;
     }
 }

@@ -1,0 +1,109 @@
+{
+  "profile_id": "esrs-2023-preparatory-v1",
+  "schema_version": "reporting_profile_v1",
+  "status": "active",
+  "framework": "esrs_2023",
+  "publication_boundary": "preparatory_candidate",
+  "taxonomy": {
+    "name": "EFRAG ESRS XBRL Taxonomy Set 1",
+    "version": "2023-12-22",
+    "source_uri": "https://www.efrag.org/en/projects/esrs-xbrl-taxonomy",
+    "entrypoint": "https://xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd",
+    "provisioning_mode": "external_package_required",
+    "local_manifest_required": true,
+    "local_manifest_schema": {
+      "schema_version": "external_taxonomy_manifest_v1",
+      "required_fields": [
+        "taxonomy_package_path",
+        "taxonomy_package_checksum",
+        "external_taxonomy_package_confirmed"
+      ],
+      "confirmation_field": "external_taxonomy_package_confirmed",
+      "path_field": "taxonomy_package_path",
+      "checksum_field": "taxonomy_package_checksum"
+    },
+    "forbidden_repo_artifacts": [
+      "*.zip",
+      "*.xsd",
+      "taxonomy package bytes",
+      "derived taxonomy package bytes"
+    ]
+  },
+  "mapping_assets": [
+    {
+      "id": "atomizer_xbrl_concepts_v1",
+      "path": "data/atomizer_xbrl_concepts_v1.json",
+      "sha256_sidecar": "data/atomizer_xbrl_concepts_v1.json.sha256"
+    },
+    {
+      "id": "atomizer_support_rules_v1",
+      "path": "data/atomizer_support_rules_v1.json",
+      "sha256_sidecar": "data/atomizer_support_rules_v1.json.sha256"
+    },
+    {
+      "id": "related_dr_map_esrs2023_v1",
+      "path": "data/related_dr_map_esrs2023_v1.json",
+      "sha256_sidecar": "data/related_dr_map_esrs2023_v1.json.sha256"
+    }
+  ],
+  "context_rules": {
+    "entity_identifier": "lei_or_registry_identifier_when_available",
+    "period": "annual_reporting_period",
+    "language": "es",
+    "dimensions": "canonical_dimension_member_pairs",
+    "units": "required_for_numeric_and_monetary_facts",
+    "decimals": "required_for_numeric_and_monetary_facts",
+    "nil": "requires_nil_reason"
+  },
+  "validation": {
+    "arelle": {
+      "version": "operator_provisioned",
+      "network": "disabled",
+      "arguments": [
+        "--internetConnectivity=offline",
+        "--validate"
+      ]
+    },
+    "blocking_severities": [
+      "error",
+      "fatal"
+    ],
+    "internal_rules": [
+      "profile_checksum",
+      "mapping_asset_checksums",
+      "external_taxonomy_manifest_contract",
+      "no_taxonomy_package_bytes_in_repo"
+    ],
+    "publication_states": [
+      "validated_candidate"
+    ],
+    "unsupported_publication_states": [
+      "filing_ready"
+    ]
+  },
+  "rendering": {
+    "languages": [
+      "es"
+    ],
+    "future_languages": [
+      "en"
+    ],
+    "allowed_artefacts": [
+      "html",
+      "docx",
+      "evidence_json",
+      "xhtml_ixbrl_candidate"
+    ]
+  },
+  "repository_policy": {
+    "taxonomy_package_material_in_repo": "forbidden",
+    "operator_external_package_absence_blocks": [
+      "validated_candidate"
+    ],
+    "operator_external_package_absence_does_not_block": [
+      "html",
+      "docx",
+      "evidence_json"
+    ]
+  }
+}

@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
 use App\Services\EsrsDatapointCorpusBuilder;
-use App\Services\Report\ArelleIxbrlCandidateValidator;
-use App\Services\Report\IxbrlCandidateBuilder;
+use App\Services\Report\ExternalTaxonomyManifestRepository;
+use App\Services\Report\ReportingProfileException;
+use App\Services\Report\ReportingProfileRepository;
 use App\Support\DoubleMaterialityProcessState;
-use App\Support\EsrsDatapointFactState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use RuntimeException;
 
 class ReportController extends Controller
 {
@@ -84,54 +85,53 @@ class ReportController extends Controller
         ]);
     }
 
-    public function ixbrlCandidate(
-        Request $request,
-        EsrsDatapointCorpusBuilder $datapoints,
-        IxbrlCandidateBuilder $builder,
-        ArelleIxbrlCandidateValidator $validator,
-    )
-    {
-        $context = $this->reportContext($request, $datapoints);
-
-        if (! $context) {
-            return response()->json(['data' => null], 409);
-        }
-
-        $readiness = $this->readinessPayload(...$context);
-
-        if ($readiness['status'] !== 'ready') {
-            return $this->blockedIxbrlCandidateResponse([
-                'status' => 'blocked',
-                'reason_codes' => ['report_package_prerequisites_incomplete'],
-                'blocking_datapoint_ids' => [],
-                'fact_count' => 0,
-                'limitations' => $this->ixbrlCandidateLimitations(),
+    public function taxonomy(
+        ReportingProfileRepository $profiles,
+        ExternalTaxonomyManifestRepository $externalTaxonomyManifest,
+    ) {
+        try {
+            $profile = $profiles->load('esrs-2023-preparatory-v1');
+        } catch (ReportingProfileException $e) {
+            return response()->json([
+                'data' => $this->taxonomyStatusPayload(
+                    'esrs-2023-preparatory-v1',
+                    'blocked',
+                    $e->getMessage(),
+                ),
             ]);
         }
 
-        $state = $this->fullFactState($context[0], $context[1]);
-        $preflight = $builder->preflight($state);
+        try {
+            $externalTaxonomyManifest->loadForProfile($profile);
 
-        if ($preflight['status'] !== 'available') {
-            return $this->blockedIxbrlCandidateResponse($preflight);
+            return response()->json([
+                'data' => $this->taxonomyStatusPayload($profile->profileId(), 'verified'),
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'data' => $this->taxonomyStatusPayload($profile->profileId(), 'blocked', $e->getMessage()),
+            ]);
         }
+    }
 
-        $document = $builder->build($state);
-        $validation = $validator->validate($document);
-        if ($validation['status'] !== 'passed') {
-            return $this->blockedIxbrlCandidateResponse([
-                'status' => 'blocked',
-                'reason_codes' => $validation['reason_codes'] ?: ['arelle_validation_failed'],
-                'blocking_datapoint_ids' => [],
-                'fact_count' => $preflight['fact_count'],
-                'limitations' => $preflight['limitations'],
-                'diagnostics' => $validation['diagnostics'],
-            ], 'arelle_validation_failed');
-        }
-
-        return response($document->bytes, 200)
-            ->header('Content-Type', 'application/xhtml+xml; charset=UTF-8')
-            ->header('Content-Disposition', 'attachment; filename="'.$document->filename.'"');
+    /**
+     * @return array<string, mixed>
+     */
+    private function taxonomyStatusPayload(string $profileId, string $state, ?string $reasonCode = null): array
+    {
+        return [
+            'type' => 'report_taxonomy_status',
+            'version' => 'v0',
+            'taxonomy' => [
+                'name' => 'EFRAG ESRS XBRL Taxonomy Set 1',
+                'version' => '2023-12-22',
+            ],
+            'reporting_profile' => $profileId,
+            'availability' => array_filter([
+                'state' => $state,
+                'reason_code' => $reasonCode,
+            ], fn (mixed $value): bool => $value !== null),
+        ];
     }
 
     /**
@@ -148,25 +148,6 @@ class ReportController extends Controller
                 'downloads' => $readiness['downloads'],
                 'next_actions' => $readiness['next_actions'],
                 'limitations' => $readiness['limitations'],
-            ],
-        ], 409);
-    }
-
-    /**
-     * @param  array<string, mixed>  $preflight
-     */
-    private function blockedIxbrlCandidateResponse(array $preflight, string $type = 'ixbrl_candidate_blocked')
-    {
-        return response()->json([
-            'data' => [
-                'type' => $type,
-                'version' => 'v0',
-                'status' => 'blocked',
-                'reason_codes' => array_values($preflight['reason_codes'] ?? []),
-                'blocking_datapoint_ids' => array_values($preflight['blocking_datapoint_ids'] ?? []),
-                'fact_count' => (int) ($preflight['fact_count'] ?? 0),
-                'limitations' => $preflight['limitations'] ?? $this->ixbrlCandidateLimitations(),
-                'diagnostics' => array_values($preflight['diagnostics'] ?? []),
             ],
         ], 409);
     }
@@ -201,19 +182,16 @@ class ReportController extends Controller
         array $responseState,
         array $sections,
     ): array {
-        $ixbrlCandidate = $this->ixbrlCandidateMetadata($characterization, $corpus, $sections);
-
         return [
             'type' => 'report_package_readiness',
             'version' => 'v0',
             'characterization_id' => $characterization->id,
             'status' => $this->status($sections),
             'sections' => $sections,
-            'downloads' => $this->downloads($sections, $ixbrlCandidate),
+            'downloads' => $this->downloads($sections),
             'next_actions' => $this->nextActions($sections),
             'limitations' => $this->limitations($corpus, $sections),
             'coverage_mode' => $this->coverageMode($corpus),
-            'ixbrl_candidate' => $ixbrlCandidate,
         ];
     }
 
@@ -248,7 +226,7 @@ class ReportController extends Controller
                     'depends_on' => [],
                     'blocking_sections' => [],
                 ],
-            ], $this->downloads($sections, $this->ixbrlCandidateMetadata($characterization, $corpus, $sections))),
+            ], $this->downloads($sections)),
             'limitations' => $this->limitations($corpus, $sections),
             'coverage_mode' => $this->coverageMode($corpus),
         ];
@@ -279,7 +257,7 @@ class ReportController extends Controller
                 'readiness' => [
                     'status' => $readiness['status'],
                     'sections' => $readiness['sections'],
-                'downloads' => $readiness['downloads'],
+                    'downloads' => $readiness['downloads'],
                     'next_actions' => $readiness['next_actions'],
                 ],
                 'materiality' => $draft['materiality'],
@@ -351,7 +329,7 @@ class ReportController extends Controller
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Resumen de preparación ESRS 2023 - '.$company.'</title>
+  <title>Paquete de preparación ESRS 2023 - '.$company.'</title>
   <style>
     body { color: #172033; font-family: Arial, sans-serif; line-height: 1.5; margin: 32px; }
     header { border-bottom: 2px solid #172033; margin-bottom: 24px; padding-bottom: 16px; }
@@ -366,26 +344,26 @@ class ReportController extends Controller
 </head>
 <body>
   <header>
-    <h1>Resumen de preparación ESRS 2023</h1>
+    <h1>Paquete de preparación ESRS 2023</h1>
     <p><strong>'.$company.'</strong> - Ejercicio '.$year.'</p>
   </header>
   <section class="notice">
     <strong>No sustituye la presentación oficial.</strong>
-    Este resumen organiza estado, temas, cobertura y trazabilidad. No es una presentación oficial, aseguramiento, opinión legal, memoria redactada ni aceptación de formatos digitales.
+    Este paquete organiza la preparación ESRS 2023, evidencias y trazabilidad; no realiza filing oficial, aseguramiento, Taxonomía UE ni xHTML/iXBRL.
   </section>
   <section class="metrics">
     <div class="metric"><strong>Estado</strong><br>'.$status.'</div>
     <div class="metric"><strong>Temas materiales</strong><br>'.$this->e((string) Arr::get($draft, 'materiality.confirmed_topic_count', 0)).'</div>
-    <div class="metric"><strong>Cobertura registrada</strong><br>'.$datapointPercent.'%</div>
+    <div class="metric"><strong>Datapoints decididos</strong><br>'.$datapointPercent.'%</div>
   </section>
   <section>
     <h2>Temas materiales confirmados</h2>
     <ul>'.$topics.'</ul>
   </section>
   <section>
-    <h2>Cobertura de información</h2>
+    <h2>Cobertura de datapoints</h2>
     <table>
-      <thead><tr><th>Bloque</th><th>Tratados</th><th>Total</th></tr></thead>
+      <thead><tr><th>Bloque</th><th>Decididos</th><th>Total</th></tr></thead>
       <tbody>'.$blocks.'</tbody>
     </table>
   </section>
@@ -450,7 +428,7 @@ class ReportController extends Controller
                 'coverage_mode' => $this->coverageMode($corpus),
             ],
             'datapoint_responses' => [
-                'status' => $this->datapointResponseStatus($responseState, $responseState['applicable_datapoint_count']),
+                'status' => $this->datapointResponseStatus($responseState, $totalDatapoints),
                 'endpoint' => '/api/esrs-datapoints/responses',
                 'response_count' => $responseState['response_count'],
                 'completed_count' => $responseState['completed_count'],
@@ -487,26 +465,27 @@ class ReportController extends Controller
      */
     private function responseState(Characterization $characterization, array $corpus): array
     {
-        $state = app(EsrsDatapointFactState::class)->state($characterization, $corpus);
-        $summary = $state['summary'];
+        $filtered = collect($this->currentResponseRows($characterization, $corpus));
+        $orphanedResponseCount = count($this->orphanedResponseRows($characterization, $corpus));
+        $totalDatapoints = (int) Arr::get($corpus, 'summary.total_datapoint_count', count($this->datapointIds($corpus)));
+        $completedCount = $filtered
+            ->filter(fn (array $response): bool => ($response['status'] ?? null) === 'completed')
+            ->count();
+        $notApplicableCount = $filtered
+            ->filter(fn (array $response): bool => ($response['status'] ?? null) === 'not_applicable')
+            ->count();
+        $decidedCount = $completedCount + $notApplicableCount;
 
         return [
-            'applicable_datapoint_count' => (int) $summary['applicable_datapoint_count'],
-            'response_count' => (int) $summary['response_count'],
-            'completed_count' => (int) $summary['completed_count'],
-            'not_applicable_count' => (int) $summary['not_applicable_count'],
-            'decided_count' => (int) $summary['decided_count'],
-            'completion_ratio' => (float) $summary['completion_ratio'],
-            'orphaned_response_count' => (int) Arr::get($state, 'orphaned.count', 0),
+            'response_count' => $filtered->count(),
+            'completed_count' => $completedCount,
+            'not_applicable_count' => $notApplicableCount,
+            'decided_count' => $decidedCount,
+            'completion_ratio' => $totalDatapoints > 0
+                ? round($decidedCount / $totalDatapoints, 4)
+                : 1.0,
+            'orphaned_response_count' => $orphanedResponseCount,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function fullFactState(Characterization $characterization, array $corpus): array
-    {
-        return app(EsrsDatapointFactState::class)->state($characterization, $corpus);
     }
 
     /**
@@ -527,7 +506,20 @@ class ReportController extends Controller
      */
     private function currentResponseRows(Characterization $characterization, array $corpus): array
     {
-        return app(EsrsDatapointFactState::class)->state($characterization, $corpus)['responses'];
+        $responses = Arr::get($characterization->form_data ?? [], 'esrs_datapoint_responses.responses', []);
+
+        if (! is_array($responses)) {
+            return [];
+        }
+
+        $allowedIds = array_flip($this->datapointIds($corpus));
+
+        return collect($responses)
+            ->filter(
+                fn ($response, string|int $datapointId): bool => isset($allowedIds[(string) $datapointId])
+                    && is_array($response)
+            )
+            ->all();
     }
 
     /**
@@ -535,7 +527,20 @@ class ReportController extends Controller
      */
     private function orphanedResponseRows(Characterization $characterization, array $corpus): array
     {
-        return app(EsrsDatapointFactState::class)->state($characterization, $corpus)['orphaned']['responses'];
+        $responses = Arr::get($characterization->form_data ?? [], 'esrs_datapoint_responses.responses', []);
+
+        if (! is_array($responses)) {
+            return [];
+        }
+
+        $allowedIds = array_flip($this->datapointIds($corpus));
+
+        return collect($responses)
+            ->filter(
+                fn ($response, string|int $datapointId): bool => ! isset($allowedIds[(string) $datapointId])
+                    && is_array($response)
+            )
+            ->all();
     }
 
     /**
@@ -648,7 +653,7 @@ class ReportController extends Controller
 
         return [
             'total_datapoint_count' => $totalDatapoints,
-            'response_status' => $this->datapointResponseStatus($responseState, $responseState['applicable_datapoint_count']),
+            'response_status' => $this->datapointResponseStatus($responseState, $totalDatapoints),
             'response_count' => $responseState['response_count'],
             'completed_count' => $responseState['completed_count'],
             'not_applicable_count' => $responseState['not_applicable_count'],
@@ -703,10 +708,10 @@ class ReportController extends Controller
                 $datapointIds = collect($block['datapoints'] ?? [])->pluck('id')->filter()->values();
                 $answeredIds = $datapointIds->filter(fn (string $id): bool => array_key_exists($id, $responses));
                 $completedIds = $datapointIds->filter(
-                    fn (string $id): bool => ($responses[$id]['fact_readiness']['state'] ?? null) === 'valid_completed'
+                    fn (string $id): bool => ($responses[$id]['status'] ?? null) === 'completed'
                 );
                 $notApplicableIds = $datapointIds->filter(
-                    fn (string $id): bool => ($responses[$id]['fact_readiness']['state'] ?? null) === 'valid_not_applicable'
+                    fn (string $id): bool => ($responses[$id]['status'] ?? null) === 'not_applicable'
                 );
 
                 return [
@@ -769,9 +774,9 @@ class ReportController extends Controller
     /**
      * @return array<string, array<string, mixed>>
      */
-    private function downloads(array $sections, ?array $ixbrlCandidate = null): array
+    private function downloads(array $sections): array
     {
-        $downloads = [
+        return [
             'report_package_html' => [
                 'endpoint' => '/api/report/package',
                 'content_type' => 'text/html',
@@ -803,19 +808,6 @@ class ReportController extends Controller
                 ...$this->downloadReadiness($sections, ['characterization']),
             ],
         ];
-
-        if ($ixbrlCandidate !== null) {
-            $downloads['ixbrl_candidate'] = [
-                'endpoint' => '/api/report/ixbrl-candidate',
-                'content_type' => 'application/xhtml+xml',
-                'status' => $ixbrlCandidate['status'] === 'available' ? 'ready' : 'blocked',
-                'depends_on' => $this->reportPackageDependencies(),
-                'blocking_sections' => $ixbrlCandidate['status'] === 'available' ? [] : ['ixbrl_candidate_preflight'],
-                'reason_codes' => $ixbrlCandidate['reason_codes'],
-            ];
-        }
-
-        return $downloads;
     }
 
     /**
@@ -908,86 +900,31 @@ class ReportController extends Controller
         $limitations = [
             [
                 'key' => 'report_package_scope',
-                'message' => 'The package supports ESRS 2023 preparation status and traceability. It is not an official submission, assurance, Taxonomy attestation, native PDF generation, developed report, or regulatory acceptance of digital formats.',
+                'message' => 'The report package supports ESRS 2023 preparation and evidence organization. It is not official filing, assurance, Taxonomy attestation, native PDF generation, or xHTML/iXBRL software.',
             ],
         ];
 
         if (Arr::get($corpus, 'generation.matter_to_dr_mapping_status') !== 'loaded') {
             $limitations[] = [
                 'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                'message' => 'The information list does not include topical information derived from confirmed topics until a complete and valid topic to Disclosure Requirement mapping is configured.',
+                'message' => 'P9 does not include topical datapoints until a fully covering approved AR16 matter to Disclosure Requirement map is configured.',
             ];
         }
 
         if ((int) Arr::get($sections, 'datapoint_responses.orphaned_response_count', 0) > 0) {
             $limitations[] = [
                 'key' => 'orphaned_datapoint_responses',
-                'message' => 'Some stored responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
+                'message' => 'Some stored datapoint responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
             ];
         }
 
         if (Arr::get($sections, 'materiality_confirmation.is_stale') === true) {
             $limitations[] = [
                 'key' => 'materiality_confirmation_stale',
-                'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm the material topics before using results.',
+                'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
             ];
         }
-
-        $limitations[] = [
-            'key' => 'ixbrl_candidate_technical_package',
-            'message' => 'The iXBRL candidate endpoint emits a technical preparation output; it is not an official submission, assurance, legal opinion, or regulator-accepted output.',
-        ];
-
-        $limitations[] = [
-            'key' => 'xhtml_ixbrl_generation_still_disabled',
-            'message' => 'XHTML/iXBRL candidate downloads are conditional and require runtime Arelle structural validation.',
-        ];
 
         return $limitations;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function ixbrlCandidateMetadata(Characterization $characterization, array $corpus, array $sections): array
-    {
-        if ($this->status($sections) !== 'ready') {
-            return [
-                'status' => 'blocked',
-                'endpoint' => '/api/report/ixbrl-candidate',
-                'content_type' => 'application/xhtml+xml',
-                'reason_codes' => ['report_package_prerequisites_incomplete'],
-                'blocking_datapoint_ids' => [],
-                'limitations' => $this->ixbrlCandidateLimitations(),
-            ];
-        }
-
-        $preflight = app(IxbrlCandidateBuilder::class)->preflight($this->fullFactState($characterization, $corpus));
-
-        return [
-            'status' => $preflight['status'],
-            'endpoint' => '/api/report/ixbrl-candidate',
-            'content_type' => 'application/xhtml+xml',
-            'reason_codes' => $preflight['reason_codes'],
-            'blocking_datapoint_ids' => $preflight['blocking_datapoint_ids'],
-            'fact_count' => $preflight['fact_count'],
-            'limitations' => $preflight['limitations'],
-            'runtime_validation' => [
-                'required' => true,
-                'validator' => 'arelle',
-                'status' => 'not_run',
-            ],
-        ];
-    }
-
-    /** @return list<string> */
-    private function ixbrlCandidateLimitations(): array
-    {
-        return [
-            'candidate_technical_package',
-            'not_official_filing',
-            'requires_arelle_runtime_structural_validation',
-            'xhtml_ixbrl_generation_capability_remains_disabled',
-        ];
     }
 }

@@ -1,2 +1,2 @@
-# Official XBRL taxonomy bytes are vendored and hash-verified. Preserve them exactly.
-app/web/data/xbrl/taxonomies/** -text whitespace=-blank-at-eol,-blank-at-eof
+# EFRAG taxonomy packages are operator-provisioned external dependencies.
+# Do not add ZIP, XSD or extracted taxonomy bytes to this repository.

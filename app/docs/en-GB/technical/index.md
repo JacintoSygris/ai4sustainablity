@@ -30,9 +30,10 @@ Internet -> Caddy (80/443, TLS) -> public Next.js -> private Laravel
 9. [Operations](operations.md): queues, logs, observability, updates and incident actions.
 10. [Backup and recovery](backup-recovery.md): backups, restore, RPO/RTO and post-restore verification.
 11. [AI, mapping and reporting](ai-mapping-reporting.md): FastAPI, ESRS mapping, P9/P10, Arelle and candidate iXBRL.
-12. [Document extraction](document-extraction.md): functional block, minimum contract and acceptance criteria.
-13. [Acceptance and diagnostics](acceptance-diagnostics.md): reproducible checklist and symptom-check-safe-fix table.
-14. [References](references.md): official sources consulted on 2026-09-17.
+12. [External EFRAG taxonomy](external-efrag-taxonomy.md): separate ZIP, private manifest, checksum and offline validation.
+13. [Document extraction](document-extraction.md): functional block, minimum contract and acceptance criteria.
+14. [Acceptance and diagnostics](acceptance-diagnostics.md): reproducible checklist and symptom-check-safe-fix table.
+15. [References](references.md): official sources consulted on 2026-09-17.
 
 ## Bridge Pages
 

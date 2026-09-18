@@ -11,11 +11,13 @@ import {
   LaravelApiError,
   getLaravelReportDraft,
   getLaravelReportReadiness,
+  getLaravelReportTaxonomyStatus,
   getLaravelSession,
   laravelApiUrl,
   type LaravelReportDownload,
   type LaravelReportDraft,
   type LaravelReportReadiness,
+  type LaravelReportTaxonomyStatus,
 } from "@/lib/laravel-api"
 import {
   actionLabel,
@@ -41,6 +43,7 @@ export function ReportDraftPanel() {
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [readiness, setReadiness] = useState<LaravelReportReadiness | null>(null)
   const [draft, setDraft] = useState<LaravelReportDraft | null>(null)
+  const [taxonomyStatus, setTaxonomyStatus] = useState<LaravelReportTaxonomyStatus | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const refreshReport = useCallback(() => {
     setReloadCounter((current) => current + 1)
@@ -62,10 +65,11 @@ export function ReportDraftPanel() {
       setErrorMessage(null)
 
       try {
-        const [, readinessResponse, draftResponse] = await Promise.all([
+        const [, readinessResponse, draftResponse, taxonomyResponse] = await Promise.all([
           getLaravelSession(),
           getLaravelReportReadiness(),
           getLaravelReportDraft(),
+          getLaravelReportTaxonomyStatus(),
         ])
 
         if (!mounted) {
@@ -74,6 +78,7 @@ export function ReportDraftPanel() {
 
         setReadiness(readinessResponse.data)
         setDraft(draftResponse.data)
+        setTaxonomyStatus(taxonomyResponse.data)
       } catch (error) {
         if (error instanceof LaravelApiError && error.status === 401) {
           router.replace("/login")
@@ -150,7 +155,7 @@ export function ReportDraftPanel() {
               <li>No es una presentación oficial ante ningún organismo.</li>
               <li>No es un servicio de aseguramiento ni de verificación independiente.</li>
               <li>No equivale a la atestación de la Taxonomía de la UE.</li>
-              <li>El candidato XHTML/iXBRL, cuando esté disponible, es una operación técnica condicionada y requiere aprobación humana.</li>
+              <li>El candidato XHTML/iXBRL no se ofrece como descarga salvo que la validación técnica externa esté disponible y superada.</li>
             </ul>
           </div>
         </div>
@@ -224,6 +229,24 @@ export function ReportDraftPanel() {
           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {limitationMessage({ key: "report_package_scope" })}
           </div>
+
+          {taxonomyStatus ? (
+            <Card>
+              <CardContent className="space-y-2 pt-6 text-sm">
+                <h2 className="text-lg font-semibold text-foreground">Taxonomía ESRS externa</h2>
+                <p className="text-foreground">
+                  {taxonomyStatus.taxonomy.name} · versión {taxonomyStatus.taxonomy.version} · perfil{" "}
+                  {taxonomyStatus.reporting_profile}
+                </p>
+                <Badge className={statusTone(taxonomyStatus.availability.state)}>
+                  {statusLabel(taxonomyStatus.availability.state)}
+                </Badge>
+                {taxonomyStatus.availability.reason_code ? (
+                  <p className="text-muted-foreground">Estado: {statusLabel(taxonomyStatus.availability.reason_code)}</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
 
           {scopingOnly ? (
             <Card className="border-amber-200 bg-amber-50">

@@ -18,7 +18,7 @@ const copy = {
       "ordena el análisis de doble materialidad con tu equipo",
       "confirma la lista final de asuntos materiales",
       "registra indicadores/datos ESRS, pendientes y no aplicables justificados",
-      "revisa el resumen y descarga resultados, incluido XHTML/iXBRL si procede",
+      "revisa el resumen y descarga las salidas de preparación disponibles",
     ],
     needsTitle: "Qué necesitas",
     needs:
@@ -38,7 +38,7 @@ const copy = {
       "organise double materiality assessment with your team",
       "confirm the final list of material matters",
       "record ESRS indicators/data, pending items and justified non-applicable items",
-      "review the summary and download results, including XHTML/iXBRL where applicable",
+      "review the summary and download the available preparation outputs",
     ],
     needsTitle: "What you need",
     needs:
