@@ -184,9 +184,9 @@ class EsrsDatapointResponseCsvExporter
             ($selection['default_selected'] ?? true) ? 'true' : 'false',
             implode(' | ', array_map('strval', $selection['reason_codes'] ?? [])),
             (string) ($response['status'] ?? ''),
-            (string) ($response['legacy_value'] ?? $response['value'] ?? ''),
-            (string) ($response['evidence_reference'] ?? ''),
-            (string) ($response['note'] ?? ''),
+            self::neutralizeFormula((string) ($response['legacy_value'] ?? $response['value'] ?? '')),
+            self::neutralizeFormula((string) ($response['evidence_reference'] ?? '')),
+            self::neutralizeFormula((string) ($response['note'] ?? '')),
             (string) ($response['updated_at'] ?? ''),
             (string) ($responseState['schema_version'] ?? ''),
             (string) ($entity['identifier_scheme'] ?? ''),
@@ -196,7 +196,7 @@ class EsrsDatapointResponseCsvExporter
             (string) ($concept['reason_code'] ?? ''),
             (string) ($fact['fact_id'] ?? ''),
             (string) ($fact['value_kind'] ?? ''),
-            is_bool($fact['value'] ?? null) ? (($fact['value'] ?? false) ? 'true' : 'false') : (string) ($fact['value'] ?? ''),
+            is_bool($fact['value'] ?? null) ? (($fact['value'] ?? false) ? 'true' : 'false') : self::neutralizeFormula((string) ($fact['value'] ?? '')),
             array_key_exists('decimals', $fact ?? []) && $fact['decimals'] !== null ? (string) $fact['decimals'] : '',
             (string) ($unit['measure'] ?? ''),
             (string) ($context['period_type'] ?? ''),
@@ -204,7 +204,7 @@ class EsrsDatapointResponseCsvExporter
             (string) ($context['end_date'] ?? ''),
             (string) ($context['instant_date'] ?? ''),
             $this->serializedDimensions($context['dimensions'] ?? []),
-            (string) ($fact['evidence_reference'] ?? ''),
+            self::neutralizeFormula((string) ($fact['evidence_reference'] ?? '')),
         ];
     }
 
@@ -225,5 +225,19 @@ class EsrsDatapointResponseCsvExporter
             ->all();
 
         return $normalized === [] ? '' : json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * User-entered text could start with a spreadsheet formula (=, +, -, @),
+     * which Excel would execute on open. Prefix it with a quote so it stays
+     * text. Plain numbers such as "-5" are left untouched.
+     */
+    private static function neutralizeFormula(string $value): string
+    {
+        if ($value === '' || is_numeric($value)) {
+            return $value;
+        }
+
+        return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
     }
 }
