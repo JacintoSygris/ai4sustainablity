@@ -46,18 +46,6 @@ El runtime resuelve el directorio de los artefactos del modelo en este orden:
 Si no existe ninguno, se devuelve la ruta canónica de Docker y la validación
 de arranque falla de forma cerrada.
 
-## Ejecución bare-metal (systemd, sin Docker)
-
-Si ejecutas el servicio directamente desde un checkout de Git (p. ej. con
-systemd), el runtime resuelve los artefactos automáticamente en
-`model-artifacts/gpt41`; no hace falta symlink ni copia. También puedes forzar
-la ruta con `I4S_AI_ARTIFACT_DIR`.
-
-Recuerda alinear `CHARACTERIZATION_API_BASE_URL` del backend Laravel con la
-URL real del servicio en ese modo de despliegue (p. ej.
-`http://127.0.0.1:8001`; el host `http://ai-service:8001` de
-`compose.public.yml` solo resuelve dentro de la red Docker).
-
 ## Endpoints
 
 ```sh
