@@ -42,7 +42,11 @@ Route::middleware(['web', 'auth', 'verified.required'])->group(function () {
         ->name('api.characterization.options');
     Route::get('characterization/documents', [CharacterizationDocumentController::class, 'index'])
         ->name('api.characterization.documents.index');
+    // Uploads and submits are expensive (50 MB files, extraction jobs, AI
+    // calls), so cap them per user. The prefix gives each route its own
+    // bucket; without it both would share one per-user counter.
     Route::post('characterization/documents', [CharacterizationDocumentController::class, 'store'])
+        ->middleware('throttle:10,1,characterization-documents')
         ->name('api.characterization.documents.store');
     Route::delete('characterization/documents/{document}', [CharacterizationDocumentController::class, 'destroy'])
         ->whereNumber('document')
@@ -52,6 +56,7 @@ Route::middleware(['web', 'auth', 'verified.required'])->group(function () {
     Route::put('characterization', [CharacterizationController::class, 'update'])
         ->name('api.characterization.update');
     Route::post('characterization/submit', [CharacterizationController::class, 'submit'])
+        ->middleware('throttle:10,1,characterization-submit')
         ->name('api.characterization.submit');
     Route::get('materiality-proposal', [MaterialityProposalController::class, 'show'])
         ->name('api.materiality-proposal.show');

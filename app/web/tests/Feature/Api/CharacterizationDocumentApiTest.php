@@ -617,3 +617,41 @@ it('allows an upload when the scanner is disabled (default)', function () {
         ])
         ->assertCreated();
 });
+
+it('rate limits document uploads per user', function () {
+    // Upload disabled -> each call 404s, but the throttle still counts it.
+    for ($i = 0; $i < 10; $i++) {
+        $this->actingAs($this->user)
+            ->postJson('/api/characterization/documents')
+            ->assertNotFound();
+    }
+
+    $this->actingAs($this->user)
+        ->postJson('/api/characterization/documents')
+        ->assertStatus(429);
+
+    // Another user keeps their own budget.
+    $this->actingAs(User::factory()->create())
+        ->postJson('/api/characterization/documents')
+        ->assertNotFound();
+});
+
+it('rate limits characterization submits', function () {
+    $middleware = \Illuminate\Support\Facades\Route::getRoutes()
+        ->getByName('api.characterization.submit')?->gatherMiddleware() ?? [];
+
+    expect($middleware)->toContain('throttle:10,1,characterization-submit');
+});
+
+it('keeps separate upload and submit rate limit budgets', function () {
+    for ($i = 0; $i < 10; $i++) {
+        $this->actingAs($this->user)
+            ->postJson('/api/characterization/documents')
+            ->assertNotFound();
+    }
+
+    // Uploads are exhausted, but submit still has its own budget.
+    $this->actingAs($this->user)
+        ->postJson('/api/characterization/submit', [])
+        ->assertStatus(422);
+});
