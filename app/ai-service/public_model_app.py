@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# The EC2 service runs this module directly from the ai-service checkout rather
+# than through Docker, so expose the bundled public runtime before importing it.
+sys.path.append(str(Path(__file__).resolve().parent / "public_runtime"))
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
