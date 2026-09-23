@@ -86,3 +86,13 @@ def test_model_profile_artifact_dir_matches_resolver():
     assert profile.artifact_path("sector_columns.pkl") == (
         profile.artifact_dir / "sector_columns.pkl"
     )
+
+
+def test_relative_override_is_anchored_to_service_root(isolated_root, monkeypatch, tmp_path):
+    checkout_dir = _make_checkout_layout(isolated_root)
+    elsewhere = tmp_path / "unrelated-cwd"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    monkeypatch.setenv(service_predict.MODEL_ARTIFACT_DIR_ENV, "model-artifacts/gpt41")
+
+    assert service_predict.resolve_artifact_dir() == checkout_dir.resolve()
