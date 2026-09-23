@@ -15,6 +15,7 @@ LIGHTGBM_FEATURE_NAME_WARNING = (
 )
 AI_SERVICE_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PROFILE_ENV = "I4S_AI_MODEL_PROFILE"
+MODEL_ARTIFACT_DIR_ENV = "I4S_AI_ARTIFACT_DIR"
 PUBLIC_MODEL_PROFILE = "new_format_732_v1_gpt41"
 NEW_FORMAT_MODEL_PREFIX = "new_format_732_v1_"
 UNKNOWN_JURIDIC_FORM = "UNKNOWN"
@@ -116,10 +117,39 @@ class ModelProfile:
         return self.artifact_dir / filename
 
 
+def resolve_artifact_dir() -> Path:
+    """Resolve the model artifact directory for the public runtime.
+
+    Priority order:
+    1. Explicit ``I4S_AI_ARTIFACT_DIR`` override (used even when missing so a
+       bad override fails closed at inventory validation with a clear path).
+    2. Container/installed layout: ``trained_classifier/new_format/gpt41``
+       (what ``Dockerfile.public`` builds).
+    3. Bare git-checkout layout: ``model-artifacts/gpt41`` (so running the
+       service directly from a checkout works without symlinks or copies).
+
+    If neither directory exists, the canonical Docker layout path is returned
+    so startup validation fails closed against the expected location.
+    """
+    override = os.getenv(MODEL_ARTIFACT_DIR_ENV)
+    if override:
+        return Path(override).expanduser().resolve()
+
+    default_dir = AI_SERVICE_ROOT / "trained_classifier" / "new_format" / "gpt41"
+    if default_dir.is_dir():
+        return default_dir
+
+    checkout_dir = AI_SERVICE_ROOT / "model-artifacts" / "gpt41"
+    if checkout_dir.is_dir():
+        return checkout_dir
+
+    return default_dir
+
+
 MODEL_PROFILES = {
     PUBLIC_MODEL_PROFILE: ModelProfile(
         name=PUBLIC_MODEL_PROFILE,
-        artifact_dir=AI_SERVICE_ROOT / "trained_classifier" / "new_format" / "gpt41",
+        artifact_dir=resolve_artifact_dir(),
         expected_key_count=102,
         required_artifacts=(
             "sector_columns.pkl",
