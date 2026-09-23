@@ -123,6 +123,7 @@ def resolve_artifact_dir() -> Path:
     Priority order:
     1. Explicit ``I4S_AI_ARTIFACT_DIR`` override (used even when missing so a
        bad override fails closed at inventory validation with a clear path).
+       A relative override is resolved against the ai-service root.
     2. Container/installed layout: ``trained_classifier/new_format/gpt41``
        (what ``Dockerfile.public`` builds).
     3. Bare git-checkout layout: ``model-artifacts/gpt41`` (so running the
@@ -133,7 +134,12 @@ def resolve_artifact_dir() -> Path:
     """
     override = os.getenv(MODEL_ARTIFACT_DIR_ENV)
     if override:
-        return Path(override).expanduser().resolve()
+        override_dir = Path(override).expanduser()
+        # A relative override is anchored to the service root, like the other
+        # layouts, not to whatever working directory the process started in.
+        if not override_dir.is_absolute():
+            override_dir = AI_SERVICE_ROOT / override_dir
+        return override_dir.resolve()
 
     default_dir = AI_SERVICE_ROOT / "trained_classifier" / "new_format" / "gpt41"
     if default_dir.is_dir():

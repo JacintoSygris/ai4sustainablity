@@ -37,7 +37,8 @@ docker run --rm -p 8001:8001 ia4sustainability-ai-public
 El runtime resuelve el directorio de los artefactos del modelo en este orden:
 
 1. Override explícito `I4S_AI_ARTIFACT_DIR` (si la ruta no existe, el arranque
-   falla de forma cerrada señalando esa ruta).
+   falla de forma cerrada señalando esa ruta). Una ruta relativa se resuelve
+   desde la raíz de `app/ai-service`, no desde el directorio de trabajo.
 2. Layout de contenedor/instalación: `trained_classifier/new_format/gpt41`
    (el que construye `Dockerfile.public`).
 3. Layout de checkout de Git: `model-artifacts/gpt41` (permite ejecutar el
