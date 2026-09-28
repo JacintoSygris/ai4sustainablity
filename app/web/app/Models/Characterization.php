@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class Characterization extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'user_id',
         'status',
@@ -18,6 +19,7 @@ class Characterization extends Model
         'form_data',
         'result_data',
         'last_error',
+        'submission_generation',
         'submitted_at',
         'completed_at',
         'retry_count',
@@ -29,6 +31,7 @@ class Characterization extends Model
         'esrs_topic_ids' => 'array',
         'form_data' => 'array',
         'result_data' => 'array',
+        'submission_generation' => 'integer',
         'submitted_at' => 'datetime',
         'completed_at' => 'datetime',
         'next_retry_at' => 'datetime',
@@ -36,11 +39,17 @@ class Characterization extends Model
     ];
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_WAITING = 'waiting';
+
     public const STATUS_PROCESSING = 'processing';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_TIMED_OUT = 'timed_out';
+
     public const STATUS_COMPLETED = 'completed';
 
     public function scopeForUser(EloquentBuilder $query, int $userId): EloquentBuilder
@@ -51,8 +60,8 @@ class Characterization extends Model
     protected static function booted(): void
     {
         static::deleting(function (Characterization $characterization) {
-            // Hard-purge uploaded document files through the model event so the
-            // per-document deleting hook removes each stored file (gate 6.4-ter).
+            // Delete through each model so its hook records the durable purge
+            // intent before the characterization transaction commits.
             $characterization->documents()->get()->each->delete();
         });
     }

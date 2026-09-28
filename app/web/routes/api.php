@@ -10,9 +10,11 @@ use App\Http\Controllers\Api\GuidedReportController;
 use App\Http\Controllers\Api\MaterialityConfirmationController;
 use App\Http\Controllers\Api\MaterialityProposalController;
 use App\Http\Controllers\Api\NaceCodeController;
-use App\Http\Controllers\Api\ReportFactController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReportFactController;
 use App\Http\Controllers\Api\ReportSnapshotController;
+use App\Http\Controllers\Api\WorkflowController;
+use App\Support\RegistrationGuard;
 use Illuminate\Support\Facades\Route;
 
 // Public (no-auth) config for the pre-login register page: Turnstile site key
@@ -21,19 +23,24 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['web'])->get('auth/register-config', function () {
     return response()->json([
         'data' => [
-            'turnstile_site_key' => config('services.auth_hardening.turnstile.site_key'),
+            'registration_enabled' => RegistrationGuard::registrationAvailable(),
+            'turnstile_site_key' => RegistrationGuard::registrationAvailable()
+                ? config('services.auth_hardening.turnstile.site_key')
+                : null,
             'require_email_verification' => (bool) config('services.auth_hardening.require_email_verification'),
             'honeypot_field' => (string) config('services.auth_hardening.honeypot_field'),
         ],
     ]);
 })->name('api.auth.register_config');
 
-Route::middleware(['web', 'auth', 'verified.required'])->group(function () {
+Route::middleware(['web', 'private-dev-user', 'auth', 'verified.required'])->group(function () {
     // Session must be readable by UNVERIFIED users so the frontend can detect
     // the state and show the verify-email screen — exempt it from the guard.
     Route::get('auth/session', [FrontendSessionController::class, 'show'])
         ->withoutMiddleware('verified.required')
         ->name('api.auth.session');
+    Route::get('workflow', [WorkflowController::class, 'show'])
+        ->name('api.workflow.show');
     Route::get('nace-codes', [NaceCodeController::class, 'index'])
         ->name('api.nace-codes.index');
     Route::get('esrs-topics', [EsrsTopicController::class, 'index'])
@@ -85,18 +92,20 @@ Route::middleware(['web', 'auth', 'verified.required'])->group(function () {
         ->name('api.report.package');
     Route::get('report/evidence-bundle', [ReportController::class, 'evidenceBundle'])
         ->name('api.report.evidence-bundle');
-    Route::get('report/taxonomy', [ReportController::class, 'taxonomy'])
-        ->name('api.report.taxonomy');
     Route::get('report/html', [GuidedReportController::class, 'html'])
         ->name('api.report.html');
     Route::get('report/xhtml-ixbrl-candidate', [GuidedReportController::class, 'xhtmlIxbrlCandidate'])
+        ->middleware('throttle:2,1,report-xhtml-ixbrl')
         ->name('api.report.xhtml-ixbrl-candidate');
     Route::get('report/facts', [ReportFactController::class, 'index'])
+        ->middleware('throttle:30,1,report-facts-read')
         ->name('api.report.facts.index');
     Route::put('report/facts', [ReportFactController::class, 'update'])
+        ->middleware('throttle:10,1,report-facts-write')
         ->name('api.report.facts.update');
     Route::post('report/facts/{fact}/review', [ReportFactController::class, 'review'])
         ->whereNumber('fact')
+        ->middleware('throttle:20,1,report-facts-review')
         ->name('api.report.facts.review');
     Route::post('report/snapshot', [ReportSnapshotController::class, 'store'])
         ->name('api.report.snapshot.store');

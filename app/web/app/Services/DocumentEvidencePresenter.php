@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Characterization;
-use App\Models\CharacterizationDocument;
 use App\Support\CharacterizationStateVersion;
 use Illuminate\Support\Arr;
 
@@ -71,7 +70,6 @@ class DocumentEvidencePresenter
         foreach ($this->tombstones($characterization) as $tombstone) {
             $documentsPayload[] = [
                 'id' => $tombstone['document_id'],
-                'original_filename' => $tombstone['original_filename'],
                 'status' => 'deleted',
                 'stale' => false,
                 'deleted' => true,
@@ -186,7 +184,7 @@ class DocumentEvidencePresenter
     }
 
     /**
-     * @return array<int, array{document_id: int, original_filename: string, topics: array<int, array{standard: string, topic_key: ?string, kind: string}>}>
+     * @return array<int, array{document_id: int, topics: array<int, array{standard: string, topic_key: ?string, kind: string}>}>
      */
     private function tombstones(Characterization $characterization): array
     {
@@ -222,9 +220,6 @@ class DocumentEvidencePresenter
 
             $tombstones[] = [
                 'document_id' => $tombstone['document_id'],
-                'original_filename' => is_string($tombstone['original_filename'] ?? null)
-                    ? $tombstone['original_filename']
-                    : '',
                 'topics' => $topics,
             ];
         }

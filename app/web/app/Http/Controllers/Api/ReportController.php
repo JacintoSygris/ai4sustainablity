@@ -5,20 +5,26 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
+use App\Models\ReportingFact;
 use App\Services\EsrsDatapointCorpusBuilder;
-use App\Services\Report\ExternalTaxonomyManifestRepository;
-use App\Services\Report\ReportingProfileException;
-use App\Services\Report\ReportingProfileRepository;
+use App\Services\EsrsDatapointResponseState;
+use App\Services\Report\ReportContentReadiness;
+use App\Services\Report\ReportContentScope;
 use App\Support\DoubleMaterialityProcessState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use RuntimeException;
 
 class ReportController extends Controller
 {
     private const CONFIRMATION_STATUS_CONFIRMED = 'confirmed';
 
     private const CONFIRMATION_STATUS_MISSING = 'missing';
+
+    public function __construct(
+        private readonly ReportContentReadiness $contentReadiness,
+        private readonly ReportContentScope $contentScope,
+        private readonly EsrsDatapointResponseState $datapointResponses,
+    ) {}
 
     public function show(Request $request, EsrsDatapointCorpusBuilder $datapoints)
     {
@@ -56,7 +62,7 @@ class ReportController extends Controller
 
         $readiness = $this->readinessPayload(...$context);
 
-        if ($readiness['status'] !== 'ready') {
+        if (! ($readiness['workflow_complete'] ?? false)) {
             return $this->blockedPackageResponse($readiness);
         }
 
@@ -76,62 +82,13 @@ class ReportController extends Controller
 
         $readiness = $this->readinessPayload(...$context);
 
-        if ($readiness['status'] !== 'ready') {
+        if (! ($readiness['workflow_complete'] ?? false)) {
             return $this->blockedPackageResponse($readiness);
         }
 
         return response()->json([
             'data' => $this->evidenceBundlePayload(...$context),
         ]);
-    }
-
-    public function taxonomy(
-        ReportingProfileRepository $profiles,
-        ExternalTaxonomyManifestRepository $externalTaxonomyManifest,
-    ) {
-        try {
-            $profile = $profiles->load('esrs-2023-preparatory-v1');
-        } catch (ReportingProfileException $e) {
-            return response()->json([
-                'data' => $this->taxonomyStatusPayload(
-                    'esrs-2023-preparatory-v1',
-                    'blocked',
-                    $e->getMessage(),
-                ),
-            ]);
-        }
-
-        try {
-            $externalTaxonomyManifest->loadForProfile($profile);
-
-            return response()->json([
-                'data' => $this->taxonomyStatusPayload($profile->profileId(), 'verified'),
-            ]);
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'data' => $this->taxonomyStatusPayload($profile->profileId(), 'blocked', $e->getMessage()),
-            ]);
-        }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function taxonomyStatusPayload(string $profileId, string $state, ?string $reasonCode = null): array
-    {
-        return [
-            'type' => 'report_taxonomy_status',
-            'version' => 'v0',
-            'taxonomy' => [
-                'name' => 'EFRAG ESRS XBRL Taxonomy Set 1',
-                'version' => '2023-12-22',
-            ],
-            'reporting_profile' => $profileId,
-            'availability' => array_filter([
-                'state' => $state,
-                'reason_code' => $reasonCode,
-            ], fn (mixed $value): bool => $value !== null),
-        ];
     }
 
     /**
@@ -182,11 +139,18 @@ class ReportController extends Controller
         array $responseState,
         array $sections,
     ): array {
+        $workflowStatus = $this->workflowStatus($sections);
+        $reportContentStatus = Arr::get($sections, 'report_content.status', 'incomplete');
+
         return [
             'type' => 'report_package_readiness',
             'version' => 'v0',
             'characterization_id' => $characterization->id,
             'status' => $this->status($sections),
+            'workflow_status' => $workflowStatus,
+            'workflow_complete' => $workflowStatus === 'ready',
+            'report_content_status' => $reportContentStatus,
+            'report_content_ready' => $reportContentStatus === 'ready',
             'sections' => $sections,
             'downloads' => $this->downloads($sections),
             'next_actions' => $this->nextActions($sections),
@@ -207,14 +171,21 @@ class ReportController extends Controller
         array $responseState,
         array $sections,
     ): array {
+        $workflowStatus = $this->workflowStatus($sections);
+        $reportContentStatus = Arr::get($sections, 'report_content.status', 'incomplete');
+
         return [
             'type' => 'report_draft',
             'version' => 'v0',
             'characterization_id' => $characterization->id,
-            'generation_status' => $this->status($sections) === 'ready'
+            'generation_status' => $workflowStatus === 'ready'
                 ? 'report_preparation_package_ready'
                 : 'frontend_rendered_draft',
             'readiness_status' => $this->status($sections),
+            'workflow_status' => $workflowStatus,
+            'workflow_complete' => $workflowStatus === 'ready',
+            'report_content_status' => $reportContentStatus,
+            'report_content_ready' => $reportContentStatus === 'ready',
             'company' => $this->company($characterization),
             'materiality' => $this->materiality($characterization),
             'datapoints' => $this->datapoints($characterization, $corpus, $responseState),
@@ -300,15 +271,8 @@ class ReportController extends Controller
         $status = $this->e((string) $readiness['status']);
         $datapointCompletion = (float) Arr::get($draft, 'datapoints.completion_ratio', 0);
         $datapointPercent = (string) round($datapointCompletion * 100);
-        $topics = collect(Arr::get($draft, 'materiality.confirmed_topics', []))
-            ->map(function (array $topic): string {
-                $label = Arr::get($topic, 'subtopic.es')
-                    ?: Arr::get($topic, 'subtheme.es')
-                    ?: Arr::get($topic, 'theme.es')
-                    ?: ('Topic '.$topic['id']);
-
-                return '<li><strong>'.$this->e((string) $topic['esrs_code']).'</strong> - '.$this->e((string) $label).'</li>';
-            })
+        $topics = collect(Arr::get($draft, 'materiality.confirmed_themes', []))
+            ->map(fn (array $topic): string => '<li><strong>'.$this->e((string) $topic['esrs_code']).'</strong> - '.$this->e((string) $topic['label']).'</li>')
             ->implode('');
         $blocks = collect(Arr::get($draft, 'datapoints.blocks', []))
             ->map(fn (array $block): string => '<tr><td>'.$this->e((string) ($block['title'] ?? $block['key'] ?? 'Bloque')).'</td><td>'.$this->e((string) $block['decided_count']).'</td><td>'.$this->e((string) $block['datapoint_count']).'</td></tr>')
@@ -349,19 +313,19 @@ class ReportController extends Controller
   </header>
   <section class="notice">
     <strong>No sustituye la presentación oficial.</strong>
-    Este paquete organiza la preparación ESRS 2023, evidencias y trazabilidad; no realiza filing oficial, aseguramiento, Taxonomía UE ni xHTML/iXBRL.
+    Este paquete organiza la preparación ESRS 2023, las evidencias y la trazabilidad; no sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera formatos electrónicos regulatorios.
   </section>
   <section class="metrics">
     <div class="metric"><strong>Estado</strong><br>'.$status.'</div>
-    <div class="metric"><strong>Temas materiales</strong><br>'.$this->e((string) Arr::get($draft, 'materiality.confirmed_topic_count', 0)).'</div>
-    <div class="metric"><strong>Datapoints decididos</strong><br>'.$datapointPercent.'%</div>
+    <div class="metric"><strong>Temas materiales</strong><br>'.$this->e((string) Arr::get($draft, 'materiality.confirmed_theme_count', 0)).'</div>
+    <div class="metric"><strong>Datos normativos decididos</strong><br>'.$datapointPercent.'%</div>
   </section>
   <section>
     <h2>Temas materiales confirmados</h2>
     <ul>'.$topics.'</ul>
   </section>
   <section>
-    <h2>Cobertura de datapoints</h2>
+    <h2>Cobertura de datos normativos</h2>
     <table>
       <thead><tr><th>Bloque</th><th>Decididos</th><th>Total</th></tr></thead>
       <tbody>'.$blocks.'</tbody>
@@ -437,17 +401,42 @@ class ReportController extends Controller
                 'completion_ratio' => $responseState['completion_ratio'],
                 'orphaned_response_count' => $responseState['orphaned_response_count'],
                 'total_datapoint_count' => $totalDatapoints,
+                'effective_required_datapoint_count' => $responseState['effective_required_datapoint_count'],
             ],
         ];
 
-        $packageReady = $this->status($sections) === 'ready';
+        $workflowReady = $this->workflowStatus($sections) === 'ready';
+        $facts = ReportingFact::query()
+            ->where('characterization_id', $characterization->id)
+            ->orderBy('fact_id')
+            ->get();
+        $expectedDatapointIds = $this->contentScope->completedDatapointIds($characterization, $corpus);
+        $contentAssessment = $this->contentReadiness->assess($facts, $expectedDatapointIds);
+        $sections['report_content'] = [
+            'status' => $contentAssessment['ready'] ? 'ready' : 'incomplete',
+            'endpoint' => '/api/report/facts',
+            'claimable_count' => $contentAssessment['claimable_count'],
+            'required_count' => $contentAssessment['required_count'],
+            'resolved_required_count' => $contentAssessment['resolved_required_count'],
+            'missing_datapoint_count' => count($contentAssessment['missing_datapoint_ids']),
+            'reason_code' => $contentAssessment['ready']
+                ? null
+                : ($contentAssessment['reasons'][0] ?? 'no_claimable_report_content'),
+            'reasons' => $contentAssessment['reasons'],
+        ];
+
+        $factualReportReady = $workflowReady && $contentAssessment['ready'];
         $sections['final_report_generation'] = [
-            'status' => $packageReady ? 'ready' : 'blocked',
-            'endpoint' => '/api/report/package',
-            'generation_status' => $packageReady
-                ? 'report_preparation_package_ready'
+            'status' => $factualReportReady ? 'ready' : 'blocked',
+            'endpoint' => '/api/report/html',
+            'generation_status' => $factualReportReady
+                ? 'factual_report_ready'
                 : 'blocked_by_incomplete_inputs',
-            'reason_code' => $packageReady ? null : 'report_package_prerequisites_incomplete',
+            'reason_code' => $factualReportReady
+                ? null
+                : ($workflowReady
+                    ? ($contentAssessment['reasons'][0] ?? 'no_claimable_report_content')
+                    : 'report_package_prerequisites_incomplete'),
         ];
 
         return $sections;
@@ -465,27 +454,7 @@ class ReportController extends Controller
      */
     private function responseState(Characterization $characterization, array $corpus): array
     {
-        $filtered = collect($this->currentResponseRows($characterization, $corpus));
-        $orphanedResponseCount = count($this->orphanedResponseRows($characterization, $corpus));
-        $totalDatapoints = (int) Arr::get($corpus, 'summary.total_datapoint_count', count($this->datapointIds($corpus)));
-        $completedCount = $filtered
-            ->filter(fn (array $response): bool => ($response['status'] ?? null) === 'completed')
-            ->count();
-        $notApplicableCount = $filtered
-            ->filter(fn (array $response): bool => ($response['status'] ?? null) === 'not_applicable')
-            ->count();
-        $decidedCount = $completedCount + $notApplicableCount;
-
-        return [
-            'response_count' => $filtered->count(),
-            'completed_count' => $completedCount,
-            'not_applicable_count' => $notApplicableCount,
-            'decided_count' => $decidedCount,
-            'completion_ratio' => $totalDatapoints > 0
-                ? round($decidedCount / $totalDatapoints, 4)
-                : 1.0,
-            'orphaned_response_count' => $orphanedResponseCount,
-        ];
+        return $this->datapointResponses->reportSummary($characterization, $corpus);
     }
 
     /**
@@ -571,6 +540,8 @@ class ReportController extends Controller
         $proposedTopicIds = $characterization->esrs_topic_ids ?? [];
         $materialityConfirmation = $this->materialityConfirmation($formData);
         $confirmedTopicIds = $materialityConfirmation['confirmed_topic_ids'];
+        $confirmedTopics = $this->topicSummaries($confirmedTopicIds);
+        $confirmedThemes = $this->materialThemes($confirmedTopics);
 
         return [
             'proposal_source' => 'p6_ai_candidate_topics',
@@ -578,8 +549,10 @@ class ReportController extends Controller
             'confirmation_status' => $materialityConfirmation['confirmation_status'],
             'proposed_topic_count' => count($proposedTopicIds),
             'confirmed_topic_count' => count($confirmedTopicIds),
+            'confirmed_theme_count' => count($confirmedThemes),
             'confirmed_at' => $materialityConfirmation['confirmed_at'],
-            'confirmed_topics' => $this->topicSummaries($confirmedTopicIds),
+            'confirmed_topics' => $confirmedTopics,
+            'confirmed_themes' => $confirmedThemes,
         ];
     }
 
@@ -697,6 +670,25 @@ class ReportController extends Controller
     }
 
     /**
+     * @param  list<array<string, mixed>>  $topics
+     * @return list<array{esrs_code: string, label: string}>
+     */
+    private function materialThemes(array $topics): array
+    {
+        return collect($topics)
+            ->filter(fn (array $topic): bool => filled($topic['esrs_code'] ?? null))
+            ->unique(fn (array $topic): string => (string) $topic['esrs_code'])
+            ->map(fn (array $topic): array => [
+                'esrs_code' => (string) $topic['esrs_code'],
+                'label' => (string) (Arr::get($topic, 'theme.es')
+                    ?: Arr::get($topic, 'theme.en')
+                    ?: $topic['esrs_code']),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function datapointBlocks(Characterization $characterization, array $corpus): array
@@ -741,18 +733,22 @@ class ReportController extends Controller
 
     private function datapointResponseStatus(array $responseState, int $totalDatapoints): string
     {
-        if ($responseState['decided_count'] >= $totalDatapoints && $totalDatapoints > 0) {
-            return 'complete';
-        }
-
-        if ($responseState['response_count'] > 0) {
-            return 'in_progress';
-        }
-
-        return 'not_started';
+        return match ($responseState['completion_status'] ?? null) {
+            'completed' => 'complete',
+            'in_progress' => 'in_progress',
+            default => 'not_started',
+        };
     }
 
     private function status(array $sections): string
+    {
+        return $this->workflowStatus($sections) === 'ready'
+            && Arr::get($sections, 'report_content.status') === 'ready'
+                ? 'ready'
+                : 'incomplete';
+    }
+
+    private function workflowStatus(array $sections): string
     {
         $requiredStatuses = [
             $sections['characterization']['status'],
@@ -823,6 +819,7 @@ class ReportController extends Controller
             'materiality_confirmation',
             'esrs_datapoints',
             'datapoint_responses',
+            'report_content',
         ];
 
         foreach ($orderedSections as $sectionKey) {
@@ -900,28 +897,28 @@ class ReportController extends Controller
         $limitations = [
             [
                 'key' => 'report_package_scope',
-                'message' => 'The report package supports ESRS 2023 preparation and evidence organization. It is not official filing, assurance, Taxonomy attestation, native PDF generation, or xHTML/iXBRL software.',
+                'message' => 'El paquete permite preparar el informe ESRS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.',
             ],
         ];
 
         if (Arr::get($corpus, 'generation.matter_to_dr_mapping_status') !== 'loaded') {
             $limitations[] = [
                 'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                'message' => 'P9 does not include topical datapoints until a fully covering approved AR16 matter to Disclosure Requirement map is configured.',
+                'message' => 'El paso de datos no incluye los puntos temáticos hasta que se configure un mapa aprobado y completo entre los asuntos AR16 y los requisitos de información.',
             ];
         }
 
         if ((int) Arr::get($sections, 'datapoint_responses.orphaned_response_count', 0) > 0) {
             $limitations[] = [
                 'key' => 'orphaned_datapoint_responses',
-                'message' => 'Some stored datapoint responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
+                'message' => 'Algunas respuestas guardadas ya no coinciden con el alcance de materialidad vigente. Se conservan y volverán a incorporarse si el alcance las incluye de nuevo.',
             ];
         }
 
         if (Arr::get($sections, 'materiality_confirmation.is_stale') === true) {
             $limitations[] = [
                 'key' => 'materiality_confirmation_stale',
-                'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
+                'message' => 'La confirmación final de materialidad es anterior a los últimos cambios de la propuesta. Vuelve a confirmarla en el paso 4.',
             ];
         }
 

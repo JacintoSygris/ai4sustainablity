@@ -2,6 +2,18 @@
     <form method="POST" action="{{ route('register') }}" class="w-full space-y-6">
         @csrf
 
+        <div class="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+            <label for="registration-honeypot">No completar este campo</label>
+            <input
+                id="registration-honeypot"
+                type="text"
+                name="{{ config('services.auth_hardening.honeypot_field') }}"
+                value=""
+                tabindex="-1"
+                autocomplete="off"
+            >
+        </div>
+
         <div class="text-center">
             <h1 class="text-2xl font-semibold text-slate-950">Te damos la bienvenida a Airis</h1>
         </div>
@@ -14,7 +26,6 @@
             </div>
         @endif
 
-        @include('auth.partials.social-auth-options', ['mode' => 'register'])
 
         <div class="space-y-4">
             <div class="space-y-2">
@@ -76,6 +87,18 @@
                 <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
             </div>
         </div>
+
+        @if (\App\Support\RegistrationGuard::registrationAvailable() && \App\Support\RegistrationGuard::isTurnstileConfigured())
+            <div id="registration-security"></div>
+            <script type="module">
+                import { mountSecurityCheck } from '/consent/security.mjs';
+                mountSecurityCheck(document.getElementById('registration-security'), {
+                    enabled: true,
+                    siteKey: @json(config('services.auth_hardening.turnstile.site_key')),
+                    action: @json(config('services.auth_hardening.turnstile.expected_action')),
+                });
+            </script>
+        @endif
 
         <button
             type="submit"

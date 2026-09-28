@@ -1,0 +1,54 @@
+import { headers } from "next/headers"
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+import { NextResponse } from "next/server"
+
+async function getLocalBackend() {
+  const [{ auth }, { db }, { report }, { eq }] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/db"),
+    import("@/lib/schema"),
+    import("drizzle-orm"),
+  ])
+
+  return { auth, db, report, eq }
+}
+
+export async function POST(request: Request) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, report, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { reportId } = await request.json()
+
+    if (!reportId) {
+      return NextResponse.json({ error: "Report ID is required" }, { status: 400 })
+    }
+
+    // Mark step 3 as completed and update current step
+    await db
+      .update(report)
+      .set({
+        step3Completed: true,
+        currentStep: 4,
+        updatedAt: new Date(),
+      })
+      .where(eq(report.id, reportId))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error completing step 3:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

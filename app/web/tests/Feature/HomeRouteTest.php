@@ -34,3 +34,43 @@ test('dashboard route does not advertise email verification gating', function ()
         ->toContain('auth')
         ->not->toContain('verified');
 });
+
+test('private dev auto login redirects auth screens to the Next dashboard', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev@i4s.local',
+        'services.private_dev.user_name' => 'I4S Dev',
+    ]);
+
+    $this->get(route('login'))
+        ->assertRedirect('/dashboard');
+});
+
+test('private dev auto login is ignored in production', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev@i4s.local',
+        'services.private_dev.user_name' => 'I4S Dev',
+    ]);
+    app()->detectEnvironment(fn () => 'production');
+
+    $this->getJson('/api/auth/session')->assertUnauthorized();
+    $this->get(route('login'))->assertOk();
+    // Production registration remains fail-closed until every delivery and
+    // anti-abuse prerequisite is configured; auto-login must not bypass it.
+    $this->get(route('register'))->assertNotFound();
+
+    expect(User::where('email', 'i4sdev@i4s.local')->exists())->toBeFalse();
+    $this->assertGuest();
+});
+
+test('private dev register screen redirects to the Next dashboard', function () {
+    config([
+        'services.private_dev.auto_login' => true,
+        'services.private_dev.user_email' => 'i4sdev@i4s.local',
+        'services.private_dev.user_name' => 'I4S Dev',
+    ]);
+
+    $this->get(route('register'))
+        ->assertRedirect('/dashboard');
+});

@@ -31,6 +31,9 @@ class ReportingFact extends Model
         'provenance',
         'approval_status',
         'blocking_reasons',
+        'reviewed_at',
+        'reviewed_by_user_id',
+        'review_declaration_sha256',
     ];
 
     protected $casts = [
@@ -40,6 +43,7 @@ class ReportingFact extends Model
         'nil' => 'boolean',
         'evidence_refs' => 'array',
         'blocking_reasons' => 'array',
+        'reviewed_at' => 'datetime',
     ];
 
     public function characterization()
@@ -92,6 +96,9 @@ class ReportingFact extends Model
             'provenance' => $this->provenance,
             'approval_status' => $this->approval_status,
             'blocking_reasons' => $this->blocking_reasons ?? [],
+            'reviewed_at' => $this->reviewed_at?->toJSON(),
+            'reviewed_by_user_id' => $this->reviewed_by_user_id,
+            'review_declaration_sha256' => $this->review_declaration_sha256,
             'created_at' => $this->created_at?->toJSON(),
             'updated_at' => $this->updated_at?->toJSON(),
         ];

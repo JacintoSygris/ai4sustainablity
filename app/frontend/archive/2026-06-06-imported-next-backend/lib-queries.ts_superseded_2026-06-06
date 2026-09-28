@@ -1,0 +1,111 @@
+import { db } from "./db"
+import { report, surveyData } from "./schema"
+import { eq } from "drizzle-orm"
+
+export async function getUserReport(userId: string) {
+  const reports = await db.select().from(report).where(eq(report.userId, userId)).limit(1)
+
+  return reports[0] || null
+}
+
+export const getActiveReport = getUserReport
+
+export async function createReport(userId: string) {
+  const id = crypto.randomUUID()
+  const now = new Date()
+
+  await db.insert(report).values({
+    id,
+    userId,
+    currentStep: 1,
+    totalSteps: 6,
+    status: "draft",
+    step1Completed: false,
+    step2Completed: false,
+    step3Completed: false,
+    step4Completed: false,
+    step5Completed: false,
+    step6Completed: false,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  return { id }
+}
+
+export async function updateReportStep(reportId: string, step: number) {
+  await db
+    .update(report)
+    .set({
+      currentStep: step,
+      status: step > 1 ? "in_progress" : "draft",
+      updatedAt: new Date(),
+    })
+    .where(eq(report.id, reportId))
+}
+
+export async function markStepCompleted(reportId: string, step: number) {
+  const stepField = `step${step}Completed` as keyof typeof report.$inferSelect
+  await db
+    .update(report)
+    .set({
+      [stepField]: true,
+      currentStep: step + 1,
+      status: "in_progress",
+      updatedAt: new Date(),
+    })
+    .where(eq(report.id, reportId))
+}
+
+export async function resetStepCompletion(reportId: string, fromStep: number) {
+  const updates: Record<string, boolean | Date> = { updatedAt: new Date() }
+  for (let i = fromStep; i <= 6; i++) {
+    updates[`step${i}Completed`] = false
+  }
+  await db
+    .update(report)
+    .set({
+      ...updates,
+      currentStep: fromStep,
+    })
+    .where(eq(report.id, reportId))
+}
+
+export async function getSurveyData(reportId: string) {
+  const data = await db.select().from(surveyData).where(eq(surveyData.reportId, reportId)).limit(1)
+  return data[0] || null
+}
+
+export async function saveSurveyData(
+  reportId: string,
+  data: {
+    companyName?: string
+    sector?: string
+    products?: string
+    regions?: string
+    employees?: string
+    size?: string
+    legalForm?: string
+  },
+) {
+  const existing = await getSurveyData(reportId)
+  const now = new Date()
+
+  if (existing) {
+    await db
+      .update(surveyData)
+      .set({
+        ...data,
+        updatedAt: now,
+      })
+      .where(eq(surveyData.reportId, reportId))
+  } else {
+    await db.insert(surveyData).values({
+      id: crypto.randomUUID(),
+      reportId,
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+}

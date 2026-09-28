@@ -2,12 +2,19 @@
 
 namespace App\Services\Report;
 
+use Illuminate\Support\Facades\Cache;
+
 class ArelleXhtmlIxbrlValidator
 {
     private const TIMEOUT_SECONDS = 120;
 
+    private const MAX_OUTPUT_BYTES = 1048576;
+
+    private const LOCK_NAME = 'i4s:report:arelle-validation';
+
     public function __construct(
         private readonly int $timeoutSeconds = self::TIMEOUT_SECONDS,
+        private readonly int $maxOutputBytes = self::MAX_OUTPUT_BYTES,
     ) {}
 
     /**
@@ -25,33 +32,43 @@ class ArelleXhtmlIxbrlValidator
             throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
         }
 
-        $tmpDir = $this->temporaryDirectory();
-        $xhtmlPath = $tmpDir.'/candidate.xhtml';
+        $lock = Cache::lock(self::LOCK_NAME, max(10, $this->timeoutSeconds + 10));
+        if (! $lock->get()) {
+            throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_busy');
+        }
 
         try {
-            file_put_contents($xhtmlPath, $xhtml, LOCK_EX);
-            chmod($xhtmlPath, 0600);
+            $tmpDir = $this->temporaryDirectory();
+            $xhtmlPath = $tmpDir.'/candidate.xhtml';
 
-            $args = [
-                $command,
-                ...$this->profileArguments($profile),
-                '--packages',
-                $packagePath,
-                '--file',
-                $xhtmlPath,
-            ];
+            try {
+                file_put_contents($xhtmlPath, $xhtml, LOCK_EX);
+                chmod($xhtmlPath, 0600);
 
-            $result = $this->run($args);
-            if ($result['exit_code'] !== 0 || ! $this->outputIsCleanAndAnalyzable($result['stdout']."\n".$result['stderr'])) {
-                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                $args = [
+                    $command,
+                    ...$this->profileArguments($profile),
+                    '--validationExitCode',
+                    '--packages',
+                    $packagePath,
+                    '--file',
+                    $xhtmlPath,
+                ];
+
+                $result = $this->run($args);
+                if ($result['exit_code'] !== 0 || ! $this->outputIsCleanAndAnalyzable($result['stdout']."\n".$result['stderr'])) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+            } finally {
+                if (is_file($xhtmlPath)) {
+                    @unlink($xhtmlPath);
+                }
+                if (is_dir($tmpDir)) {
+                    @rmdir($tmpDir);
+                }
             }
         } finally {
-            if (is_file($xhtmlPath)) {
-                @unlink($xhtmlPath);
-            }
-            if (is_dir($tmpDir)) {
-                @rmdir($tmpDir);
-            }
+            $lock->release();
         }
     }
 
@@ -100,11 +117,15 @@ class ArelleXhtmlIxbrlValidator
         $deadline = microtime(true) + max(1, $this->timeoutSeconds);
         $exitCode = null;
         $timedOut = false;
+        $outputExceeded = false;
 
         try {
             while (true) {
-                $stdout .= stream_get_contents($pipes[1]) ?: '';
-                $stderr .= stream_get_contents($pipes[2]) ?: '';
+                if (! $this->readProcessOutput($pipes, $stdout, $stderr)) {
+                    $this->terminate($process);
+                    $outputExceeded = true;
+                    break;
+                }
                 $status = proc_get_status($process);
                 if (($status['exitcode'] ?? -1) !== -1) {
                     $exitCode = (int) $status['exitcode'];
@@ -115,7 +136,7 @@ class ArelleXhtmlIxbrlValidator
                 }
 
                 if (microtime(true) > $deadline) {
-                    proc_terminate($process);
+                    $this->terminate($process);
                     $timedOut = true;
                     break;
                 }
@@ -123,8 +144,9 @@ class ArelleXhtmlIxbrlValidator
                 usleep(10000);
             }
 
-            $stdout .= stream_get_contents($pipes[1]) ?: '';
-            $stderr .= stream_get_contents($pipes[2]) ?: '';
+            if (! $outputExceeded && ! $this->readProcessOutput($pipes, $stdout, $stderr)) {
+                $outputExceeded = true;
+            }
         } finally {
             foreach ([1, 2] as $pipe) {
                 if (isset($pipes[$pipe]) && is_resource($pipes[$pipe])) {
@@ -138,11 +160,40 @@ class ArelleXhtmlIxbrlValidator
             $exitCode = $closedExitCode;
         }
 
-        if ($timedOut) {
+        if ($timedOut || $outputExceeded) {
             throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
         }
 
         return ['exit_code' => $exitCode ?? -1, 'stdout' => $stdout, 'stderr' => $stderr];
+    }
+
+    /**
+     * @param array<int, resource> $pipes
+     */
+    private function readProcessOutput(array $pipes, string &$stdout, string &$stderr): bool
+    {
+        $stdoutChunk = stream_get_contents($pipes[1]) ?: '';
+        $stderrChunk = stream_get_contents($pipes[2]) ?: '';
+
+        if (strlen($stdout) + strlen($stderr) + strlen($stdoutChunk) + strlen($stderrChunk) > max(1, $this->maxOutputBytes)) {
+            return false;
+        }
+
+        $stdout .= $stdoutChunk;
+        $stderr .= $stderrChunk;
+
+        return true;
+    }
+
+    /** @param resource $process */
+    private function terminate($process): void
+    {
+        proc_terminate($process);
+        usleep(100000);
+        $status = proc_get_status($process);
+        if ($status['running'] ?? false) {
+            proc_terminate($process, 9);
+        }
     }
 
     private function outputIsCleanAndAnalyzable(string $output): bool
@@ -151,10 +202,13 @@ class ArelleXhtmlIxbrlValidator
             return false;
         }
 
-        if (preg_match('/\b(?:error|fatal)\b/i', $output)) {
+        if (preg_match('/\b(?:error|fatal|invalid|fail(?:ed|ure)?|unsuccessful)\b/i', $output)) {
             return false;
         }
 
-        return (bool) preg_match('/\b(?:info|warning|valid|validation|success|successful|passed)\b/i', $output);
+        return (bool) preg_match(
+            '/\b(?:validation\s+(?:successful(?:ly)?|passed)|successfully\s+validated|validated\s+in\s+\d+(?:[.,]\d+)?\s+secs?)\b/i',
+            $output,
+        );
     }
 }

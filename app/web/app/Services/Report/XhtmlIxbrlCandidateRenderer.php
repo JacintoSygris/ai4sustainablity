@@ -9,6 +9,7 @@ class XhtmlIxbrlCandidateRenderer
 {
     private const XHTML_NS = 'http://www.w3.org/1999/xhtml';
     private const IX_NS = 'http://www.xbrl.org/2013/inlineXBRL';
+    private const IXT_NS = 'http://www.xbrl.org/inlineXBRL/transformation/2020-02-12';
     private const XBRLI_NS = 'http://www.xbrl.org/2003/instance';
     private const LINK_NS = 'http://www.xbrl.org/2003/linkbase';
     private const XLINK_NS = 'http://www.w3.org/1999/xlink';
@@ -40,6 +41,7 @@ class XhtmlIxbrlCandidateRenderer
 
         $html = $doc->createElementNS(self::XHTML_NS, 'html');
         $html->setAttribute('xmlns:ix', self::IX_NS);
+        $html->setAttribute('xmlns:ixt', self::IXT_NS);
         $html->setAttribute('xmlns:xbrli', self::XBRLI_NS);
         $html->setAttribute('xmlns:link', self::LINK_NS);
         $html->setAttribute('xmlns:xlink', self::XLINK_NS);
@@ -156,7 +158,11 @@ class XhtmlIxbrlCandidateRenderer
             }
 
             $concept = $this->concept((string) ($claim['datapoint_id'] ?? ''));
-            $value = $this->numericValue($claim['value'] ?? null);
+            try {
+                $value = $this->numericValue(ReportFactValue::scalar($claim));
+            } catch (\RuntimeException) {
+                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_no_renderable_claims');
+            }
             $decimals = $this->decimals($claim['decimals'] ?? null);
             [$unitId, $measure] = $this->unit((string) ($claim['unit'] ?? ''));
 
@@ -187,14 +193,6 @@ class XhtmlIxbrlCandidateRenderer
 
     private function numericValue(mixed $value): string
     {
-        if (is_array($value)) {
-            foreach (['amount', 'value', 'number'] as $key) {
-                if (array_key_exists($key, $value)) {
-                    return $this->numericValue($value[$key]);
-                }
-            }
-        }
-
         if (is_int($value)) {
             return (string) $value;
         }

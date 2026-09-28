@@ -40,6 +40,7 @@ return [
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
+            'require_tls' => env('MAIL_REQUIRE_TLS', true),
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
@@ -83,7 +84,6 @@ return [
             'transport' => 'failover',
             'mailers' => [
                 'smtp',
-                'log',
             ],
             'retry_after' => 60,
         ],

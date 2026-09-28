@@ -47,6 +47,21 @@
             @endif
         </div>
 
+        <div>
+            <x-input-label for="profile_current_password" value="Contraseña actual para cambiar el correo" />
+            <x-text-input
+                id="profile_current_password"
+                name="current_password"
+                type="password"
+                class="mt-1 block w-full"
+                autocomplete="current-password"
+            />
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Solo es necesaria si modificas la dirección de correo electrónico.
+            </p>
+            <x-input-error class="mt-2" :messages="$errors->get('current_password')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

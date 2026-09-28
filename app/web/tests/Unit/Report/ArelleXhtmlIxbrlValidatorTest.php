@@ -20,7 +20,7 @@ it('blocks when the configured Arelle binary is absent', function () {
 
 it('runs Arelle with argument list, offline validation, package, file and cleans the temporary XHTML', function () {
     $capturePath = arelleValidatorTempFile('capture.json', '');
-    $binary = arelleValidatorFixtureBinary($capturePath, 0, 'info: validation successful');
+    $binary = arelleValidatorFixtureBinary($capturePath, 0, '[info] validated in 1.23 secs - candidate.xhtml');
     config(['services.report.arelle_command' => $binary]);
 
     (new ArelleXhtmlIxbrlValidator())->validate('<html />', $this->profile, arelleValidatorManifestFixture());
@@ -29,6 +29,7 @@ it('runs Arelle with argument list, offline validation, package, file and cleans
 
     expect($capture['argv'])->toContain('--internetConnectivity=offline')
         ->and($capture['argv'])->toContain('--validate')
+        ->and($capture['argv'])->toContain('--validationExitCode')
         ->and($capture['argv'])->toContain('--packages')
         ->and($capture['argv'])->toContain('--file')
         ->and($capture['package_exists'])->toBeTrue()
@@ -49,7 +50,36 @@ it('blocks Arelle timeout', function () {
         ->toThrow(XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_arelle_validation_failed');
 });
 
-it('blocks Arelle non-zero exit and error/fatal severities', function (int $exitCode, string $output) {
+it('blocks concurrent Arelle validation before starting another process', function () {
+    $capturePath = arelleValidatorTempFile('capture.json', 'not-started');
+    $binary = arelleValidatorFixtureBinary($capturePath, 0, 'info: validation successful');
+    config(['services.report.arelle_command' => $binary]);
+    $lock = \Illuminate\Support\Facades\Cache::lock('i4s:report:arelle-validation', 5);
+
+    expect($lock->get())->toBeTrue();
+
+    try {
+        expect(fn () => (new ArelleXhtmlIxbrlValidator())->validate('<html />', $this->profile, arelleValidatorManifestFixture()))
+            ->toThrow(XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_arelle_busy');
+        expect(file_get_contents($capturePath))->toBe('not-started');
+    } finally {
+        $lock->release();
+    }
+});
+
+it('blocks Arelle output that exceeds the configured byte budget', function () {
+    $binary = arelleValidatorFixtureBinary(
+        arelleValidatorTempFile('capture.json', ''),
+        0,
+        str_repeat('x', 2048).' validation successful',
+    );
+    config(['services.report.arelle_command' => $binary]);
+
+    expect(fn () => (new ArelleXhtmlIxbrlValidator(maxOutputBytes: 1024))->validate('<html />', $this->profile, arelleValidatorManifestFixture()))
+        ->toThrow(XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_arelle_validation_failed');
+});
+
+it('blocks Arelle non-zero exit, explicit failure markers and error severities', function (int $exitCode, string $output) {
     $binary = arelleValidatorFixtureBinary(arelleValidatorTempFile('capture.json', ''), $exitCode, $output);
     config(['services.report.arelle_command' => $binary]);
 
@@ -59,6 +89,10 @@ it('blocks Arelle non-zero exit and error/fatal severities', function (int $exit
     'non-zero' => [2, 'info: validation attempted'],
     'error severity' => [0, 'error: taxonomy failure'],
     'fatal severity' => [0, 'fatal: taxonomy failure'],
+    'warning that says validation failed' => [0, 'warning: validation failed'],
+    'bare failure marker' => [0, 'validation failure'],
+    'invalid marker' => [0, 'instance invalid'],
+    'ambiguous success and failure' => [0, 'validation passed after validation failed'],
     'unanalyzable' => [0, ''],
 ]);
 

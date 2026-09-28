@@ -7,7 +7,9 @@ import test from "node:test"
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const {
   actionsFromProposal,
+  buildDraftReviewPayload,
   buildReviewPayload,
+  saveCompletionMatchesEditVersion,
   reasonsFromProposal,
 } = await import(pathToFileURL(join(root, "lib/materiality-proposal-review.mjs")).href)
 
@@ -28,7 +30,7 @@ test("wizard Step 2 is a Laravel P6 page, not a local Better Auth/Turso page", (
 test("material topics form reviews Laravel P6 proposals instead of local ESG topic state", () => {
   const source = read("components/wizard/material-topics-form.tsx")
   const helperSource = read("lib/materiality-proposal-review.mjs")
-  const componentSource = `${source}\n${helperSource}`
+  const implementationSource = `${source}\n${helperSource}`
 
   assert.match(
     source,
@@ -36,7 +38,7 @@ test("material topics form reviews Laravel P6 proposals instead of local ESG top
     "P6 form must use Laravel materiality proposal helpers",
   )
   assert.match(source, /submitLaravelCharacterization/, "P6 form must be able to trigger Laravel characterization submit")
-  assert.match(componentSource, /topic_actions/, "P6 form must persist explicit review actions")
+  assert.match(implementationSource, /topic_actions/, "P6 form must persist explicit review actions")
   assert.match(source, /review_required_prediction_keys/, "P6 form must surface manual-review AI prediction keys")
   assert.match(source, /buildReviewPayload/, "P6 form must build a tested explicit-review payload")
   assert.doesNotMatch(source, /@\/lib\/esg-topics-data/, "P6 form must not use imported local ESG topic taxonomy")
@@ -118,6 +120,43 @@ test("P6 review helpers persist only explicit actions, selected reason chips, an
   })
 })
 
+test("P6 review helpers persist a partial review as a draft without inventing actions", () => {
+  const result = buildDraftReviewPayload({
+    proposalTopicIds: [101, 102],
+    topicActions: {
+      "101": "accepted",
+      "999": "rejected",
+    },
+    actionReasons: {
+      "101": ["sector_fit"],
+      "102": ["needs_adm"],
+    },
+    actionNotes: {
+      "101": " Keep this answer. ",
+      "102": "Do not retain an unanswered topic note.",
+    },
+  })
+
+  assert.deepEqual(result, {
+    topic_actions: {
+      "101": "accepted",
+    },
+    action_reasons: {
+      "101": ["sector_fit"],
+    },
+    action_notes: {
+      "101": "Keep this answer.",
+    },
+  })
+})
+
+test("P6 review form offers an explicit draft save before every topic is decided", () => {
+  const source = read("components/wizard/material-topics-form.tsx")
+
+  assert.match(source, /Guardar borrador/)
+  assert.match(source, /buildDraftReviewPayload/)
+})
+
 test("P6 review helpers load stored reason chips only for current proposal topics", () => {
   const proposal = {
     proposal_topic_ids: [101],
@@ -136,4 +175,14 @@ test("P6 review helpers load stored reason chips only for current proposal topic
   assert.deepEqual(reasonsFromProposal(proposal), {
     "101": ["sector_fit"],
   })
+})
+
+test("P6 save completion cannot advance after a later edit", () => {
+  assert.equal(saveCompletionMatchesEditVersion(3, 3), true)
+  assert.equal(saveCompletionMatchesEditVersion(3, 4), false)
+
+  const source = read("components/wizard/material-topics-form.tsx")
+  assert.match(source, /reviewEditVersion/)
+  assert.match(source, /saveCompletionMatchesEditVersion/)
+  assert.match(source, /disabled=\{readOnlyMode \|\| savingReview\}/)
 })

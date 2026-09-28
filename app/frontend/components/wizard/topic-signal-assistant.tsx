@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import {
   suggestTopicResult,
   buildGuidedAnswer,
+  buildGuidedAnswerForUserEdit,
   type IMPACT_LEVELS as _imp,
 } from "@/lib/materiality-guided-state.mjs"
 import { topicTitle } from "@/lib/materiality-confirmation-state.mjs"
@@ -56,16 +57,17 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
 
   const suggestion = useMemo(() => suggestTopicResult(signals), [signals])
 
-  // emit on change (live)
-  useEffect(() => {
-    const ans = buildGuidedAnswer(signals, suggestion.suggested_result === "en_observacion" ? "material" : suggestion.suggested_result, note)
-    // ensure final_result for obs path conservative default
-    onResult(ans)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signals, note, suggestion.suggested_result])
-
   const setSig = (k: keyof SignalAnswer, v: string) => {
-    setSignals((s) => ({ ...s, [k]: v as any }))
+    const nextSignals = { ...signals, [k]: v as any }
+    setSignals(nextSignals)
+    const answer = buildGuidedAnswerForUserEdit(nextSignals, note, true)
+    if (answer) onResult(answer)
+  }
+
+  const setUserNote = (nextNote: string) => {
+    setNote(nextNote)
+    const answer = buildGuidedAnswerForUserEdit(signals, nextNote, true)
+    if (answer) onResult(answer)
   }
 
   const currentExp = signals.exposicion
@@ -138,7 +140,7 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
           placeholder="Nota opcional (máx 300)"
           value={note}
           maxLength={300}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => setUserNote(e.target.value)}
           className="text-xs"
         />
       </div>

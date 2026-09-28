@@ -2,25 +2,77 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\CharacterizationCapacityException;
 use App\Events\CharacterizationStatusUpdated;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
+use App\Services\CharacterizationStateTransaction;
 use App\Services\Contracts\CharacterizationGateway;
+use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
+use DateTimeInterface;
+use Throwable;
 
 class SubmitCharacterizationJob implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public Characterization $characterization) {}
+    public int $submissionGeneration = 0;
 
-    public function handle(CharacterizationGateway $gateway): void
+    public ?int $retryDeadlineTimestamp = null;
+
+    public function __construct(public Characterization $characterization)
     {
+        $this->submissionGeneration = (int) ($characterization->submission_generation ?? 0);
+        $submittedAt = $characterization->submitted_at
+            ?? $characterization->created_at
+            ?? now();
+        $this->retryDeadlineTimestamp = $submittedAt->copy()->addHours(72)->getTimestamp();
+    }
+
+    public function retryUntil(): DateTimeInterface
+    {
+        return CarbonImmutable::createFromTimestamp(
+            $this->retryDeadlineTimestamp ?? now()->addHours(72)->getTimestamp()
+        );
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $now = now();
+        $updated = Characterization::query()
+            ->whereKey($this->characterization->id)
+            ->where('submission_generation', $this->submissionGeneration)
+            ->whereIn('status', [
+                Characterization::STATUS_SUBMITTED,
+                Characterization::STATUS_WAITING,
+                Characterization::STATUS_PROCESSING,
+            ])
+            ->update([
+                'status' => Characterization::STATUS_TIMED_OUT,
+                'last_error' => $exception?->getMessage() ?? 'The characterization retry deadline was exhausted.',
+                'last_job_attempted_at' => $now,
+                'next_retry_at' => null,
+                'updated_at' => $now,
+            ]);
+
+        if ($updated === 1 && ($characterization = Characterization::query()->find($this->characterization->id))) {
+            event(new CharacterizationStatusUpdated($characterization));
+        }
+    }
+
+    public function handle(
+        CharacterizationGateway $gateway,
+        ?CharacterizationStateTransaction $stateTransactions = null,
+    ): void
+    {
+        $stateTransactions ??= app(CharacterizationStateTransaction::class);
+
         if (! $this->claimForProcessing()) {
             return;
         }
@@ -28,28 +80,50 @@ class SubmitCharacterizationJob implements ShouldQueue
         try {
             $response = $gateway->submit($this->characterization->fresh());
 
-            $attributes = [
-                'result_data' => $response,
-                'completed_at' => now(),
-                'next_retry_at' => null,
-            ];
+            $completed = $stateTransactions->run(
+                $this->characterization->id,
+                function (Characterization $locked) use ($response): ?Characterization {
+                    if (! $this->matchesSubmission($locked) || $locked->status !== Characterization::STATUS_PROCESSING) {
+                        return null;
+                    }
 
-            if (array_key_exists('candidate_topics', $response)) {
-                $topicIds = $this->candidateTopicIds($response);
-                $formData = $this->characterization->form_data ?? [];
-                Arr::set($formData, 'esg_focus.topic_ids', $topicIds);
+                    $attributes = [
+                        'result_data' => $response,
+                        'completed_at' => now(),
+                        'next_retry_at' => null,
+                    ];
 
-                $attributes['esrs_topic_ids'] = $topicIds;
-                $attributes['form_data'] = $formData;
+                    if (array_key_exists('candidate_topics', $response)) {
+                        $topicIds = $this->candidateTopicIds($response);
+                        $formData = $locked->form_data ?? [];
+                        Arr::set($formData, 'esg_focus.topic_ids', $topicIds);
+
+                        $attributes['esrs_topic_ids'] = $topicIds;
+                        $attributes['form_data'] = $formData;
+                    }
+
+                    $locked->updateStatus(Characterization::STATUS_COMPLETED, $attributes);
+
+                    return $locked;
+                },
+            );
+
+            if (! $completed) {
+                Log::info('Characterization completion skipped because the submission generation changed', [
+                    'characterization_id' => $this->characterization->id,
+                    'submission_generation' => $this->submissionGeneration,
+                ]);
+
+                return;
             }
 
-            $this->characterization->updateStatus(Characterization::STATUS_COMPLETED, $attributes);
+            $this->characterization = $completed;
 
             Log::info('Characterization completed', [
                 'characterization_id' => $this->characterization->id,
             ]);
-        } catch (\Throwable $exception) {
-            $this->handleFailure($exception);
+        } catch (Throwable $exception) {
+            $this->handleFailure($exception, $stateTransactions);
         }
     }
 
@@ -59,6 +133,7 @@ class SubmitCharacterizationJob implements ShouldQueue
 
         $claimed = Characterization::query()
             ->whereKey($this->characterization->id)
+            ->where('submission_generation', $this->submissionGeneration)
             ->whereIn('status', [
                 Characterization::STATUS_SUBMITTED,
                 Characterization::STATUS_WAITING,
@@ -85,28 +160,56 @@ class SubmitCharacterizationJob implements ShouldQueue
         return true;
     }
 
-    protected function handleFailure(\Throwable $exception): void
-    {
-        $attempt = ($this->characterization->retry_count ?? 0) + 1;
-        $delaySeconds = $this->calculateDelaySeconds($attempt);
-        $submittedAt = $this->characterization->submitted_at ?? now();
-        $elapsed = $submittedAt->diffInSeconds(now());
-        $maxWindow = 72 * 60 * 60; // 72 hours
-        $nextRetryWithinWindow = ($elapsed + $delaySeconds) <= $maxWindow;
+    protected function handleFailure(
+        Throwable $exception,
+        CharacterizationStateTransaction $stateTransactions,
+    ): void {
+        $failure = $stateTransactions->run(
+            $this->characterization->id,
+            function (Characterization $locked) use ($exception): ?array {
+                if (! $this->matchesSubmission($locked) || $locked->status !== Characterization::STATUS_PROCESSING) {
+                    return null;
+                }
 
-        $attributes = [
-            'retry_count' => $attempt,
-            'last_error' => $exception->getMessage(),
-            'last_job_attempted_at' => now(),
-        ];
+                $attempt = ((int) ($locked->retry_count ?? 0)) + 1;
+                $delaySeconds = $exception instanceof CharacterizationCapacityException
+                    ? $exception->retryAfterSeconds
+                    : $this->calculateDelaySeconds($attempt);
+                $nextRetryWithinWindow = now()->addSeconds($delaySeconds)->getTimestamp()
+                    <= ($this->retryDeadlineTimestamp ?? 0);
 
-        if ($nextRetryWithinWindow) {
-            $attributes['next_retry_at'] = now()->addSeconds($delaySeconds);
-            $this->characterization->updateStatus(Characterization::STATUS_WAITING, $attributes);
-        } else {
-            $attributes['next_retry_at'] = null;
-            $this->characterization->updateStatus(Characterization::STATUS_TIMED_OUT, $attributes);
+                $locked->updateStatus(
+                    $nextRetryWithinWindow ? Characterization::STATUS_WAITING : Characterization::STATUS_TIMED_OUT,
+                    [
+                        'retry_count' => $attempt,
+                        'last_error' => $exception->getMessage(),
+                        'last_job_attempted_at' => now(),
+                        'next_retry_at' => $nextRetryWithinWindow ? now()->addSeconds($delaySeconds) : null,
+                    ],
+                );
+
+                return [
+                    'attempt' => $attempt,
+                    'delay_seconds' => $delaySeconds,
+                    'retry' => $nextRetryWithinWindow,
+                    'characterization' => $locked,
+                ];
+            },
+        );
+
+        if (! $failure) {
+            Log::info('Characterization failure skipped because the submission generation changed', [
+                'characterization_id' => $this->characterization->id,
+                'submission_generation' => $this->submissionGeneration,
+            ]);
+
+            return;
         }
+
+        $attempt = $failure['attempt'];
+        $delaySeconds = $failure['delay_seconds'];
+        $nextRetryWithinWindow = $failure['retry'];
+        $this->characterization = $failure['characterization'];
 
         Log::error('Characterization submission failed', [
             'characterization_id' => $this->characterization->id,
@@ -120,6 +223,11 @@ class SubmitCharacterizationJob implements ShouldQueue
         } else {
             throw $exception;
         }
+    }
+
+    private function matchesSubmission(Characterization $characterization): bool
+    {
+        return (int) ($characterization->submission_generation ?? 0) === $this->submissionGeneration;
     }
 
     protected function calculateDelaySeconds(int $attempt): int

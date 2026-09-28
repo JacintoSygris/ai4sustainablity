@@ -5,11 +5,9 @@ import type {
   LaravelFrontendSession,
   LaravelReportReadiness,
 } from "@/lib/laravel-api"
+import { resolveLaravelApiTarget } from "@/lib/laravel-server-origin.mjs"
 
-const laravelApiOrigin = process.env.LARAVEL_API_ORIGIN?.replace(/\/$/, "")
 const defaultTimeoutMs = 15000
-
-type HeaderBag = Awaited<ReturnType<typeof headers>>
 
 function cleanApiPath(path: string): string {
   if (path.startsWith("/api/")) {
@@ -19,35 +17,20 @@ function cleanApiPath(path: string): string {
   return path.startsWith("/") ? path : `/${path}`
 }
 
-function requestOrigin(incomingHeaders: HeaderBag): string | null {
-  const host = incomingHeaders.get("x-forwarded-host") ?? incomingHeaders.get("host")
+function apiTarget(path: string): { target: ReturnType<typeof resolveLaravelApiTarget>; url: string } {
+  const target = resolveLaravelApiTarget(
+    process.env.LARAVEL_API_ORIGIN,
+    process.env.NODE_ENV,
+    process.env.LARAVEL_INTERNAL_API_ORIGIN,
+    process.env.LARAVEL_CANONICAL_ORIGIN,
+  )
 
-  if (!host) {
-    return null
-  }
-
-  const protocol = incomingHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")
-
-  return `${protocol}://${host}`
-}
-
-function apiUrl(path: string, incomingHeaders: HeaderBag): string | null {
-  const base = laravelApiOrigin ?? requestOrigin(incomingHeaders)
-
-  if (!base) {
-    return null
-  }
-
-  return `${base}/api${cleanApiPath(path)}`
+  return { target, url: `${target.origin}/api${cleanApiPath(path)}` }
 }
 
 async function laravelServerApi<T>(path: string): Promise<LaravelApiEnvelope<T> | null> {
   const incomingHeaders = await headers()
-  const url = apiUrl(path, incomingHeaders)
-
-  if (!url) {
-    return null
-  }
+  const { target, url } = apiTarget(path)
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), defaultTimeoutMs)
@@ -55,6 +38,8 @@ async function laravelServerApi<T>(path: string): Promise<LaravelApiEnvelope<T> 
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
   })
+  outboundHeaders.set("Host", target.host)
+  outboundHeaders.set("X-Forwarded-Proto", target.forwardedProto)
   const cookie = incomingHeaders.get("cookie")
 
   if (cookie) {

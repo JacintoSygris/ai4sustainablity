@@ -73,6 +73,67 @@ it('marks non-authoritative guidance with a visible generic-guidance prefix', fu
     expect($documentXml)->toContain('Texto genérico de orientación.');
 });
 
+it('renders factual labels and values in Spanish without visible internal identifiers', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('c', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2026],
+        'disclaimers' => [],
+        'claims' => [[
+            'claim_id' => 'claim_energy',
+            'fact_id' => 'fact_energy',
+            'datapoint_id' => 'E1-5_01',
+            'value_type' => 'number',
+            'value' => ['value' => 86.4],
+            'unit' => 'MWh',
+            'decimals' => 1,
+        ]],
+        'chapters' => [[
+            'title' => 'Topical datapoints for mapped material Disclosure Requirements',
+            'block_key' => 'topical',
+            'floor_prose' => 'E9-9 English floor sentinel',
+            'sections' => [[
+                'dr_key' => 'E1-5',
+                'cross_refs' => [],
+                'cross_ref_sentences' => ['E9-9 English cross-reference sentinel'],
+                'blocks' => [[
+                    'datapoint_id' => 'E1-5_01',
+                    'name' => 'Información reportada',
+                    'assertions' => ['E9-9 English assertion sentinel'],
+                    'claims' => ['claim_energy'],
+                    'slots' => [[
+                        'node_id' => 'slot_E1-5_01_fact_energy',
+                        'claim_id' => 'claim_energy',
+                        'fact_id' => 'fact_energy',
+                        'label' => 'Información reportada',
+                        'xbrl_concept' => 'esrs:EnergyConsumption',
+                    ]],
+                    'guidance' => [
+                        'text' => 'E9-9 English guidance sentinel',
+                        'authoritative' => true,
+                        'citations' => ['E9-9 English citation sentinel'],
+                    ],
+                ]],
+            ]],
+        ]],
+    ];
+
+    $bytes = (new DocxRenderer())->render($ir);
+    $text = docxVisibleText($bytes);
+    $documentXml = docxEntry($bytes, 'word/document.xml');
+
+    expect($text)->toContain('Información sobre temas materiales');
+    expect($text)->toContain('Consumo y combinación energética');
+    expect($text)->toContain('Consumo total de energía en operaciones propias');
+    expect($text)->toContain('86,4 MWh');
+    expect($text)->not->toContain('E1-5');
+    expect($text)->not->toContain('Topical datapoints');
+    expect($text)->not->toContain('orientación general');
+    expect($text)->not->toContain('E9-9 English');
+    expect($documentXml)->toMatch('/<w:p>(?:(?!<\/w:p>).)*<w:keepNext w:val="1"\/>'.
+        '(?:(?!<\/w:p>).)*Consumo total de energía en operaciones propias(?:(?!<\/w:p>).)*<\/w:p>/s');
+});
+
 it('never renders a banned overclaiming term in the generated document.xml', function () {
     $ir = [
         'version_hash' => str_repeat('d', 64),
@@ -170,4 +231,137 @@ it('omits the omission section entirely when there is nothing to declare', funct
 
     expect(docxVisibleText((new DocxRenderer())->render($ir)))
         ->not->toContain('Temas evaluados y no considerados materiales');
+});
+
+it('renders approved factual claim values without leaking evidence and maps factual ids in custom xml', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('f', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2025],
+        'disclaimers' => [],
+        'claims' => [[
+            'claim_id' => 'claim_bp1_01_rf_frozen',
+            'fact_id' => 'rf_frozen',
+            'datapoint_id' => 'BP-1_01',
+            'value' => ['text' => 'Frozen approved fact'],
+            'evidence_refs' => [['type' => 'note', 'value' => 'Evidence sentinel must never render']],
+            'source' => ['table' => 'reporting_facts'],
+            'approval_status' => 'reviewed',
+        ]],
+        'chapters' => [[
+            'title' => 'ESRS 2',
+            'sections' => [[
+                'dr_key' => 'BP-1',
+                'cross_refs' => [],
+                'blocks' => [[
+                    'datapoint_id' => 'BP-1_01',
+                    'name' => 'Base general',
+                    'assertions' => ['Material'],
+                    'claims' => ['claim_bp1_01_rf_frozen'],
+                    'slots' => [[
+                        'node_id' => 'slot_BP-1_01_rf_frozen',
+                        'claim_id' => 'claim_bp1_01_rf_frozen',
+                        'fact_id' => 'rf_frozen',
+                        'label' => 'Base general',
+                        'xbrl_concept' => 'esrs:BasisForPreparation',
+                        'taggable_state' => 'mapped',
+                    ]],
+                    'guidance' => ['text' => 'Prepare...', 'provenance_tier' => 'certified_support_rule', 'authoritative' => true],
+                ]],
+            ]],
+        ]],
+    ];
+
+    $bytes = (new DocxRenderer())->render($ir);
+    $text = docxVisibleText($bytes);
+    $documentXml = docxEntry($bytes, 'word/document.xml');
+    $customXml = docxEntry($bytes, 'customXml/item1.xml');
+
+    expect($text)->toContain('Frozen approved fact');
+    expect($customXml)->toContain('claim_id="claim_bp1_01_rf_frozen"');
+    expect($customXml)->toContain('fact_id="rf_frozen"');
+    expect($text)->not->toContain('slot_BP-1_01_rf_frozen');
+    expect($text)->not->toContain('claim_bp1_01_rf_frozen');
+    expect($text)->not->toContain('rf_frozen');
+    expect($text)->not->toContain('Evidence sentinel must never render');
+    expect($documentXml)->not->toContain('Evidence sentinel must never render');
+    expect($bytes)->not->toContain('Evidence sentinel must never render');
+});
+
+it('fails closed when factual omission prose contains a technical disclosure identifier', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('f', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2026],
+        'disclaimers' => [],
+        'claims' => [],
+        'chapters' => [],
+        'omission_section' => [
+            'title' => 'Omisiones',
+            'statements' => ['Referencia interna E1-5 no permitida.'],
+            'declaration' => null,
+            'limitation' => null,
+        ],
+    ];
+
+    expect(fn () => (new DocxRenderer())->render($ir))
+        ->toThrow(\DomainException::class);
+});
+
+it('renders factual omissions once as a final appendix after the report body', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('f', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2026],
+        'disclaimers' => ['No es presentación oficial.'],
+        'claims' => [[
+            'claim_id' => 'claim_energy',
+            'fact_id' => 'fact_energy',
+            'datapoint_id' => 'E1-5_01',
+            'value_type' => 'number',
+            'value' => 86.4,
+            'unit' => 'MWh',
+            'decimals' => 1,
+        ]],
+        'omission_section' => [
+            'title' => 'Temas evaluados y no considerados materiales',
+            'declaration' => null,
+            'limitation' => null,
+            'statements' => ['Agua no fue confirmado como material.'],
+        ],
+        'chapters' => [
+            [
+                'title' => 'General',
+                'block_key' => 'general',
+                'sections' => [],
+            ],
+            [
+                'title' => 'Topical',
+                'block_key' => 'topical',
+                'sections' => [[
+                    'dr_key' => 'E1-5',
+                    'blocks' => [[
+                        'datapoint_id' => 'E1-5_01',
+                        'claims' => ['claim_energy'],
+                        'slots' => [[
+                            'node_id' => 'slot_energy',
+                            'claim_id' => 'claim_energy',
+                            'fact_id' => 'fact_energy',
+                            'xbrl_concept' => 'esrs:EnergyConsumption',
+                        ]],
+                    ]],
+                ]],
+            ],
+        ],
+    ];
+
+    $bytes = (new DocxRenderer())->render($ir);
+    $text = docxVisibleText($bytes);
+    $documentXml = docxEntry($bytes, 'word/document.xml');
+
+    expect($text)->toContain('Anexo: Temas evaluados y no considerados materiales');
+    expect(substr_count($text, 'Temas evaluados y no considerados materiales'))->toBe(1);
+    expect(strpos($text, 'Información sobre temas materiales'))
+        ->toBeLessThan(strpos($text, 'Anexo: Temas evaluados y no considerados materiales'));
+    expect(substr_count($documentXml, 'w:type="page"'))->toBe(2);
 });

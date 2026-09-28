@@ -1,0 +1,94 @@
+import { headers } from "next/headers"
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+import { NextResponse } from "next/server"
+
+async function getLocalBackend() {
+  const [{ auth }, { db }, { report }, { eq }] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/db"),
+    import("@/lib/schema"),
+    import("drizzle-orm"),
+  ])
+
+  return { auth, db, report, eq }
+}
+
+export async function POST(request: Request) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, report, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { finalTopics, justifications } = await request.json()
+
+    // Get user's active report
+    const [userReport] = await db.select().from(report).where(eq(report.userId, session.user.id)).limit(1)
+
+    if (!userReport) {
+      return NextResponse.json({ error: "No report found" }, { status: 404 })
+    }
+
+    // Update report with final topics and mark step 4 as completed
+    await db
+      .update(report)
+      .set({
+        finalTopics: JSON.stringify(finalTopics),
+        topicJustifications: JSON.stringify(justifications),
+        currentStep: 5,
+        step4Completed: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(report.id, userReport.id))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error saving step 4:", error)
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 })
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, report, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const [userReport] = await db.select().from(report).where(eq(report.userId, session.user.id)).limit(1)
+
+    if (!userReport) {
+      return NextResponse.json({ error: "No report found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      materialTopics: userReport.materialTopics ? JSON.parse(userReport.materialTopics) : [],
+      finalTopics: userReport.finalTopics ? JSON.parse(userReport.finalTopics) : null,
+      justifications: userReport.topicJustifications ? JSON.parse(userReport.topicJustifications) : {},
+      isCompleted: userReport.step4Completed,
+    })
+  } catch (error) {
+    console.error("Error fetching step 4:", error)
+    return NextResponse.json({ error: "Failed to fetch" }, { status: 500 })
+  }
+}

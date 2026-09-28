@@ -21,6 +21,23 @@ it('reports checksum mismatch as a hard failure', function () {
     expect(file_get_contents($path))->toBe($original);
 });
 
+it('binds the IG-3 datapoint corpus to a committed checksum', function () {
+    $path = base_path('data/esrs_datapoints_ig3.json');
+    $original = file_get_contents($path);
+
+    try {
+        file_put_contents($path, $original.PHP_EOL);
+
+        $this->artisan('report:validate-assets')
+            ->expectsOutputToContain('checksum_mismatch:data/esrs_datapoints_ig3.json')
+            ->assertExitCode(1);
+    } finally {
+        file_put_contents($path, $original);
+    }
+
+    expect(file_get_contents($path))->toBe($original);
+});
+
 it('fails closed when the concept map is malformed instead of silently skipping reconciliation', function () {
     $path = base_path('data/atomizer_xbrl_concepts_v1.json');
     $original = file_get_contents($path);

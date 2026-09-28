@@ -4,11 +4,19 @@ use App\Models\EsrsTopic;
 use App\Models\ReportApproval;
 use App\Models\ReportingFact;
 use App\Models\User;
+use App\Services\EsrsDatapointCorpusBuilder;
 use App\Services\Report\ReportSnapshotBuilder;
 use App\Services\Report\ReportStalenessDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+it('rate limits synchronous XHTML and iXBRL candidate validation separately', function () {
+    $middleware = \Illuminate\Support\Facades\Route::getRoutes()
+        ->getByName('api.report.xhtml-ixbrl-candidate')?->gatherMiddleware() ?? [];
+
+    expect($middleware)->toContain('throttle:2,1,report-xhtml-ixbrl');
+});
 
 beforeEach(function () {
     config(['services.private_dev.auto_login' => false]);
@@ -65,6 +73,26 @@ it('blocks ready factual html when no approved snapshot exists', function () {
         ->assertStatus(409)
         ->assertJsonPath('data.type', 'guided_report_blocked')
         ->assertJsonPath('data.reason_code', 'approved_snapshot_missing');
+});
+
+it('blocks factual outputs from an approved snapshot with zero claimable facts', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiFact($characterization, [
+        'fact_id' => 'rf_guided_not_applicable_only',
+        'applicability' => 'not_applicable',
+        'value_type' => 'nil',
+        'value' => null,
+        'language' => null,
+        'nil' => false,
+    ]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+
+    foreach (['/api/report/html', '/api/guided-report/docx', '/api/guided-report/evidence-bundle'] as $endpoint) {
+        $this->actingAs($this->user)->get($endpoint)
+            ->assertStatus(409)
+            ->assertJsonPath('data.type', 'guided_report_blocked')
+            ->assertJsonPath('data.reason_code', 'no_claimable_report_content');
+    }
 });
 
 it('blocks ready xhtml ixbrl candidate when no approved snapshot exists', function () {
@@ -158,6 +186,16 @@ it('returns docx and factual evidence bundle from a fresh approved snapshot', fu
         'value' => ['text' => 'Frozen approved fact'],
         'evidence_refs' => [['type' => 'note', 'value' => 'Evidence sentinel must never render']],
     ]);
+    guidedReportApiFact($characterization, [
+        'fact_id' => 'rf_guided_not_applicable',
+        'datapoint_id' => 'BP-1_02',
+        'applicability' => 'not_applicable',
+        'value_type' => 'nil',
+        'value' => null,
+        'language' => null,
+        'nil' => false,
+        'evidence_refs' => [['type' => 'note', 'value' => 'Documented not-applicable decision']],
+    ]);
     guidedReportApiApproveSnapshot($this->user, $characterization);
 
     $response = $this->actingAs($this->user)->get('/api/guided-report/docx')->assertOk();
@@ -167,12 +205,16 @@ it('returns docx and factual evidence bundle from a fresh approved snapshot', fu
     expect(docxVisibleText($response->getContent()))->toContain('Frozen approved fact');
     expect($response->getContent())->not->toContain('Evidence sentinel must never render');
 
-    $this->actingAs($this->user)->getJson('/api/guided-report/evidence-bundle')
+    $bundleResponse = $this->actingAs($this->user)->getJson('/api/guided-report/evidence-bundle')
         ->assertOk()
         ->assertJsonPath('data.type', 'report_evidence_bundle')
         ->assertJsonPath('data.approved_snapshot.profile_id', ReportingFact::PROFILE_ID)
         ->assertJsonPath('data.claims.0.value.text', 'Frozen approved fact')
-        ->assertJsonStructure(['data' => ['version', 'ir_version_hash', 'asset_versions', 'unmapped_concepts', 'guidance_provenance', 'approved_snapshot', 'claims', 'claim_evidence_index']]);
+        ->assertJsonStructure(['data' => ['version', 'ir_version_hash', 'asset_versions', 'unmapped_concepts', 'guidance_provenance', 'materiality_trace', 'approved_snapshot', 'claims', 'fact_decisions', 'claim_evidence_index']]);
+
+    $decisions = collect($bundleResponse->json('data.fact_decisions'))->keyBy('fact_id');
+    expect($decisions['rf_guided_snapshot']['output_section'])->toBe('body');
+    expect($decisions['rf_guided_not_applicable']['output_section'])->toBe('not_applicable_appendix');
 });
 
 it('returns factual html from a fresh approved snapshot without evidence or internal ids', function () {
@@ -189,8 +231,11 @@ it('returns factual html from a fresh approved snapshot without evidence or inte
     expect($response->headers->get('content-type'))->toContain('text/html; charset=UTF-8');
     expect($response->headers->get('content-disposition'))
         ->toBe('attachment; filename="informe-esrs-borrador.html"');
-    expect($response->getContent())->toContain('Borrador factual basado en snapshot aprobado');
-    expect($response->getContent())->toContain('No es una presentación oficial, aseguramiento ni filing');
+    expect($response->getContent())->toContain('Borrador factual basado en una versión aprobada');
+    expect($response->getContent())->toContain('No constituye una presentación oficial ni un trabajo de aseguramiento');
+    expect($response->getContent())->toContain('ni genera el formato electrónico regulatorio');
+    expect($response->getContent())->not->toContain('filing');
+    expect($response->getContent())->not->toContain('iXBRL');
     expect($response->getContent())->toContain('Frozen approved fact');
     expect($response->getContent())->not->toContain('Evidence sentinel must never render');
     expect($response->getContent())->not->toContain('rf_guided_snapshot');
@@ -198,7 +243,58 @@ it('returns factual html from a fresh approved snapshot without evidence or inte
     expect($response->getContent())->not->toContain($snapshot->profile_hash);
 });
 
-it('blocks the guided docx when approved snapshots are stale after live fact mutation', function () {
+it('ignores completed orphan responses when approving and rendering factual outputs', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiFact($characterization, [
+        'fact_id' => 'rf_active_with_orphan',
+        'value' => ['text' => 'Hecho activo aunque exista una respuesta huérfana.'],
+        'language' => 'es',
+    ]);
+
+    $corpus = app(EsrsDatapointCorpusBuilder::class)->build($characterization);
+    $responses = collect($corpus['blocks'])
+        ->flatMap(fn (array $block): array => $block['datapoints'] ?? [])
+        ->pluck('id')
+        ->filter()
+        ->mapWithKeys(fn (string $id): array => [
+            $id => ['datapoint_id' => $id, 'status' => $id === 'BP-1_01' ? 'completed' : 'not_applicable'],
+        ])
+        ->all();
+    $responses['ORPHAN-COMPLETED'] = [
+        'datapoint_id' => 'ORPHAN-COMPLETED',
+        'status' => 'completed',
+    ];
+    $formData = $characterization->form_data;
+    $formData['esrs_datapoint_responses']['responses'] = $responses;
+    $characterization->update(['form_data' => $formData]);
+
+    $snapshotId = $this->actingAs($this->user)
+        ->postJson('/api/report/snapshot')
+        ->assertCreated()
+        ->json('data.id');
+    $this->actingAs($this->user)
+        ->postJson("/api/report/snapshots/{$snapshotId}/approve", [
+            'single_person_declaration' => 'I prepared, reviewed and approve this snapshot.',
+        ])
+        ->assertCreated();
+
+    $html = $this->actingAs($this->user)->get('/api/report/html')->assertOk()->getContent();
+    expect($html)->toContain('Hecho activo aunque exista una respuesta huérfana.')
+        ->not->toContain('ORPHAN-COMPLETED');
+
+    $docx = $this->actingAs($this->user)->get('/api/guided-report/docx')->assertOk()->getContent();
+    expect(docxVisibleText($docx))->toContain('Hecho activo aunque exista una respuesta huérfana.')
+        ->not->toContain('ORPHAN-COMPLETED');
+
+    $bundle = $this->actingAs($this->user)
+        ->getJson('/api/guided-report/evidence-bundle')
+        ->assertOk()
+        ->json('data');
+    expect($bundle['claims'])->toHaveCount(1)
+        ->and(json_encode($bundle, JSON_THROW_ON_ERROR))->not->toContain('ORPHAN-COMPLETED');
+});
+
+it('blocks the guided docx when approved snapshots are stale after live fact mutations', function () {
     $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
     $fact = guidedReportApiFact($characterization, [
         'fact_id' => 'rf_guided_stale',
@@ -305,6 +401,35 @@ it('blocks stale xhtml ixbrl candidate without leaking Arelle paths or output', 
         ->not->toContain('fatal');
 });
 
+it('blocks publication when facts change while Arelle is validating the candidate', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiSetEntityIdentifier($characterization);
+    $fact = guidedReportApiFact($characterization, [
+        'fact_id' => 'rf_guided_raced_numeric',
+        'value_type' => 'number',
+        'value' => ['value' => '123.45'],
+        'unit' => 'EUR',
+        'decimals' => 2,
+    ]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    [$manifestPath] = guidedReportApiExternalTaxonomyManifestFixture();
+    config(['services.report.external_taxonomy_manifest_path' => $manifestPath]);
+
+    app()->bind(\App\Services\Report\ArelleXhtmlIxbrlValidator::class, fn () => new class($fact->id) extends \App\Services\Report\ArelleXhtmlIxbrlValidator {
+        public function __construct(private readonly int $factId) {}
+
+        public function validate(string $xhtml, \App\Services\Report\ReportingProfile $profile, array $internalManifest): void
+        {
+            ReportingFact::query()->whereKey($this->factId)->update(['value' => json_encode(['value' => '999.99'])]);
+        }
+    });
+
+    $this->actingAs($this->user)->getJson('/api/report/xhtml-ixbrl-candidate')
+        ->assertStatus(409)
+        ->assertJsonPath('data.type', 'xhtml_ixbrl_candidate_blocked')
+        ->assertJsonPath('data.reason_code', 'approved_snapshot_stale');
+});
+
 it('returns Arelle validation failure without leaking paths, command or output', function () {
     $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
     guidedReportApiSetEntityIdentifier($characterization);
@@ -391,6 +516,27 @@ function guidedReportApiFact($characterization, array $overrides = []): Reportin
 
 function guidedReportApiApproveSnapshot(User $user, $characterization)
 {
+    $applicableDatapointIds = ReportingFact::query()
+        ->where('characterization_id', $characterization->id)
+        ->where('applicability', 'applicable')
+        ->pluck('datapoint_id')
+        ->all();
+    $formData = $characterization->form_data;
+    $responses = $formData['esrs_datapoint_responses']['responses'] ?? [];
+
+    foreach ($responses as $datapointId => &$response) {
+        if (! is_array($response)) {
+            continue;
+        }
+
+        $response['status'] = in_array((string) $datapointId, $applicableDatapointIds, true)
+            ? 'completed'
+            : 'not_applicable';
+    }
+    unset($response);
+
+    $formData['esrs_datapoint_responses']['responses'] = $responses;
+    $characterization->update(['form_data' => $formData]);
     $snapshot = app(ReportSnapshotBuilder::class)->create($characterization->fresh());
 
     ReportApproval::create([

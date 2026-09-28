@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server"
+
+function envFlag(name: string): string | null {
+  return process.env[name]?.trim().toLowerCase() || null
+}
+
+export function isLocalNextBackendEnabled(): boolean {
+  const authProvider = envFlag("I4S_AUTH_PROVIDER")
+  const explicitLocalBackend = envFlag("I4S_ENABLE_LOCAL_NEXT_BACKEND")
+
+  if (authProvider === "laravel") {
+    return false
+  }
+
+  if (explicitLocalBackend === "true") {
+    return true
+  }
+
+  if (explicitLocalBackend === "false") {
+    return false
+  }
+
+  return process.env.NODE_ENV !== "production"
+}
+
+export function assertLocalNextBackendEnabled(): NextResponse | null {
+  if (isLocalNextBackendEnabled()) {
+    return null
+  }
+
+  return NextResponse.json(
+    {
+      error: "Imported Next backend is disabled. Use the Laravel API boundary for product runtime.",
+    },
+    { status: 404 },
+  )
+}

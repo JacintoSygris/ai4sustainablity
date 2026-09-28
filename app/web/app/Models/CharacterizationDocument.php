@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\CharacterizationDocumentPurgeService;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class CharacterizationDocument extends Model
 {
@@ -27,6 +27,10 @@ class CharacterizationDocument extends Model
         'size_bytes',
         'mime',
         'status',
+        'extraction_generation',
+        'extraction_lease_token',
+        'extraction_dispatched_at',
+        'extraction_started_at',
         'extraction_json',
         'merged_state_version',
     ];
@@ -34,14 +38,17 @@ class CharacterizationDocument extends Model
     protected $casts = [
         'extraction_json' => 'array',
         'size_bytes' => 'integer',
+        'extraction_dispatched_at' => 'datetime',
+        'extraction_started_at' => 'datetime',
     ];
 
     protected static function booted(): void
     {
         static::deleting(function (CharacterizationDocument $document) {
-            if (filled($document->stored_path)) {
-                Storage::disk(self::STORAGE_DISK)->delete($document->stored_path);
-            }
+            // Persist the only private-file locator in the same transaction as
+            // the row deletion. Physical deletion happens only after commit so
+            // a rollback can never resurrect a row whose bytes are already gone.
+            app(CharacterizationDocumentPurgeService::class)->stage($document);
         });
     }
 

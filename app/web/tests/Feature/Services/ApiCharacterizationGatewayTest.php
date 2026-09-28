@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\CharacterizationCapacityException;
 use App\Models\Characterization;
 use App\Models\User;
 use App\Services\ApiCharacterizationGateway;
@@ -12,32 +13,59 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(\Database\Seeders\NaceCodeSeeder::class);
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
+    config([
+        'services.characterization.api.model_profile' => null,
+        'services.characterization.prediction_mapping_path' => base_path('data/ar16_to_python_esrs_mapping.json'),
+    ]);
+});
+
+it('maps the exact Python capacity response to a bounded retry instruction', function () {
+    config([
+        'services.characterization.api.base_url' => 'http://ai-service.test',
+        'services.characterization.api.token' => null,
+    ]);
+
+    Http::fake([
+        'http://ai-service.test/predict' => Http::response([
+            'detail' => [
+                'code' => 'prediction_capacity_busy',
+                'message' => 'prediction capacity is busy; retry later',
+            ],
+        ], 503, ['Retry-After' => '17']),
+    ]);
+
+    $characterization = Characterization::factory()->create([
+        'user_id' => User::factory()->create()->id,
+        'status' => Characterization::STATUS_SUBMITTED,
+        'nace_code' => 'A',
+        'form_data' => [
+            'company_profile' => ['company_name' => 'Capacity Probe'],
+            'operations' => [],
+        ],
+        'submitted_at' => now(),
+    ]);
+
+    try {
+        app(ApiCharacterizationGateway::class)->submit($characterization);
+        $this->fail('Expected a typed capacity exception.');
+    } catch (CharacterizationCapacityException $exception) {
+        expect($exception->retryAfterSeconds)->toBe(17);
+    }
 });
 
 it('submits normalized company data to the Python predict endpoint', function () {
-    $mappingPath = base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json');
-    $mapping = json_decode(file_get_contents($mappingPath), true, flags: JSON_THROW_ON_ERROR);
-    $expectedMappedKeyCount = collect($mapping['keys'])
-        ->where('status', 'approved')
-        ->filter(fn (array $row) => is_array($row['ar16_topic_ids'] ?? null) && $row['ar16_topic_ids'] !== [])
-        ->count();
-
     config([
         'services.characterization.api.base_url' => 'http://ai-service.test',
         'services.characterization.api.token' => 'test-token',
-        'services.characterization.api.model_profile' => 'new_format_732_v1_gpt41',
-        'services.characterization.prediction_mapping_path' => $mappingPath,
     ]);
 
     Http::fake([
         'http://ai-service.test/predict' => Http::response([
             'esrs' => [
-                'esrs_e1_climate_change_adaptation' => 1,
-                'esrs_e3_other_issues_related_to_esrs_e3' => 1,
+                'esrs_e1_adaptation_to_climate_change' => 1,
+                'esrs_e2_pollution' => 1,
                 'esrs_unknown_key' => 1,
             ],
-            'model_profile' => 'new_format_732_v1_gpt41',
-            'model_key_count' => $mapping['model_key_count'],
         ]),
     ]);
 
@@ -74,30 +102,19 @@ it('submits normalized company data to the Python predict endpoint', function ()
             && $request['employees_total'] === 150
             && $request['annual_turnover_million_euro'] === 2.5
             && $request['stock_listed'] === true
-            && $request['reporting_currency'] === 'EUR'
-            && $request['model_profile'] === 'new_format_732_v1_gpt41';
+            && $request['reporting_currency'] === 'EUR';
     });
 
     expect($result['status'])->toBe('completed');
-    expect($result['raw_prediction'])->toHaveKey('esrs_e1_climate_change_adaptation', 1);
-    expect($result['model_profile'])->toBe('new_format_732_v1_gpt41');
-    expect($result['model_key_count'])->toBe($mapping['model_key_count']);
+    expect($result['raw_prediction'])->toHaveKey('esrs_e1_adaptation_to_climate_change', 1);
     expect($result['candidate_topics'])->toHaveCount(1);
     expect($result['candidate_topics'][0])->toMatchArray([
         'ar16_topic_id' => 1,
-        'python_esrs_keys' => ['esrs_e1_climate_change_adaptation'],
+        'python_esrs_keys' => ['esrs_e1_adaptation_to_climate_change'],
         'score_source' => 'python_predict',
         'suggested' => true,
     ]);
-    expect($result['review_required_prediction_keys'])->toBe([
-        'esrs_e3_other_issues_related_to_esrs_e3',
-        'esrs_unknown_key',
-    ]);
-    expect($result['mapped_key_count'])->toBe($expectedMappedKeyCount);
-    expect($result['mapping_metadata']['laravel']['mapping_version'])->toBe('new_format_732_v1');
-    expect($result['mapping_metadata']['laravel']['mapping_model_key_count'])->toBe($mapping['model_key_count']);
-    expect($result['mapping_metadata']['laravel']['mapping_key_count'])->toBe($expectedMappedKeyCount);
-    expect($result['summary'])->toBe('AI proposed 1 candidate ESRS topic. 2 predicted ESRS keys need manual review.');
+    expect($result['summary'])->toBe('AI proposed 1 candidate ESRS topic. 1 predicted ESRS key needs manual review.');
 });
 
 it('derives numeric prediction payload values from SME size ranges', function () {
@@ -182,32 +199,21 @@ it('adds new-format crosswalk fields from P5 characterization data', function ()
     });
 });
 
-it('can request the public AI model profile and stores response metadata', function () {
-    $mapping = json_decode(
-        file_get_contents(base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json')),
-        true,
-        flags: JSON_THROW_ON_ERROR
-    );
-    $expectedMappedKeyCount = collect($mapping['keys'])
-        ->where('status', 'approved')
-        ->filter(fn (array $row) => is_array($row['ar16_topic_ids'] ?? null) && $row['ar16_topic_ids'] !== [])
-        ->count();
-
+it('can request a configured AI model profile and stores response metadata', function () {
     config([
         'services.characterization.api.base_url' => 'http://ai-service.test',
         'services.characterization.api.token' => null,
-        'services.characterization.api.model_profile' => 'new_format_732_v1_gpt41',
-        'services.characterization.prediction_mapping_path' => base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json'),
+        'services.characterization.api.model_profile' => 'legacy_v0',
     ]);
 
     Http::fake([
         'http://ai-service.test/predict' => Http::response([
             'esrs' => [
-                'esrs_e1_climate_change_adaptation' => 1,
+                'esrs_e1_adaptation_to_climate_change' => 1,
             ],
-            'model_profile' => 'new_format_732_v1_gpt41',
-            'model_key_count' => $mapping['model_key_count'],
-            'mapped_key_count' => $expectedMappedKeyCount,
+            'model_profile' => 'legacy_v0',
+            'model_key_count' => 96,
+            'mapped_key_count' => 92,
             'feature_metadata' => [
                 'derived_fields' => [],
                 'defaulted_fields' => [],
@@ -224,22 +230,21 @@ it('can request the public AI model profile and stores response metadata', funct
 
     Http::assertSent(function ($request) {
         return $request->url() === 'http://ai-service.test/predict'
-            && $request['model_profile'] === 'new_format_732_v1_gpt41';
+            && $request['model_profile'] === 'legacy_v0';
     });
 
-    expect($result['model_profile'])->toBe('new_format_732_v1_gpt41');
-    expect($result['model_key_count'])->toBe($mapping['model_key_count']);
-    expect($result['mapped_key_count'])->toBe($expectedMappedKeyCount);
+    expect($result['model_profile'])->toBe('legacy_v0');
+    expect($result['model_key_count'])->toBe(96);
+    expect($result['mapped_key_count'])->toBe(92);
     expect($result['feature_metadata'])->toBe([
         'derived_fields' => [],
         'defaulted_fields' => [],
         'missing_required_fields' => [],
     ]);
     expect($result['mapping_metadata']['python']['mapping_status'])->toBe('external_laravel_mapping');
-    expect($result['mapping_metadata']['laravel']['mapping_version'])->toBe('new_format_732_v1');
+    expect($result['mapping_metadata']['laravel']['mapping_version'])->toBe('v0');
     expect($result['mapping_metadata']['laravel']['mapping_status'])->toBe('runtime-approved-for-candidate-suggestions');
-    expect($result['mapping_metadata']['laravel']['mapping_model_key_count'])->toBe($mapping['model_key_count']);
-    expect($result['mapping_metadata']['laravel']['mapping_key_count'])->toBe($expectedMappedKeyCount);
+    expect($result['mapping_metadata']['laravel']['mapping_key_count'])->toBeGreaterThan(90);
     expect($result['evidence_refs'])->toBe([]);
 });
 
@@ -528,19 +533,15 @@ it('surfaces positive prediction keys that need manual review', function () {
     config([
         'services.characterization.api.base_url' => 'http://ai-service.test',
         'services.characterization.api.token' => null,
-        'services.characterization.api.model_profile' => 'new_format_732_v1_gpt41',
-        'services.characterization.prediction_mapping_path' => base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json'),
     ]);
 
     Http::fake([
         'http://ai-service.test/predict' => Http::response([
             'esrs' => [
-                'esrs_e2_air_pollution' => 1,
-                'esrs_e3_other_issues_related_to_esrs_e3' => 1,
+                'esrs_e2_pollution' => 1,
+                'esrs_e3_other' => 1,
                 'esrs_unknown_key' => 1,
             ],
-            'model_profile' => 'new_format_732_v1_gpt41',
-            'model_key_count' => 102,
         ]),
     ]);
 
@@ -562,25 +563,16 @@ it('surfaces positive prediction keys that need manual review', function () {
 
     $result = app(ApiCharacterizationGateway::class)->submit($characterization);
 
-    expect($result['candidate_topics'])->toHaveCount(1);
-    expect($result['candidate_topics'][0])->toMatchArray([
-        'ar16_topic_id' => 4,
-        'web_esrs' => 'E2',
-        'python_esrs_keys' => ['esrs_e2_air_pollution'],
-    ]);
+    expect($result['candidate_topics'])->toHaveCount(0);
     expect($result['review_required_prediction_keys'])->toBe([
-        'esrs_e3_other_issues_related_to_esrs_e3',
+        'esrs_e3_other',
         'esrs_unknown_key',
     ]);
-    expect($result['mapping_metadata']['laravel']['mapping_version'])->toBe('new_format_732_v1');
-    expect($result['mapping_metadata']['laravel']['mapping_model_key_count'])->toBe(102);
     expect($result['summary'])->toContain('2 predicted ESRS keys need manual review.');
 
-    $mapping = json_decode(file_get_contents(base_path('data/ar16_to_python_esrs_mapping_new_format_732_v1.json')), true);
-    $rowsByKey = collect($mapping['keys'])->keyBy('python_esrs_key');
+    $mapping = json_decode(file_get_contents(base_path('data/ar16_to_python_esrs_mapping.json')), true);
 
-    expect($rowsByKey['esrs_e2_air_pollution']['status'])->toBe('approved');
-    expect($rowsByKey['esrs_e3_other_issues_related_to_esrs_e3']['status'])->toBe('review_only');
+    expect(data_get($mapping, 'python_key_statuses.esrs_e3_other'))->toBe('review_only');
 });
 
 it('keeps positive keys from non-approved mapping rows in manual review', function () {

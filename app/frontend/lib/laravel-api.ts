@@ -35,6 +35,7 @@ export type LaravelFrontendSession = {
 }
 
 export type LaravelRegisterConfig = {
+  registration_enabled: boolean
   turnstile_site_key: string | null
   require_email_verification: boolean
   honeypot_field: string
@@ -212,6 +213,7 @@ export type LaravelDocumentEvidence = {
 
 export type LaravelMaterialityProposalReview = {
   status: "not_started" | "in_progress" | "reviewed"
+  revision: number
   topic_actions: Record<string, LaravelTopicAction>
   action_reasons: Record<string, string[]>
   action_notes: Record<string, string>
@@ -235,6 +237,17 @@ export type LaravelMaterialityProposal = {
     candidate_topics: unknown[]
     review_required_prediction_keys: string[]
     raw_prediction_key_count: number
+    topic_sync_status: "no_ai_candidates" | "legacy_candidate_fallback" | "synced" | "stored_override"
+    model_profile: string | null
+    model_key_count: number | null
+    mapped_key_count: number | null
+    feature_metadata: {
+      derived_fields: Record<string, unknown> | []
+      defaulted_fields: Record<string, unknown> | []
+      missing_required_fields: string[]
+    }
+    mapping_metadata: Record<string, unknown> | []
+    evidence_refs: unknown[]
   }
   // Present only when the platform enables document extraction (feature detection):
   // absence means the feature is off and the UI must render nothing document-related.
@@ -242,6 +255,7 @@ export type LaravelMaterialityProposal = {
 }
 
 export type LaravelMaterialityProposalReviewPayload = {
+  expected_revision: number
   topic_actions: Record<string, LaravelTopicAction>
   action_reasons?: Record<string, string[]>
   action_notes?: Record<string, string>
@@ -283,7 +297,10 @@ export type LaravelDoubleMaterialityGuide = {
   warning: LaravelLocalizedText
   sections: LaravelDoubleMaterialityGuideSection[]
   templates?: LaravelDoubleMaterialityGuideTemplate[]
-  next_step: {
+  next_step?: {
+    note: LaravelLocalizedText
+  }
+  handoff: {
     next_phase: "P8"
     next_api: string
     note: LaravelLocalizedText
@@ -334,6 +351,7 @@ export type LaravelPaginatedEnvelope<T> = {
 // (LaravelMaterialityConfirmation extended above with P7/P8 A2-A3 fields; old duplicate removed)
 
 export type LaravelMaterialityConfirmationPayload = {
+  expected_revision: number
   confirmed_topic_ids: number[]
   change_reasons?: Record<string, string[]>
   change_reason_notes?: Record<string, string>
@@ -360,7 +378,7 @@ export type LaravelP6Snapshot = {
 
 export type LaravelAdmSummary = {
   acta_registered: boolean
-  acta: { completed_on: string | null; method: string | null; participants: string | null } | null
+  acta: { completed_on: string | null; method: string | null; participants: string | null }
 }
 
 export type LaravelExposicionDefaults = Record<string, "normal" | "fuerte">
@@ -390,12 +408,13 @@ export type LaravelMaterialityConfirmation = {
   }
   topics: LaravelMaterialityTopic[]
   confirmation: {
+    revision: number
     change_reasons: Record<string, string[]>
     change_reason_notes: Record<string, string>
     e1_not_material_explanation: string | null
     confirmed_at: string | null
-    dimensions?: Record<string, "impact" | "financial" | "both">
-    guided_answers?: Record<string, LaravelGuidedAnswer>
+    dimensions: Record<string, "impact" | "financial" | "both">
+    guided_answers: Record<string, LaravelGuidedAnswer>
   }
   preview: {
     material_topic_count: number
@@ -410,16 +429,15 @@ export type LaravelMaterialityConfirmation = {
       phase_in_datapoint_count: number
       label: string
     }
-    effort_level: "low" | "medium" | "high" | string
-    mapping_granularity: string
-    coverage_status: string
+    effort_level: "low" | "medium" | "high"
+    mapping_granularity: "disclosure_requirement_mapping_required" | "disclosure_requirement_level"
+    coverage_status: "topical_mapping_required" | "dr_level"
   }
-  // Materiality confirmation fields.
-  decision_basis?: LaravelMaterialityConfirmationDecisionBasis
-  p6_snapshot?: LaravelP6Snapshot | null
-  adm?: LaravelAdmSummary
-  exposicion_defaults?: LaravelExposicionDefaults
-  is_stale?: boolean
+  decision_basis: LaravelMaterialityConfirmationDecisionBasis
+  p6_snapshot: LaravelP6Snapshot | null
+  adm: LaravelAdmSummary
+  exposicion_defaults: LaravelExposicionDefaults
+  is_stale: boolean
 }
 
 export type LaravelEsrsDatapoint = {
@@ -463,72 +481,22 @@ export type LaravelEsrsDatapointCorpus = {
 }
 
 export type LaravelEsrsDatapointResponseStatus = "draft" | "completed" | "not_applicable"
-export type LaravelEsrsFactValueKind = "narrative" | "string" | "boolean" | "date" | "integer" | "decimal" | "monetary" | "percent"
-
-export type LaravelEsrsReportingEntity = {
-  identifier_scheme: string
-  identifier: string
-  name?: string | null
-}
-
-export type LaravelEsrsFactContext = {
-  period_type: "duration" | "instant"
-  start_date: string | null
-  end_date: string | null
-  instant_date: string | null
-  dimensions: Array<{ axis: string; member: string }>
-}
-
-export type LaravelEsrsDatapointFact = {
-  fact_id?: string
-  value_kind: LaravelEsrsFactValueKind
-  value: string | boolean
-  decimals?: number | null
-  unit?: { measure: string } | null
-  context: LaravelEsrsFactContext
-  evidence_reference: string
-  concept?: {
-    concept_id: string | null
-    taggable_state: string
-    reason_code: string | null
-  }
-}
 
 export type LaravelEsrsDatapointResponse = {
   datapoint_id: string
   status: LaravelEsrsDatapointResponseStatus
   value?: string
-  legacy_value?: string
   evidence_reference?: string
   note?: string
   updated_at?: string
   triage?: "have_it" | "need_to_find" | "not_applicable_candidate"
-  facts?: LaravelEsrsDatapointFact[]
-  concept?: {
-    concept_id: string | null
-    taggable_state: string
-    reason_code: string | null
-  }
-  suggested_value_kind?: LaravelEsrsFactValueKind
-  fact_readiness?: {
-    state: string
-    fact_count: number
-  }
 }
 
 export type LaravelEsrsDatapointResponses = {
   characterization_id: number
-  schema_version: string
+  schema_version: "v0" | "v1"
+  revision: number
   updated_at: string | null
-  reporting_entity: LaravelEsrsReportingEntity
-  datapoints?: Record<string, {
-    concept: {
-      concept_id: string | null
-      taggable_state: string
-      reason_code: string | null
-    }
-    suggested_value_kind: LaravelEsrsFactValueKind
-  }>
   responses: Record<string, LaravelEsrsDatapointResponse>
   summary: {
     applicable_datapoint_count: number
@@ -536,22 +504,20 @@ export type LaravelEsrsDatapointResponses = {
     completed_count: number
     draft_count: number
     not_applicable_count: number
-    invalid_completed_count?: number
-    invalid_not_applicable_count?: number
-    facts_count?: number
-    taggable_facts_count?: number
-    unmapped_or_not_taggable_facts_count?: number
     completion_ratio: number
     completion_status: "not_started" | "in_progress" | "completed"
+    decided_count: number
+    decided_required_count: number
+    optional_response_count: number
   }
-  orphaned?: {
+  orphaned: {
     count: number
     responses: Record<string, LaravelEsrsDatapointResponse>
   }
 }
 
 export type LaravelEsrsDatapointResponsesPayload = {
-  reporting_entity?: LaravelEsrsReportingEntity
+  expected_revision: number
   responses: LaravelEsrsDatapointResponse[]
 }
 
@@ -590,6 +556,10 @@ export type LaravelReportReadiness = {
   version: string
   characterization_id: number
   status: "incomplete" | "ready" | string
+  workflow_status: "incomplete" | "ready" | string
+  workflow_complete: boolean
+  report_content_status: "incomplete" | "ready" | string
+  report_content_ready: boolean
   sections: Record<string, LaravelReportSection>
   downloads: Record<string, LaravelReportDownload>
   next_actions: string[]
@@ -627,8 +597,10 @@ export type LaravelReportDraftMateriality = {
   confirmation_status: string
   proposed_topic_count: number
   confirmed_topic_count: number
+  confirmed_theme_count: number
   confirmed_at: string | null
   confirmed_topics: LaravelMaterialityTopic[]
+  confirmed_themes: Array<{ esrs_code: string; label: string }>
 }
 
 export type LaravelReportDraftDatapointBlock = {
@@ -661,11 +633,121 @@ export type LaravelReportDraft = {
   characterization_id: number
   generation_status: "frontend_rendered_draft" | "report_preparation_package_ready" | string
   readiness_status: "incomplete" | "ready" | string
+  workflow_status: "incomplete" | "ready" | string
+  workflow_complete: boolean
+  report_content_status: "incomplete" | "ready" | string
+  report_content_ready: boolean
   company: LaravelReportDraftCompany
   materiality: LaravelReportDraftMateriality
   datapoints: LaravelReportDraftDatapoints
   exports: Record<string, LaravelReportDownload>
   limitations: LaravelReportLimitation[]
+}
+
+export type LaravelReportingFactValue = string | number | boolean | null | Record<string, string>
+
+export type LaravelReportingFactDimension = {
+  axis: string
+  member: string
+}
+
+export type LaravelReportingFactEvidenceRef = {
+  type: string
+  value: string
+}
+
+export type LaravelReportingFactApplicability =
+  | "applicable"
+  | "not_applicable"
+  | "pending"
+  | "unavailable"
+  | "blocked"
+
+export type LaravelReportingFactValueType =
+  | "text"
+  | "number"
+  | "monetary"
+  | "integer"
+  | "boolean"
+  | "enumeration"
+  | "date"
+  | "nil"
+
+export type LaravelReportingFactApprovalStatus = "review_required" | "reviewed" | "approved" | string
+
+export type LaravelReportingFact = {
+  origin: "persisted" | "legacy_projection" | string
+  id?: number
+  fact_id: string
+  schema_version: string
+  profile_id: string
+  datapoint_id: string
+  applicability: LaravelReportingFactApplicability
+  value_type: LaravelReportingFactValueType
+  value: LaravelReportingFactValue
+  unit: string | null
+  decimals: number | null
+  dimensions: LaravelReportingFactDimension[]
+  language: string | null
+  nil: boolean
+  nil_reason: string | null
+  evidence_refs: LaravelReportingFactEvidenceRef[]
+  provenance: string
+  approval_status: LaravelReportingFactApprovalStatus
+  blocking_reasons: string[]
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export type LaravelReportingFactInput = {
+  datapoint_id: string
+  applicability: LaravelReportingFactApplicability
+  value_type: LaravelReportingFactValueType
+  value: LaravelReportingFactValue
+  unit: string | null
+  decimals: number | null
+  dimensions: LaravelReportingFactDimension[]
+  language: string | null
+  nil: boolean
+  nil_reason: string | null
+  evidence_refs: LaravelReportingFactEvidenceRef[]
+  provenance: "api"
+  approval_status: "review_required"
+  blocking_reasons: string[]
+}
+
+export type LaravelReportingFactState = {
+  characterization_id: number
+  schema_version: string
+  profile_id: string
+  persisted_facts: LaravelReportingFact[]
+  persisted_fact_count: number
+  legacy_projection: LaravelReportingFact[]
+  legacy_projection_count: number
+  pending_p9_suggestions: LaravelReportingFact[]
+  pending_p9_suggestion_count: number
+}
+
+export type LaravelReportSnapshotApproval = {
+  id: number
+  role_mode: string
+  approved_at: string | null
+}
+
+export type LaravelReportSnapshot = {
+  id: number
+  characterization_id: number
+  profile_id: string
+  profile_hash: string
+  facts_hash: string
+  characterization_hash: string
+  snapshot_hash: string
+  stale_state: "fresh" | "stale" | string
+  stale_reasons: string[]
+  approval: LaravelReportSnapshotApproval | null
+  is_approved: boolean
+  created_at: string | null
+  updated_at: string | null
 }
 
 const defaultApiBase = process.env.NEXT_PUBLIC_LARAVEL_API_BASE_URL || "/api"
@@ -1068,6 +1150,70 @@ export function getLaravelReportDraft(
     cache: "no-store",
     ...options,
     method: "GET",
+  })
+}
+
+export function getLaravelReportingFacts(
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportingFactState | null>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportingFactState | null>>("/report/facts", {
+    cache: "no-store",
+    ...options,
+    method: "GET",
+  })
+}
+
+export function saveLaravelReportingFacts(
+  payload: { facts: LaravelReportingFactInput[] },
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportingFactState>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportingFactState>>("/report/facts", {
+    ...options,
+    body: payload,
+    method: "PUT",
+  })
+}
+
+export function reviewLaravelReportingFact(
+  factId: number,
+  payload: { review_declaration: string },
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportingFact>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportingFact>>(`/report/facts/${factId}/review`, {
+    ...options,
+    body: payload,
+    method: "POST",
+  })
+}
+
+export function createLaravelReportSnapshot(
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportSnapshot>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportSnapshot>>("/report/snapshot", {
+    ...options,
+    method: "POST",
+  })
+}
+
+export function getLaravelReportSnapshots(
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportSnapshot[]>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportSnapshot[]>>("/report/snapshots", {
+    cache: "no-store",
+    ...options,
+    method: "GET",
+  })
+}
+
+export function approveLaravelReportSnapshot(
+  snapshotId: number,
+  payload: { single_person_declaration: string },
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelApiEnvelope<LaravelReportSnapshotApproval>> {
+  return laravelApi<LaravelApiEnvelope<LaravelReportSnapshotApproval>>(`/report/snapshots/${snapshotId}/approve`, {
+    ...options,
+    body: payload,
+    method: "POST",
   })
 }
 

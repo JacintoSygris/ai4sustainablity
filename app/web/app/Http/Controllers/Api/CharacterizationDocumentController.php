@@ -3,15 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\ExtractCharacterizationDocumentJob;
 use App\Models\Characterization;
 use App\Models\CharacterizationDocument;
+use App\Models\CharacterizationDocumentPurge;
+use App\Services\CharacterizationDocumentDispatchService;
+use App\Services\CharacterizationDocumentPurgeService;
+use App\Services\CharacterizationStateTransaction;
 use App\Services\DocumentEvidencePresenter;
+use App\Support\P6DocumentUploadGuard;
+use App\Support\UploadVirusScanner;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CharacterizationDocumentController extends Controller
 {
@@ -24,7 +31,12 @@ class CharacterizationDocumentController extends Controller
         'docx' => "PK\x03\x04",
     ];
 
-    public function __construct(private readonly DocumentEvidencePresenter $presenter) {}
+    public function __construct(
+        private readonly DocumentEvidencePresenter $presenter,
+        private readonly CharacterizationStateTransaction $stateTransactions,
+        private readonly CharacterizationDocumentPurgeService $documentPurges,
+        private readonly CharacterizationDocumentDispatchService $documentDispatch,
+    ) {}
 
     public function index(Request $request)
     {
@@ -50,8 +62,6 @@ class CharacterizationDocumentController extends Controller
     {
         $this->abortUnlessEnabled();
 
-        $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
-
         $request->validate([
             'document' => ['required', 'file', 'max:'.self::MAX_SIZE_KILOBYTES],
         ], [
@@ -67,37 +77,113 @@ class CharacterizationDocumentController extends Controller
 
         // Fail-closed virus scan (config-gated; disabled locally). Scan BEFORE
         // storing so an infected/unscannable file never lands on disk.
-        $scan = \App\Support\UploadVirusScanner::scan($file);
-        if (! $scan['ok']) {
-            $message = $scan['result'] === \App\Support\UploadVirusScanner::INFECTED
-                ? 'El documento no ha superado el análisis de seguridad y no se ha guardado.'
-                : 'No se ha podido analizar el documento en este momento. Inténtalo de nuevo más tarde.';
-            throw \Illuminate\Validation\ValidationException::withMessages(['document' => $message]);
+        $scanSlot = $this->acquireScanSlot();
+        try {
+            $scan = UploadVirusScanner::scan($file);
+            if (! $scan['ok']) {
+                $message = $scan['result'] === UploadVirusScanner::INFECTED
+                    ? 'El documento no ha superado el análisis de seguridad y no se ha guardado.'
+                    : 'No se ha podido analizar el documento en este momento. Inténtalo de nuevo más tarde.';
+                throw ValidationException::withMessages(['document' => $message]);
+            }
+        } finally {
+            $scanSlot->release();
         }
 
-        $storedPath = $file->storeAs(
-            'characterization-documents/'.$characterization->id,
-            Str::uuid().'.'.$extension,
-            CharacterizationDocument::STORAGE_DISK
+        $globalQuotaLock = Cache::lock('p6-document-global-quota', 120);
+        if (! $globalQuotaLock->get()) {
+            abort(503, 'El almacenamiento de documentos está ocupado. Inténtalo de nuevo.');
+        }
+
+        try {
+            $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
+            $filename = Str::uuid().'.'.$extension;
+            $storedPath = 'characterization-documents/'.$characterization->id.'/'.$filename;
+            $uploadIntent = $this->documentPurges->stageUnregisteredPath(
+                (int) $request->user()->id,
+                (int) $characterization->id,
+                (int) $file->getSize(),
+                $storedPath,
+            );
+
+            try {
+                $document = $this->stateTransactions->runForUser(
+                    $request->user()->id,
+                    function (Characterization $locked) use ($file, $filename, $uploadIntent): CharacterizationDocument {
+                        $lockedUploadIntent = CharacterizationDocumentPurge::query()
+                            ->lockForUpdate()
+                            ->findOrFail($uploadIntent->id);
+                        $maxDocuments = max(1, (int) config('services.p6_document_upload.max_documents', 5));
+                        $maxTotalBytes = max(1, (int) config('services.p6_document_upload.max_total_bytes', 262144000));
+                        $currentCount = $locked->documents()->count();
+                        $currentBytes = (int) $locked->documents()->sum('size_bytes');
+                        $pendingPurges = CharacterizationDocumentPurge::query()
+                            ->where('user_id', $locked->user_id)
+                            ->whereKeyNot($lockedUploadIntent->id);
+                        $currentCount += (clone $pendingPurges)->count();
+                        $currentBytes += (int) (clone $pendingPurges)->sum('size_bytes');
+                        $incomingBytes = (int) $file->getSize();
+
+                        if ($currentCount >= $maxDocuments || $currentBytes + $incomingBytes > $maxTotalBytes) {
+                            throw ValidationException::withMessages([
+                                'document' => 'Se ha alcanzado el límite de documentos almacenados. Elimina uno antes de subir otro.',
+                            ]);
+                        }
+
+                        $maxGlobalBytes = max(1, (int) config('services.p6_document_upload.max_global_bytes', 5368709120));
+                        $maxGlobalDocuments = max(1, (int) config('services.p6_document_upload.max_global_documents', 1000));
+                        $globalBytes = (int) CharacterizationDocument::query()->sum('size_bytes')
+                            + (int) CharacterizationDocumentPurge::query()
+                                ->whereKeyNot($lockedUploadIntent->id)
+                                ->sum('size_bytes');
+                        if ($globalBytes + $incomingBytes > $maxGlobalBytes) {
+                            abort(503, 'El almacenamiento de documentos no está disponible en este momento.');
+                        }
+                        $globalDocuments = CharacterizationDocument::query()->count()
+                            + CharacterizationDocumentPurge::query()->whereKeyNot($lockedUploadIntent->id)->count();
+                        if ($globalDocuments >= $maxGlobalDocuments) {
+                            abort(503, 'El almacenamiento de documentos no está disponible en este momento.');
+                        }
+
+                        $storedPath = $file->storeAs(
+                            'characterization-documents/'.$locked->id,
+                            $filename,
+                            CharacterizationDocument::STORAGE_DISK
+                        );
+
+                        if (! is_string($storedPath)) {
+                            abort(500, 'No se pudo guardar el documento. Inténtalo de nuevo.');
+                        }
+
+                        $document = $locked->documents()->create([
+                            'original_filename' => $file->getClientOriginalName(),
+                            'stored_path' => $storedPath,
+                            'sha256' => hash_file('sha256', $file->getRealPath()),
+                            'size_bytes' => (int) $file->getSize(),
+                            'mime' => (string) $file->getMimeType(),
+                            'status' => CharacterizationDocument::STATUS_UPLOADED,
+                            'extraction_generation' => (string) Str::uuid(),
+                        ]);
+                        $lockedUploadIntent->delete();
+
+                        return $document;
+                    }
+                );
+            } catch (Throwable $exception) {
+                $this->documentPurges->recoverUnregisteredPath((int) $uploadIntent->id);
+
+                throw $exception;
+            }
+        } finally {
+            $globalQuotaLock->release();
+        }
+
+        $this->documentDispatch->dispatch(
+            (int) $document->getKey(),
+            (string) $document->extraction_generation,
         );
 
-        if (! is_string($storedPath)) {
-            abort(500, 'No se pudo guardar el documento. Inténtalo de nuevo.');
-        }
-
-        $document = CharacterizationDocument::create([
-            'characterization_id' => $characterization->id,
-            'original_filename' => $file->getClientOriginalName(),
-            'stored_path' => $storedPath,
-            'sha256' => hash_file('sha256', $file->getRealPath()),
-            'size_bytes' => (int) $file->getSize(),
-            'mime' => (string) $file->getMimeType(),
-            'status' => CharacterizationDocument::STATUS_UPLOADED,
-        ]);
-
-        ExtractCharacterizationDocumentJob::dispatch($document);
-
-        return response()->json(['data' => $this->documentSummary($document)], 201);
+        return response()->json(['data' => $this->documentSummary($document->fresh() ?? $document)], 201);
     }
 
     public function destroy(Request $request, int $document)
@@ -106,21 +192,50 @@ class CharacterizationDocumentController extends Controller
 
         $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
 
-        /** @var CharacterizationDocument $documentModel */
-        $documentModel = $characterization->documents()->findOrFail($document);
+        $purgeIds = $this->stateTransactions->run($characterization->id, function (Characterization $locked) use ($document): array {
+            /** @var CharacterizationDocument $documentModel */
+            $documentModel = $locked->documents()->lockForUpdate()->findOrFail($document);
+            abort_if(
+                $documentModel->status === CharacterizationDocument::STATUS_EXTRACTING,
+                409,
+                'El documento se está procesando. Inténtalo de nuevo cuando termine.'
+            );
 
-        $this->storeDeletionTombstone($characterization, $documentModel);
+            $this->storeDeletionTombstone($locked, $documentModel);
 
-        // Hard delete: the model deleting hook removes the stored file, and the
-        // row (with its extraction JSON, evidence and snippets) is purged.
-        $documentModel->delete();
+            // The model hook writes a durable purge intent in this transaction;
+            // physical bytes are removed only after the commit is irreversible.
+            $documentModel->delete();
 
-        return response()->json(['data' => ['deleted' => true]]);
+            return $this->documentPurges->intentIdsForDocumentIds([$documentModel->id]);
+        });
+
+        $purgePending = $this->documentPurges->purgeAfterCommit($purgeIds);
+
+        return response()->json(['data' => [
+            'deleted' => true,
+            'purge_status' => $purgePending ? 'pending' : 'completed',
+        ]]);
     }
 
     private function abortUnlessEnabled(): void
     {
-        abort_unless((bool) config('services.p6_document_upload.enabled'), 404);
+        abort_unless(P6DocumentUploadGuard::available(), 404);
+    }
+
+    private function acquireScanSlot(): mixed
+    {
+        $slots = max(1, min(32, (int) config('services.p6_document_upload.scan.max_concurrent', 2)));
+        $ttl = max(5, (int) ceil((float) config('services.p6_document_upload.scan.timeout_seconds', 30)) + 10);
+
+        for ($slot = 0; $slot < $slots; $slot++) {
+            $lock = Cache::lock("p6-document-scan-slot:{$slot}", $ttl);
+            if ($lock->get()) {
+                return $lock;
+            }
+        }
+
+        abort(503, 'El análisis de documentos está ocupado. Inténtalo de nuevo.');
     }
 
     private function validatedExtension(UploadedFile $file): string
@@ -164,7 +279,6 @@ class CharacterizationDocumentController extends Controller
         // snippets and confidences are purged with the document (gate 6.4-ter).
         $tombstones[] = [
             'document_id' => $document->id,
-            'original_filename' => $document->original_filename,
             'deleted_at' => now()->toJSON(),
             'topics' => $this->presenter->topicIdentityRows($document->extraction_json),
         ];

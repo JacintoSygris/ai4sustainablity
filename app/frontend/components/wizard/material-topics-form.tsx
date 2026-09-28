@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, AlertTriangle, CheckCircle2, Clock, HelpCircle, Info, RefreshCw, Search, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -25,10 +25,12 @@ import {
 import {
   REVIEW_REASON_KEYS,
   actionsFromProposal,
+  buildDraftReviewPayload,
   buildReviewPayload,
   missingReviewTopicIds,
   notesFromProposal,
   reasonsFromProposal,
+  saveCompletionMatchesEditVersion,
 } from "@/lib/materiality-proposal-review.mjs"
 import {
   LaravelApiError,
@@ -169,6 +171,8 @@ export function MaterialTopicsForm() {
   const [actionReasons, setActionReasons] = useState<ActionReasons>({})
   const [actionNotes, setActionNotes] = useState<ActionNotes>({})
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const reviewEditVersion = useRef(0)
 
   useEffect(() => {
     let mounted = true
@@ -237,16 +241,21 @@ export function MaterialTopicsForm() {
   const reload = () => setReloadCounter((current) => current + 1)
 
   const setTopicAction = (topicId: number, action: LaravelTopicAction) => {
+    reviewEditVersion.current += 1
     setTopicActions((current) => ({ ...current, [String(topicId)]: action }))
     setErrorMessage(null)
+    setSaveMessage(null)
   }
 
   const setTopicNote = (topicId: number, note: string) => {
+    reviewEditVersion.current += 1
     setActionNotes((current) => ({ ...current, [String(topicId)]: note }))
     setErrorMessage(null)
+    setSaveMessage(null)
   }
 
   const setTopicReason = (topicId: number, reasonKey: string, checked: boolean) => {
+    reviewEditVersion.current += 1
     setActionReasons((current) => {
       const topicKey = String(topicId)
       const selectedReasons = new Set(current[topicKey] ?? [])
@@ -269,6 +278,7 @@ export function MaterialTopicsForm() {
       return next
     })
     setErrorMessage(null)
+    setSaveMessage(null)
   }
 
   const handleSubmitPrediction = async () => {
@@ -297,38 +307,75 @@ export function MaterialTopicsForm() {
     }
   }
 
-  const handleSaveReview = async () => {
+  const handleSaveReview = async (continueAfterSave: boolean) => {
     if (!proposal || totalTopics === 0) {
       return
     }
 
-    const reviewPayload = buildReviewPayload({
-      proposalTopicIds: proposal.proposal_topic_ids,
-      topicActions,
-      actionReasons,
-      actionNotes,
-    })
+    let reviewPayloadData
+    if (continueAfterSave) {
+      const reviewPayload = buildReviewPayload({
+        proposalTopicIds: proposal.proposal_topic_ids,
+        topicActions,
+        actionReasons,
+        actionNotes,
+      })
 
-    if (!reviewPayload.ok) {
-      setErrorMessage(`Marca una decisión explícita en ${reviewPayload.missingTopicIds.length} tema(s) antes de continuar.`)
+      if (!reviewPayload.ok) {
+        setErrorMessage(`Marca una decisión explícita en ${reviewPayload.missingTopicIds.length} tema(s) antes de continuar.`)
 
-      return
+        return
+      }
+      reviewPayloadData = reviewPayload.payload
+    } else {
+      reviewPayloadData = buildDraftReviewPayload({
+        proposalTopicIds: proposal.proposal_topic_ids,
+        topicActions,
+        actionReasons,
+        actionNotes,
+      })
+      if (Object.keys(reviewPayloadData.topic_actions).length === 0) {
+        setErrorMessage("Marca al menos una decisión antes de guardar el borrador.")
+
+        return
+      }
     }
 
     setSavingReview(true)
     setErrorMessage(null)
+    setSaveMessage(null)
+    const savedEditVersion = reviewEditVersion.current
 
     try {
-      const payload = reviewPayload.payload as LaravelMaterialityProposalReviewPayload
+      const payload = {
+        ...reviewPayloadData,
+        expected_revision: proposal.review.revision,
+      } as LaravelMaterialityProposalReviewPayload
       await updateLaravelMaterialityProposalReview(
         payload,
         { csrfToken },
       )
-      router.push("/wizard/step-3")
-      router.refresh()
+      if (!saveCompletionMatchesEditVersion(savedEditVersion, reviewEditVersion.current)) {
+        setSaveMessage("Se guardó la versión anterior. Conservamos tus cambios más recientes para el siguiente guardado.")
+
+        return
+      }
+      if (continueAfterSave) {
+        router.push("/wizard/step-3")
+        router.refresh()
+      } else {
+        setSaveMessage("Borrador guardado.")
+        reload()
+      }
     } catch (error) {
       if (error instanceof LaravelApiError && error.status === 401) {
         router.replace("/login")
+
+        return
+      }
+
+      if (error instanceof LaravelApiError && error.status === 409) {
+        setErrorMessage("La revisión ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar.")
 
         return
       }
@@ -343,8 +390,10 @@ export function MaterialTopicsForm() {
     <TooltipProvider>
       <div className="flex-1">
         <div className="mb-2 flex items-start justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Revisión de asuntos candidatos</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Revisión de temas materiales</h1>
           <button
+            type="button"
+            aria-label="Abrir información sobre la revisión de temas materiales"
             onClick={() => setIsInfoModalOpen(true)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
@@ -354,13 +403,18 @@ export function MaterialTopicsForm() {
         </div>
 
         <p className="mb-6 text-muted-foreground">
-          Revisa la propuesta de asuntos ASG generada desde la encuesta inicial para la{" "}
-          <Term k="doble_materialidad">doble materialidad</Term> y deja trazada tu decisión por cada asunto.
+          Revisa la propuesta de <Term k="materialidad">temas materiales</Term> generada desde la encuesta inicial y
+          deja trazada tu decisión por cada tema.
         </p>
 
         {errorMessage ? (
-          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {errorMessage}
+          </div>
+        ) : null}
+        {saveMessage ? (
+          <div role="status" className="mb-4 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {saveMessage}
           </div>
         ) : null}
 
@@ -392,7 +446,7 @@ export function MaterialTopicsForm() {
               <div className="flex flex-wrap gap-2">
                 {characterization.status === "draft" || characterization.status === "failed" || characterization.status === "timed_out" ? (
                   <Button type="button" onClick={handleSubmitPrediction} disabled={!p5Complete || submittingPrediction}>
-                    {submittingPrediction ? "Generando..." : "Generar propuesta de asuntos candidatos con IA"}
+                    {submittingPrediction ? "Generando..." : "Generar propuesta con inteligencia artificial"}
                   </Button>
                 ) : null}
                 <Button type="button" variant="outline" onClick={reload}>
@@ -406,7 +460,7 @@ export function MaterialTopicsForm() {
           <StatePanel
             icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
             title="Propuesta del paso 2 vacía"
-            description="La plataforma no ha devuelto asuntos propuestos para revisar."
+            description="La plataforma no ha devuelto temas propuestos para revisar."
             action={
               <Button type="button" variant="outline" onClick={reload}>
                 <RefreshCw className="h-4 w-4" />
@@ -463,7 +517,8 @@ export function MaterialTopicsForm() {
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar asunto ESRS..."
+                  aria-label="Buscar tema ESRS"
+                  placeholder="Buscar tema ESRS..."
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
@@ -480,7 +535,7 @@ export function MaterialTopicsForm() {
                   action={topicActions[String(topic.id)]}
                   reasons={actionReasons[String(topic.id)] ?? []}
                   note={actionNotes[String(topic.id)] ?? ""}
-                  disabled={readOnlyMode}
+                  disabled={readOnlyMode || savingReview}
                   onActionChange={(action) => setTopicAction(topic.id, action)}
                   onReasonChange={(reasonKey, checked) => setTopicReason(topic.id, reasonKey, checked)}
                   onNoteChange={(note) => setTopicNote(topic.id, note)}
@@ -504,9 +559,19 @@ export function MaterialTopicsForm() {
                   {!reviewReady ? (
                     <p className="text-sm text-muted-foreground">Marca una acción explícita en todos los temas.</p>
                   ) : null}
-                  <Button type="button" onClick={handleSaveReview} disabled={savingReview || !reviewReady}>
-                    {savingReview ? "Guardando..." : "Guardar y continuar"}
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleSaveReview(false)}
+                      disabled={savingReview || reviewedCount === 0}
+                    >
+                      Guardar borrador
+                    </Button>
+                    <Button type="button" onClick={() => handleSaveReview(true)} disabled={savingReview || !reviewReady}>
+                      {savingReview ? "Guardando..." : "Guardar y continuar"}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -520,13 +585,13 @@ export function MaterialTopicsForm() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
                   2
                 </div>
-                Revisión de asuntos candidatos
+                Revisión de temas materiales
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
                 La propuesta del paso 2 procede del estado de la encuesta inicial en la plataforma. Si está completada,
-                puedes revisar asunto por asunto antes de pasar al análisis de doble materialidad.
+                puedes confirmar tema por tema antes de pasar a la doble materialidad.
               </p>
               <div className="rounded-lg bg-muted/50 p-3">
                 <h4 className="mb-1 font-medium text-foreground">Nota importante</h4>

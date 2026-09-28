@@ -1,5 +1,5 @@
 // Pure rule engine for P8 guided 4-signal suggestion (client + mirrored contract).
-// Exact 7-row precedence used by the guided materiality review. No I/O, no side effects.
+// Exact 7-row precedence from frozen plan table. No I/O, no side effects.
 
 export const IMPACT_LEVELS = ["bajo", "medio", "alto", "no_lo_se"]
 export const CONFIDENCE_LEVELS = ["baja", "media", "alta"]
@@ -116,6 +116,17 @@ export function buildGuidedAnswer(signals, finalResult, note) {
     revisar,
     ...(cleanedNote ? { note: cleanedNote } : {}),
   }
+}
+
+export function buildGuidedAnswerForUserEdit(signals, note, userEdited) {
+  if (!userEdited) return null
+
+  const suggestion = suggestTopicResult(signals || {})
+  const finalResult = suggestion.suggested_result === "en_observacion"
+    ? "material"
+    : suggestion.suggested_result
+
+  return buildGuidedAnswer(signals, finalResult, note)
 }
 
 export function validateGuidedAnswer(answer) {

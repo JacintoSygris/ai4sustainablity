@@ -14,7 +14,7 @@ class ValidateReportAssets extends Command
 {
     protected $signature = 'report:validate-assets';
 
-    protected $description = 'Hard release gates for the P10 guided-report assets and external taxonomy contract.';
+    protected $description = 'Hard release gates for the P10 guided-report vendored assets.';
 
     private const BANNED = ['iXBRL-ready', 'iXBRL ready', 'filing-ready', 'filing ready', 'official filing'];
 
@@ -22,11 +22,11 @@ class ValidateReportAssets extends Command
         'data/atomizer_xbrl_concepts_v1.json',
         'data/atomizer_support_rules_v1.json',
         'data/related_dr_map_esrs2023_v1.json',
+        'data/esrs_datapoints_ig3.json',
     ];
 
     private const BANNED_TERM_SCAN_ASSETS = [
         ...self::ASSETS,
-        'data/esrs_datapoints_ig3.json',
     ];
 
     public function handle(): int
@@ -121,7 +121,7 @@ class ValidateReportAssets extends Command
             $failures[] = $e->getMessage();
         }
 
-        // Gate 5: never vendor EFRAG ESRS taxonomy package/schema material under data.
+        // Gate 5: never vendor EFRAG taxonomy package/schema material under data.
         foreach ($this->forbiddenTaxonomyArtifacts() as $artifact) {
             $failures[] = "taxonomy_repo_artifact_forbidden:{$artifact}";
         }
@@ -160,16 +160,12 @@ class ValidateReportAssets extends Command
                 continue;
             }
 
-            $relativePath = str_replace(base_path().'/', '', $file->getPathname());
-            $normalized = str_replace('\\', '/', strtolower($relativePath));
-
-            if (! str_contains($normalized, 'esrs-set1-2024')
-                && ! str_contains($normalized, 'xbrl.efrag.org')
-                && ! preg_match('/(^|\/)esrs[^\/]*\.(zip|xsd|xbrl)$/', $normalized)) {
+            $extension = strtolower($file->getExtension());
+            if (! in_array($extension, ['zip', 'xsd', 'xbrl'], true)) {
                 continue;
             }
 
-            $forbidden[] = $relativePath;
+            $forbidden[] = str_replace(base_path().'/', '', $file->getPathname());
         }
 
         return $forbidden;

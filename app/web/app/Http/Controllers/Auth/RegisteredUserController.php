@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\AuthenticatePrivateDevUser;
+use App\Jobs\SendRegistrationVerification;
 use App\Models\User;
 use App\Support\RegistrationGuard;
-use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Timebox;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -20,8 +22,14 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        abort_unless(RegistrationGuard::registrationAvailable(), 404);
+
+        if (AuthenticatePrivateDevUser::enabled()) {
+            return redirect('/dashboard');
+        }
+
         return view('auth.register');
     }
 
@@ -32,6 +40,8 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(RegistrationGuard::registrationAvailable(), 404);
+
         // Rate limit public registration per IP (open-signup abuse control).
         $throttleKey = 'register:'.$request->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
@@ -43,36 +53,41 @@ class RegisteredUserController extends Controller
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Honeypot + Turnstile (fail-open when unconfigured; see RegistrationGuard).
+        // Honeypot + Turnstile. Production prerequisites are fail-closed.
         $guardErrors = RegistrationGuard::check($request);
         if ($guardErrors !== []) {
             throw ValidationException::withMessages($guardErrors);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $email = mb_strtolower((string) $request->string('email'));
+        app(Timebox::class)->call(function () use ($request, $email): void {
+            $user = null;
+            try {
+                $user = User::query()->create([
+                    'name' => $request->name,
+                    'email' => $email,
+                    'password' => Hash::make($request->password),
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // Intentionally indistinguishable from a newly created account.
+            }
 
-        // Sends the verification email when the mail driver is real (prod).
-        event(new Registered($user));
+            SendRegistrationVerification::dispatch(
+                $user?->getKey() ?? 0,
+                $email,
+                (int) ($user?->auth_version ?? -1),
+            );
+        }, 350_000);
         // NB: do NOT clear the limiter on success — the cap is accounts-per-IP
         // per window, so a bot that successfully creates accounts stays limited.
 
-        Auth::login($user);
-
-        // With verification enforced, unverified users land on the notice; the
-        // Next frontend detects the unverified session and shows the "verify
-        // your email" screen. Without enforcement, straight to the dashboard.
-        if (config('services.auth_hardening.require_email_verification') && ! $user->hasVerifiedEmail()) {
-            return redirect('/verify-email');
-        }
-
-        return redirect('/dashboard');
+        return redirect('/login')->with(
+            'status',
+            __('Si el registro puede completarse, recibirás un correo para verificar la cuenta.'),
+        );
     }
 }

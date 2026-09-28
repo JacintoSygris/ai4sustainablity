@@ -72,6 +72,21 @@ test("initial survey form preserves multi-select operation arrays", () => {
     /optionLabels\(valueChainOptions, formData\.valueChain\)/,
     "P5 read-only summary must render all value chain positions",
   )
+
+  const componentStart = source.indexOf("export function InitialSurveyForm")
+  const readOnlyFieldStart = source.indexOf("function ReadOnlyField")
+  const multiSelectStart = source.indexOf("function MultiSelectCheckboxes")
+  assert.ok(componentStart > 0, "P5 form component must exist")
+  assert.ok(readOnlyFieldStart >= 0, "ReadOnlyField must be a module-scope component")
+  assert.ok(multiSelectStart >= 0, "MultiSelectCheckboxes must be a module-scope component")
+  assert.ok(
+    readOnlyFieldStart < componentStart,
+    "ReadOnlyField must have stable module scope so rerenders preserve focus and child state",
+  )
+  assert.ok(
+    multiSelectStart < componentStart,
+    "MultiSelectCheckboxes must have stable module scope so rerenders preserve focus and child state",
+  )
 })
 
 test("initial survey form maps NACE validation to a field-level catalog lookup", () => {
@@ -146,4 +161,58 @@ test("initial survey form captures the optional activity questions from Laravel 
     "P5 form must render questions from the Laravel options payload, not hardcoded copy",
   )
   assert.match(formSource, /Preguntas sobre la actividad/, "P5 form must label the activity questions section in Spanish")
+})
+
+test("initial survey form carries the optional LEI without client-controlled scheme or P5 completion pressure", () => {
+  const formSource = read("components/wizard/initial-survey-form.tsx")
+  const clientSource = read("lib/laravel-api.ts")
+
+  assert.match(
+    clientSource,
+    /entity_identifier\?: string \| null/,
+    "Laravel client must type the optional LEI field returned inside company_profile",
+  )
+  assert.match(
+    clientSource,
+    /entity_identifier_scheme\?: string \| null/,
+    "Laravel client must type the server-owned LEI scheme field returned inside company_profile",
+  )
+  assert.match(formSource, /entityIdentifier: string/, "P5 form state must include the optional LEI")
+  assert.match(
+    formSource,
+    /entityIdentifier: companyProfile\.entity_identifier \?\? ""/,
+    "P5 load path must restore company_profile.entity_identifier",
+  )
+  assert.match(
+    formSource,
+    /entity_identifier: formData\.entityIdentifier\.trim\(\) \|\| null/,
+    "P5 save payload must send the optional LEI through company_profile.entity_identifier",
+  )
+  assert.doesNotMatch(
+    formSource,
+    /entity_identifier_scheme:/,
+    "P5 save payload must never send the server-owned entity_identifier_scheme",
+  )
+  assert.match(formSource, /fieldErrors\.entityIdentifier/, "P5 form must map Laravel LEI validation to field state")
+  assert.match(
+    formSource,
+    /validationMessageFor\(error, "form_data\.company_profile\.entity_identifier"\)/,
+    "P5 form must read Laravel LEI validation errors from the nested payload key",
+  )
+  assert.match(
+    formSource,
+    /LEI de la entidad \(opcional para la caracterización\)/,
+    "P5 form must render the agreed Spanish LEI label",
+  )
+  assert.match(
+    formSource,
+    /Se conserva como identificador oficial de la entidad para futuros formatos electrónicos regulados/,
+    "P5 form must explain the electronic-format purpose in plain Spanish",
+  )
+  assert.doesNotMatch(formSource, /XHTML\/iXBRL/, "P5 visible copy must not expose taxonomy-format jargon")
+  assert.match(formSource, /maxLength=\{20\}/, "P5 form must cap client entry at the LEI length")
+
+  const p5CompleteBody = formSource.match(/function p5IsComplete\(formData: FormState\): boolean \{[\s\S]*?\n\}/)?.[0] ?? ""
+
+  assert.doesNotMatch(p5CompleteBody, /entityIdentifier/, "LEI must not be required for P5 completion")
 })

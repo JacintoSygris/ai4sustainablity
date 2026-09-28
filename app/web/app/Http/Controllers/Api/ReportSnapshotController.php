@@ -8,10 +8,14 @@ use App\Models\ReportApproval;
 use App\Models\ReportAuditEvent;
 use App\Models\ReportingFact;
 use App\Models\ReportSnapshot;
+use App\Services\EsrsDatapointCorpusBuilder;
+use App\Services\Report\ReportContentReadiness;
+use App\Services\Report\ReportContentScope;
 use App\Services\Report\ReportSnapshotBuilder;
 use App\Services\Report\ReportStalenessDetector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ReportSnapshotController extends Controller
@@ -40,6 +44,7 @@ class ReportSnapshotController extends Controller
             ->get()
             ->map(function (ReportSnapshot $snapshot) use ($detector): array {
                 $detector->refreshState($snapshot);
+                $snapshot->refresh();
 
                 return $this->snapshotSummary($snapshot);
             })
@@ -53,6 +58,9 @@ class ReportSnapshotController extends Controller
         Request $request,
         int $snapshot,
         ReportStalenessDetector $detector,
+        ReportContentReadiness $contentReadiness,
+        ReportContentScope $contentScope,
+        EsrsDatapointCorpusBuilder $datapoints,
     ): JsonResponse {
         $reportSnapshot = ReportSnapshot::query()
             ->where('user_id', $request->user()->id)
@@ -69,7 +77,12 @@ class ReportSnapshotController extends Controller
             ], 409);
         }
 
-        $reviewability = $this->reviewability($reportSnapshot);
+        $reviewability = $this->reviewability(
+            $reportSnapshot,
+            $contentReadiness,
+            $contentScope,
+            $datapoints,
+        );
 
         if (! $reviewability['reviewable']) {
             return response()->json([
@@ -91,37 +104,95 @@ class ReportSnapshotController extends Controller
             ], 422);
         }
 
-        $approval = ReportApproval::create([
-            'report_snapshot_id' => $reportSnapshot->id,
-            'user_id' => $request->user()->id,
-            'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
-            'preparer_user_id' => $request->user()->id,
-            'reviewer_user_id' => $request->user()->id,
-            'approver_user_id' => $request->user()->id,
-            'single_person_declaration' => trim((string) $request->input('single_person_declaration')),
-            'snapshot_hash' => $reportSnapshot->snapshot_hash,
-            'approved_at' => now(),
-        ]);
+        $result = DB::transaction(function () use (
+            $request,
+            $snapshot,
+            $detector,
+            $contentReadiness,
+            $contentScope,
+            $datapoints,
+        ): array {
+            $lockedSnapshot = ReportSnapshot::query()
+                ->where('user_id', $request->user()->id)
+                ->whereKey($snapshot)
+                ->lockForUpdate()
+                ->firstOrFail();
+            Characterization::query()
+                ->whereKey($lockedSnapshot->characterization_id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        ReportAuditEvent::create([
-            'user_id' => $request->user()->id,
-            'characterization_id' => $reportSnapshot->characterization_id,
-            'report_snapshot_id' => $reportSnapshot->id,
-            'report_approval_id' => $approval->id,
-            'event_type' => 'snapshot_approved',
-            'payload' => [
-                'snapshot_id' => $reportSnapshot->id,
-                'approval_id' => $approval->id,
-                'characterization_id' => $reportSnapshot->characterization_id,
-                'snapshot_hash' => $reportSnapshot->snapshot_hash,
-                'role_mode' => $approval->role_mode,
-                'preparer_user_id' => $approval->preparer_user_id,
-                'reviewer_user_id' => $approval->reviewer_user_id,
-                'approver_user_id' => $approval->approver_user_id,
-            ],
-        ]);
+            $lockedStaleness = $detector->refreshState($lockedSnapshot);
+            if ($lockedStaleness['is_stale']) {
+                return ['response' => response()->json([
+                    'message' => 'The report snapshot is stale.',
+                    'code' => 'report_stale',
+                    'reasons' => $lockedStaleness['reasons'],
+                ], 409)];
+            }
 
-        return response()->json(['data' => $this->approvalSummary($approval)], 201);
+            $lockedReviewability = $this->reviewability(
+                $lockedSnapshot,
+                $contentReadiness,
+                $contentScope,
+                $datapoints,
+            );
+            if (! $lockedReviewability['reviewable']) {
+                return ['response' => response()->json([
+                    'message' => 'The report snapshot is not reviewable.',
+                    'code' => 'report_not_reviewable',
+                    'reasons' => $lockedReviewability['reasons'],
+                ], 409)];
+            }
+
+            $existingApproval = ReportApproval::query()
+                ->where('report_snapshot_id', $lockedSnapshot->id)
+                ->first();
+            if ($existingApproval) {
+                return ['approval' => $existingApproval, 'created' => false];
+            }
+
+            $approval = ReportApproval::create([
+                'report_snapshot_id' => $lockedSnapshot->id,
+                'user_id' => $request->user()->id,
+                'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
+                'preparer_user_id' => $request->user()->id,
+                'reviewer_user_id' => $request->user()->id,
+                'approver_user_id' => $request->user()->id,
+                'single_person_declaration' => trim((string) $request->input('single_person_declaration')),
+                'snapshot_hash' => $lockedSnapshot->snapshot_hash,
+                'approved_at' => now(),
+            ]);
+
+            ReportAuditEvent::create([
+                'user_id' => $request->user()->id,
+                'characterization_id' => $lockedSnapshot->characterization_id,
+                'report_snapshot_id' => $lockedSnapshot->id,
+                'report_approval_id' => $approval->id,
+                'event_type' => 'snapshot_approved',
+                'payload' => [
+                    'snapshot_id' => $lockedSnapshot->id,
+                    'approval_id' => $approval->id,
+                    'characterization_id' => $lockedSnapshot->characterization_id,
+                    'snapshot_hash' => $lockedSnapshot->snapshot_hash,
+                    'role_mode' => $approval->role_mode,
+                    'preparer_user_id' => $approval->preparer_user_id,
+                    'reviewer_user_id' => $approval->reviewer_user_id,
+                    'approver_user_id' => $approval->approver_user_id,
+                ],
+            ]);
+
+            return ['approval' => $approval, 'created' => true];
+        });
+
+        if (isset($result['response'])) {
+            return $result['response'];
+        }
+
+        return response()->json(
+            ['data' => $this->approvalSummary($result['approval'])],
+            $result['created'] ? 201 : 200,
+        );
     }
 
     /**
@@ -186,35 +257,27 @@ class ReportSnapshotController extends Controller
     /**
      * @return array{reviewable: bool, reasons: list<string>}
      */
-    private function reviewability(ReportSnapshot $snapshot): array
+    private function reviewability(
+        ReportSnapshot $snapshot,
+        ReportContentReadiness $contentReadiness,
+        ReportContentScope $contentScope,
+        EsrsDatapointCorpusBuilder $datapoints,
+    ): array
     {
         $facts = ReportingFact::query()
             ->where('characterization_id', $snapshot->characterization_id)
             ->orderBy('fact_id')
             ->get();
-        $reasons = [];
-
-        if ($facts->isEmpty()) {
-            $reasons[] = 'no_persisted_facts';
-        }
-
-        foreach ($facts as $fact) {
-            if (! in_array($fact->approval_status, ['reviewed', 'approved'], true)) {
-                $reasons[] = 'fact_status_not_reviewed';
-                break;
-            }
-        }
-
-        foreach ($facts as $fact) {
-            if ($fact->applicability === 'blocked' || count($fact->blocking_reasons ?? []) > 0) {
-                $reasons[] = 'fact_blocking_reasons_present';
-                break;
-            }
-        }
+        $characterization = Characterization::query()->findOrFail($snapshot->characterization_id);
+        $expectedDatapointIds = $contentScope->completedDatapointIds(
+            $characterization,
+            $datapoints->build($characterization),
+        );
+        $assessment = $contentReadiness->assess($facts, $expectedDatapointIds);
 
         return [
-            'reviewable' => $reasons === [],
-            'reasons' => array_values(array_unique($reasons)),
+            'reviewable' => $assessment['ready'],
+            'reasons' => $assessment['reasons'],
         ];
     }
 }

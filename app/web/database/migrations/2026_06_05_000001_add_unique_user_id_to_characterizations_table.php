@@ -38,6 +38,13 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // MySQL/MariaDB may use the unique index to support the existing
+        // user_id foreign key. Give that constraint a non-unique index before
+        // removing the uniqueness rule so rollback remains executable.
+        Schema::table('characterizations', function (Blueprint $table): void {
+            $table->index('user_id', 'characterizations_user_id_rollback_index');
+        });
+
         Schema::table('characterizations', function (Blueprint $table): void {
             $table->dropUnique('characterizations_user_id_unique');
         });

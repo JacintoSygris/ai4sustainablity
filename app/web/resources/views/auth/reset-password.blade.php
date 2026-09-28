@@ -3,7 +3,7 @@
         @csrf
 
         <!-- Password Reset Token -->
-        <input type="hidden" name="token" value="{{ $request->route('token') }}">
+        <input id="reset-token" type="hidden" name="token" value="">
 
         <!-- Email Address -->
         <div>
@@ -36,4 +36,13 @@
             </x-primary-button>
         </div>
     </form>
+
+    <script>
+        (() => {
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            const token = fragment.get('token') ?? '';
+            document.getElementById('reset-token').value = token;
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        })();
+    </script>
 </x-guest-layout>

@@ -28,4 +28,5 @@ test("frontend pins a patched Next release and a fixed pnpm toolchain", () => {
 test("frontend workspace keeps the pnpm release-age supply-chain check intact", () => {
   assert.doesNotMatch(workspaceConfig, /minimumReleaseAgeExclude/)
   assert.match(workspaceConfig, /^allowBuilds:\n\s+sharp: true\n\s+unrs-resolver: true\s*$/m)
+  assert.doesNotMatch(workspaceConfig, /^onlyBuiltDependencies:/m)
 })
