@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { HelpCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getLaravelSession } from "@/lib/laravel-api"
+import { runLaravelLogout } from "@/lib/laravel-logout.mjs"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,23 +38,39 @@ function readCookie(name: string): string | null {
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const router = useRouter()
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
 
   const handleLogout = async () => {
-    const session = await getLaravelSession()
-    const csrfToken = session.data.csrf_token || readCookie("XSRF-TOKEN")
-    const headers = new Headers()
+    if (loggingOut) return
+    setLoggingOut(true)
+    setLogoutError(null)
 
-    if (csrfToken) {
-      headers.set("X-CSRF-TOKEN", csrfToken)
-    }
+    const result = await runLaravelLogout({
+      refreshSession: async () => {
+        const session = await getLaravelSession()
+        return { csrfToken: session.data.csrf_token || readCookie("XSRF-TOKEN") }
+      },
+      postLogout: async (csrfToken: string | undefined) => {
+        const headers = new Headers()
+        if (csrfToken) headers.set("X-CSRF-TOKEN", csrfToken)
 
-    await fetch("/logout", {
-      credentials: "include",
-      headers,
-      method: "POST",
+        return fetch("/logout", {
+          credentials: "include",
+          headers,
+          method: "POST",
+        })
+      },
     })
 
-    router.push("/login")
+    if (result.outcome === "retryable_error") {
+      setLogoutError("No se ha podido cerrar la sesión. Inténtalo de nuevo.")
+      setLoggingOut(false)
+
+      return
+    }
+
+    router.replace("/login")
     router.refresh()
   }
 
@@ -66,6 +84,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur">
+      {logoutError ? (
+        <div role="alert" className="absolute right-4 top-16 rounded-md border border-destructive/40 bg-background px-4 py-2 text-sm text-destructive shadow">
+          {logoutError}
+        </div>
+      ) : null}
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/dashboard" className="flex items-center gap-1">
           <span className="text-2xl font-bold text-primary">Airis</span>
@@ -100,8 +123,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                 <Link href="/settings">Configuración</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                Cerrar sesión
+              <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="text-destructive">
+                {loggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

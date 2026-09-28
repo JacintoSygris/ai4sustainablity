@@ -1,5 +1,5 @@
 export const P9_EXPORT_LINKS = [
-  { key: "corpus", label: "Lista de información CSV", path: "/esrs-datapoints/export.csv" },
+  { key: "corpus", label: "Corpus CSV", path: "/esrs-datapoints/export.csv" },
   { key: "responses", label: "Respuestas CSV", path: "/esrs-datapoints/responses/export.csv" },
 ]
 
@@ -16,20 +16,20 @@ export const P9_MAPPING_STATUS_LABELS = {
 }
 
 export const P9_COVERAGE_STATUS_LABELS = {
-  dr_level: "Filtrado por Disclosure Requirement",
+  dr_level: "Filtrado por requisito de divulgación",
   topical_mapping_required: "Falta mapa AR16 a DR",
   standard_level_partial: "Cobertura parcial por estándar",
 }
 
 export const P9_FILTER_LABELS = {
-  mapped_disclosure_requirements: "Disclosure Requirements mapeados",
+  mapped_disclosure_requirements: "Requisitos de divulgación mapeados",
   topical_blocked_until_dr_mapping: "Bloqueado hasta mapear AR16 a DR",
   activated_esrs_standard: "Estándar ESRS activado",
 }
 
 export const P9_GRANULARITY_LABELS = {
-  disclosure_requirement_level: "Nivel Disclosure Requirement",
-  disclosure_requirement_mapping_required: "Requiere mapa a Disclosure Requirement",
+  disclosure_requirement_level: "Nivel de requisito de divulgación",
+  disclosure_requirement_mapping_required: "Requiere mapa a requisito de divulgación",
   standard_level: "Nivel estándar",
 }
 
@@ -44,7 +44,7 @@ export const COMPLETION_STATUS_LABELS = {
 export const APPLICABILITY_MAPPING_BASIS_LABELS = {
   always_required: "Siempre requerido",
   conditional_mdr_for_material_topics: "MDR condicional por temas materiales",
-  mapped_disclosure_requirements: "Disclosure Requirement mapeado",
+  mapped_disclosure_requirements: "Requisito de divulgación mapeado",
 }
 
 export function flattenCorpus(corpus) {
@@ -55,7 +55,7 @@ export function flattenCorpus(corpus) {
   return Object.values(corpus.blocks ?? {}).flatMap((block) =>
     (block.datapoints ?? []).map((datapoint) => ({
       blockKey: block.key ?? "",
-      blockTitle: block.title ?? block.key ?? "Bloque de información",
+      blockTitle: block.title ?? block.key ?? "Bloque P9",
       datapoint,
     })),
   )
@@ -74,13 +74,16 @@ export function emptyDraft() {
 export function compactDrafts(drafts) {
   return Object.entries(drafts ?? {})
     .map(([datapoint_id, draft]) => {
+      const facts = compactFacts(draft?.facts)
       const base = {
         datapoint_id,
         evidence_reference: trimOptional(draft?.evidence_reference),
-        facts: compactFacts(draft?.facts),
         note: trimOptional(draft?.note),
         status: draft?.status ?? "draft",
         value: trimOptional(draft?.value),
+      }
+      if (facts.length > 0) {
+        base.facts = facts
       }
       if (draft?.triage) {
         base.triage = draft.triage
@@ -93,7 +96,7 @@ export function compactDrafts(drafts) {
         Boolean(draft.value) ||
         Boolean(draft.evidence_reference) ||
         Boolean(draft.note) ||
-        draft.facts.length > 0
+        (Array.isArray(draft?.facts) && draft.facts.length > 0)
       const hasTriageOnly = draft.triage && !hasContent && draft.status === "draft"
       return hasContent || hasTriageOnly
     })
@@ -286,16 +289,95 @@ function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) 
 
   if (mappingStatus === "partial") {
     return [
-      "La correspondencia AR16 a requisito de divulgación configurada está incompleta o no es válida para todos los temas confirmados. La información temática queda bloqueada hasta corregirlo.",
+      "El mapa AR16 a DR configurado está incompleto o no es válido para todos los temas confirmados. Los datos normativos temáticos quedan bloqueados hasta corregirlo.",
     ]
   }
 
   return [
-    "Falta una correspondencia AR16 a requisito de divulgación completa y válida. La información temática no se incluye para evitar convertir un tema material en todo el estándar ESRS.",
+    "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar ESRS.",
   ]
 }
 
 export const DEFAULT_OBLIGATION_FILTER = "mandatory_only"
+
+export function createResponseSaveQueue(initialRevision = 0) {
+  let acknowledgedRevision = Number.isInteger(initialRevision) && initialRevision >= 0 ? initialRevision : 0
+  let latestEditVersion = 0
+  let tail = Promise.resolve()
+  let active = true
+
+  const discardedResult = () => ({ discarded: true, isLatestEdit: false, response: null })
+
+  return {
+    invalidate() {
+      active = false
+    },
+    isActive() {
+      return active
+    },
+    markEdited() {
+      latestEditVersion += 1
+      return latestEditVersion
+    },
+    setRevision(revision) {
+      if (!Number.isInteger(revision) || revision < 0) {
+        throw new TypeError("Response revision must be a non-negative integer")
+      }
+      acknowledgedRevision = revision
+    },
+    revision() {
+      return acknowledgedRevision
+    },
+    enqueue(responses, editVersion, persist) {
+      const operation = tail.then(async () => {
+        if (!active) return discardedResult()
+
+        let response
+        try {
+          response = await persist({
+            expected_revision: acknowledgedRevision,
+            responses,
+          })
+        } catch (error) {
+          if (!active) return discardedResult()
+          throw error
+        }
+        if (!active) return discardedResult()
+
+        const nextRevision = response?.data?.revision
+        if (!Number.isInteger(nextRevision) || nextRevision <= acknowledgedRevision) {
+          throw new Error("Server returned an invalid response revision")
+        }
+        acknowledgedRevision = nextRevision
+
+        return {
+          discarded: false,
+          isLatestEdit: editVersion === latestEditVersion,
+          response,
+        }
+      })
+
+      tail = operation.then(
+        () => undefined,
+        () => undefined,
+      )
+
+      return operation
+    },
+  }
+}
+
+export function parseDatapointResponsesConflict(error) {
+  if (error?.status !== 409) return null
+  const payload = objectValue(error.payload)
+  if (payload.code !== "datapoint_responses_conflict") return null
+
+  const data = objectValue(payload.data)
+  if (!Number.isInteger(data.revision) || data.revision < 0) return null
+  if (!data.responses || typeof data.responses !== "object" || Array.isArray(data.responses)) return null
+
+  return data
+}
 
 export const TRIAGE_OPTIONS = {
   have_it: "Lo tengo",

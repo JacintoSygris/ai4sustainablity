@@ -1,8 +1,10 @@
 "use client"
 
+import { useOptionalStorage } from "@/lib/consent-storage"
+
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, ChevronDown, ChevronUp, Download, Plus, RefreshCw, Save, Trash2, X } from "lucide-react"
+import { AlertCircle, ChevronDown, ChevronUp, Download, RefreshCw, Save, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,12 +20,9 @@ import {
   laravelApiUrl,
   updateLaravelEsrsDatapointResponses,
   type LaravelEsrsDatapoint,
-  type LaravelEsrsDatapointFact,
   type LaravelEsrsDatapointCorpus,
-  type LaravelEsrsDatapointResponse,
   type LaravelEsrsDatapointResponseStatus,
-  type LaravelEsrsFactValueKind,
-  type LaravelEsrsReportingEntity,
+  type LaravelEsrsDatapointResponsesPayload,
 } from "@/lib/laravel-api"
 import {
   DEFAULT_OBLIGATION_FILTER,
@@ -31,17 +30,15 @@ import {
   applyObligationFilter,
   compactDrafts,
   completionPlanItems,
-  createDefaultFact,
+  createResponseSaveQueue,
   datapointApplicabilitySummary,
   emptyDraft,
-  factKindRequiresDecimals,
-  factKindRequiresUnit,
-  factKindUnitPlaceholder,
   flattenCorpus,
   groupRowsByStandard,
   honestCountsLabel,
   localStorageDraftKey,
   obligationBadge,
+  parseDatapointResponsesConflict,
   phaseInBadgeLabel,
   p9ExportLinks,
   p9MappingSummary,
@@ -57,30 +54,12 @@ type DatapointRow = {
 }
 
 type DraftResponse = {
-  concept?: {
-    concept_id: string | null
-    taggable_state: string
-    reason_code: string | null
-  }
-  suggested_value_kind?: LaravelEsrsFactValueKind
   status: LaravelEsrsDatapointResponseStatus
   value: string
   evidence_reference: string
-  facts: LaravelEsrsDatapointFact[]
   note: string
   triage?: "have_it" | "need_to_find" | "not_applicable_candidate"
 }
-
-const valueKindOptions: Array<{ value: LaravelEsrsFactValueKind; label: string }> = [
-  { value: "narrative", label: "Narrativa" },
-  { value: "string", label: "Texto corto" },
-  { value: "boolean", label: "Sí / no" },
-  { value: "date", label: "Fecha" },
-  { value: "integer", label: "Entero" },
-  { value: "decimal", label: "Decimal" },
-  { value: "monetary", label: "Monetario" },
-  { value: "percent", label: "Porcentaje" },
-]
 
 const statusOptions: Array<{ value: LaravelEsrsDatapointResponseStatus; label: string }> = [
   { value: "draft", label: "Borrador" },
@@ -88,51 +67,28 @@ const statusOptions: Array<{ value: LaravelEsrsDatapointResponseStatus; label: s
   { value: "not_applicable", label: "No aplica" },
 ]
 
-function createTypedDefaultFact(valueKind: LaravelEsrsFactValueKind): LaravelEsrsDatapointFact {
-  const defaultFact = createDefaultFact(valueKind)
-  const defaultContext = defaultFact.context
-  const periodType: LaravelEsrsDatapointFact["context"]["period_type"] =
-    defaultContext.period_type === "duration" || defaultContext.period_type === "instant"
-      ? defaultContext.period_type
-      : "duration"
-
-  return {
-    value_kind: valueKind,
-    value: defaultFact.value,
-    decimals: defaultFact.decimals,
-    unit: defaultFact.unit,
-    context: {
-      period_type: periodType,
-      start_date: defaultContext.start_date,
-      end_date: defaultContext.end_date,
-      instant_date: defaultContext.instant_date,
-      dimensions: defaultContext.dimensions,
-    },
-    evidence_reference: defaultFact.evidence_reference,
-  }
-}
-
-function compactTypedDrafts(drafts: Record<string, DraftResponse>): LaravelEsrsDatapointResponse[] {
-  return compactDrafts(drafts).map((response) => ({
-    ...response,
-    facts: response.facts.map((fact) => ({
-      ...fact,
-      context: {
-        ...fact.context,
-        period_type:
-          fact.context.period_type === "duration" || fact.context.period_type === "instant"
-            ? fact.context.period_type
-            : "duration",
-      },
-    })),
-  }))
-}
-
 function datapointSubtitle(datapoint: LaravelEsrsDatapoint): string {
   return [datapoint.standard, datapoint.dr, datapoint.paragraph].filter(Boolean).join(" / ")
 }
 
+function draftsFromResponseState(responses: Record<string, any>): Record<string, DraftResponse> {
+  return Object.fromEntries(
+    Object.entries(responses ?? {}).map(([datapointId, response]) => [
+      datapointId,
+      {
+        evidence_reference: response.evidence_reference ?? "",
+        note: response.note ?? "",
+        status: response.status,
+        value: response.value ?? "",
+        triage: response.triage,
+      },
+    ]),
+  )
+}
+
 export function EsrsDatapointsForm() {
+  const recoveryStorage = useOptionalStorage("recovery")
+  const preferenceStorage = useOptionalStorage("preferences")
   const router = useRouter()
   const [reloadCounter, setReloadCounter] = useState(0)
   const [loadingInitial, setLoadingInitial] = useState(true)
@@ -142,21 +98,11 @@ export function EsrsDatapointsForm() {
   const [drafts, setDrafts] = useState<Record<string, DraftResponse>>({})
   const draftsRef = useRef<Record<string, DraftResponse>>({})
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [validationMessages, setValidationMessages] = useState<string[]>([])
 
   // F2 new state (additive)
   const [characterizationId, setCharacterizationId] = useState<number | null>(null)
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null)
   const [orphaned, setOrphaned] = useState<{ count: number; responses: Record<string, any> } | null>(null)
-  const [datapointMetadata, setDatapointMetadata] = useState<Record<string, {
-    concept?: DraftResponse["concept"]
-    suggested_value_kind?: LaravelEsrsFactValueKind
-  }>>({})
-  const [reportingEntity, setReportingEntity] = useState<LaravelEsrsReportingEntity>({
-    identifier_scheme: "",
-    identifier: "",
-    name: "",
-  })
   const [obligationFilter, setObligationFilter] = useState<"mandatory_only" | "all" | "phase_in">(DEFAULT_OBLIGATION_FILTER)
   const [viewMode, setViewMode] = useState<"inventory" | "respond">("respond")
   const [isDirty, setIsDirty] = useState(false)
@@ -164,14 +110,19 @@ export function EsrsDatapointsForm() {
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null)
   const [showIntro, setShowIntro] = useState(true)
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false)
+  const [recoveryIsConflict, setRecoveryIsConflict] = useState(false)
   const [pendingRecoveryDrafts, setPendingRecoveryDrafts] = useState<Record<string, DraftResponse> | null>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dirtyRef = useRef(false)
+  const editVersionRef = useRef(0)
+  const saveQueueRef = useRef(createResponseSaveQueue(0))
 
   useEffect(() => {
     let mounted = true
 
     async function loadP9() {
+      saveQueueRef.current.invalidate()
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
       setLoadingInitial(true)
       setErrorMessage(null)
 
@@ -192,30 +143,16 @@ export function EsrsDatapointsForm() {
         setCorpus(corpusData)
         setCharacterizationId(responsesData?.characterization_id ?? corpusData?.characterization_id ?? null)
         setServerUpdatedAt(responsesData?.updated_at ?? null)
+        saveQueueRef.current = createResponseSaveQueue(responsesData?.revision ?? 0)
+        editVersionRef.current = 0
         setOrphaned(responsesData?.orphaned ?? null)
-        setDatapointMetadata(responsesData?.datapoints ?? {})
-        setReportingEntity(responsesData?.reporting_entity ?? { identifier_scheme: "", identifier: "", name: "" })
-        const seededDrafts = Object.fromEntries(
-          Object.entries(responsesData?.responses ?? {}).map(([datapointId, response]) => [
-            datapointId,
-            {
-              evidence_reference: response.evidence_reference ?? "",
-              facts: response.facts ?? [],
-              note: response.note ?? "",
-              concept: response.concept,
-              suggested_value_kind: response.suggested_value_kind,
-              status: response.status,
-              value: response.legacy_value ?? response.value ?? "",
-              triage: (response as any).triage,
-            },
-          ]),
-        )
+        const seededDrafts = draftsFromResponseState(responsesData?.responses ?? {})
         draftsRef.current = seededDrafts
         setDrafts(seededDrafts)
 
         // intro dismiss (local only)
         try {
-          if (typeof window !== "undefined" && window.localStorage.getItem("p9_intro_dismissed") === "1") {
+          if (typeof window !== "undefined" && preferenceStorage.getItem("p9_intro_dismissed") === "1") {
             setShowIntro(false)
           }
         } catch {}
@@ -232,7 +169,7 @@ export function EsrsDatapointsForm() {
           return
         }
 
-        setErrorMessage("No se han podido cargar los indicadores/datos ESRS del paso 5 desde la plataforma.")
+        setErrorMessage("No se han podido cargar los datos normativos del paso 5 desde la plataforma.")
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -244,6 +181,7 @@ export function EsrsDatapointsForm() {
 
     return () => {
       mounted = false
+      saveQueueRef.current.invalidate()
     }
   }, [reloadCounter, router])
 
@@ -300,41 +238,17 @@ export function EsrsDatapointsForm() {
       if (id != null) {
         try {
           const key = localStorageDraftKey(id)
-          window.localStorage.setItem(key, JSON.stringify({ drafts: next, savedAt: Date.now() }))
+          recoveryStorage.setItem(key, JSON.stringify({ drafts: next, savedAt: Date.now() }))
         } catch {}
       }
       return next
     })
     setIsDirty(true)
     dirtyRef.current = true
+    editVersionRef.current = saveQueueRef.current.markEdited()
     setErrorMessage(null)
     setAutoSaveError(null)
     scheduleAutoSave()
-  }
-
-  const updateReportingEntity = (patch: Partial<LaravelEsrsReportingEntity>) => {
-    setReportingEntity((current) => ({ ...current, ...patch }))
-    setIsDirty(true)
-    dirtyRef.current = true
-    setValidationMessages([])
-    scheduleAutoSave()
-  }
-
-  const updateFact = (datapointId: string, factIndex: number, patch: Partial<LaravelEsrsDatapointFact>) => {
-    const current = draftsRef.current[datapointId] ?? emptyDraft()
-    const facts = [...(current.facts ?? [])]
-    facts[factIndex] = { ...(facts[factIndex] ?? createTypedDefaultFact("string")), ...patch }
-    updateDraft(datapointId, { facts })
-  }
-
-  const removeFact = (datapointId: string, factIndex: number) => {
-    const current = draftsRef.current[datapointId] ?? emptyDraft()
-    updateDraft(datapointId, { facts: (current.facts ?? []).filter((_, index) => index !== factIndex) })
-  }
-
-  const addFact = (datapointId: string, valueKind: LaravelEsrsFactValueKind) => {
-    const current = draftsRef.current[datapointId] ?? emptyDraft()
-    updateDraft(datapointId, { facts: [...(current.facts ?? []), createTypedDefaultFact(valueKind)] })
   }
 
   const reload = () => setReloadCounter((current) => current + 1)
@@ -343,7 +257,7 @@ export function EsrsDatapointsForm() {
   function clearLocalMirror(id: number | null) {
     if (id == null) return
     try {
-      window.localStorage.removeItem(localStorageDraftKey(id))
+      recoveryStorage.removeItem(localStorageDraftKey(id))
     } catch {}
   }
 
@@ -354,35 +268,75 @@ export function EsrsDatapointsForm() {
     }, 1500)
   }
 
+  function installConflictRecovery(error: unknown) {
+    const conflict = parseDatapointResponsesConflict(error)
+    if (!conflict) return false
+
+    const localDrafts = draftsRef.current
+    const remoteDrafts = draftsFromResponseState(conflict.responses)
+    saveQueueRef.current.invalidate()
+    saveQueueRef.current = createResponseSaveQueue(conflict.revision)
+    editVersionRef.current = 0
+    draftsRef.current = remoteDrafts
+    setDrafts(remoteDrafts)
+    setServerUpdatedAt(conflict.updated_at ?? null)
+    setPendingRecoveryDrafts(localDrafts)
+    setRecoveryIsConflict(true)
+    setShowRecoveryPrompt(true)
+    setIsDirty(false)
+    dirtyRef.current = false
+    setAutoSaveError("Las respuestas cambiaron en otra pestaña. Recupera tus cambios o conserva la versión actualizada.")
+    return true
+  }
+
   async function performAutoSave() {
     if (!characterizationId || !csrfToken) return
     if (!isDirty && !dirtyRef.current) return
     setAutoSaveError(null)
     try {
-      await updateLaravelEsrsDatapointResponses({ reporting_entity: reportingEntity, responses: compactTypedDrafts(draftsRef.current) }, { csrfToken })
+      const saved = await enqueueCurrentSave()
+      if (saved.discarded) return
       setLastSavedAt(new Date())
-      setIsDirty(false)
-      dirtyRef.current = false
-      // clear recovery mirror on successful server save
-      clearLocalMirror(characterizationId)
+      setServerUpdatedAt(saved.response.data.updated_at)
+      if (saved.isLatestEdit) {
+        setIsDirty(false)
+        dirtyRef.current = false
+        clearLocalMirror(characterizationId)
+      }
       // soft refresh corpus counts if needed (no full reload to avoid flicker)
     } catch (error) {
       if (error instanceof LaravelApiError && error.status === 401) {
         router.replace("/login")
         return
       }
-      if (error instanceof LaravelApiError && error.status === 422) {
-        setValidationMessages(validationErrors(error.payload))
-      }
+      if (installConflictRecovery(error)) return
       setAutoSaveError("No se pudo guardar automáticamente. Usa el botón Guardar.")
       // keep dirty so manual save can retry
     }
   }
 
+  function enqueueCurrentSave() {
+    const editVersion = editVersionRef.current
+    const responses = compactDrafts(draftsRef.current)
+
+    return saveQueueRef.current.enqueue(
+      responses,
+      editVersion,
+      (payload: LaravelEsrsDatapointResponsesPayload) =>
+        updateLaravelEsrsDatapointResponses(
+          {
+            expected_revision: payload.expected_revision,
+            responses: payload.responses,
+          },
+          { csrfToken },
+        ),
+    )
+  }
+
   function checkRecovery(charId: number, serverUpdated: string | null, currentServerDrafts: Record<string, DraftResponse>) {
     try {
       const key = localStorageDraftKey(charId)
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(key) : null
+      const raw = typeof window !== "undefined" ? recoveryStorage.getItem(key) : null
       if (!raw) return
       const parsed = JSON.parse(raw)
       if (!parsed || typeof parsed !== "object" || !parsed.drafts) return
@@ -391,6 +345,7 @@ export function EsrsDatapointsForm() {
       if (localSavedAt > serverTs) {
         // local is newer
         setPendingRecoveryDrafts(parsed.drafts)
+        setRecoveryIsConflict(false)
         setShowRecoveryPrompt(true)
       } else {
         // stale local, clear
@@ -405,22 +360,25 @@ export function EsrsDatapointsForm() {
       setDrafts(pendingRecoveryDrafts)
       setIsDirty(true)
       dirtyRef.current = true
+      editVersionRef.current = saveQueueRef.current.markEdited()
       scheduleAutoSave()
     }
     setShowRecoveryPrompt(false)
     setPendingRecoveryDrafts(null)
+    setRecoveryIsConflict(false)
   }
 
   const declineRecovery = () => {
     clearLocalMirror(characterizationId)
     setShowRecoveryPrompt(false)
     setPendingRecoveryDrafts(null)
+    setRecoveryIsConflict(false)
   }
 
   const dismissIntro = () => {
     setShowIntro(false)
     try {
-      if (typeof window !== "undefined") window.localStorage.setItem("p9_intro_dismissed", "1")
+      if (typeof window !== "undefined") preferenceStorage.setItem("p9_intro_dismissed", "1")
     } catch {}
   }
 
@@ -428,29 +386,30 @@ export function EsrsDatapointsForm() {
     setSaving(true)
     setErrorMessage(null)
     setAutoSaveError(null)
-    setValidationMessages([])
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 
     try {
-      await updateLaravelEsrsDatapointResponses({ reporting_entity: reportingEntity, responses: compactTypedDrafts(draftsRef.current) }, { csrfToken })
+      const saved = await enqueueCurrentSave()
+      if (saved.discarded) return
       setLastSavedAt(new Date())
-      setIsDirty(false)
-      dirtyRef.current = false
-      clearLocalMirror(characterizationId)
-      reload()
-      router.refresh()
+      setServerUpdatedAt(saved.response.data.updated_at)
+      if (saved.isLatestEdit) {
+        setIsDirty(false)
+        dirtyRef.current = false
+        clearLocalMirror(characterizationId)
+        reload()
+        router.refresh()
+      }
     } catch (error) {
       if (error instanceof LaravelApiError && error.status === 401) {
         router.replace("/login")
 
         return
       }
-      if (error instanceof LaravelApiError && error.status === 422) {
-        setValidationMessages(validationErrors(error.payload))
-        setErrorMessage("Revisa los campos marcados por la plataforma antes de guardar.")
-        return
-      }
 
-      setErrorMessage("La plataforma no ha podido guardar las respuestas de información.")
+      if (installConflictRecovery(error)) return
+
+      setErrorMessage("La plataforma no ha podido guardar las respuestas de los datos normativos.")
     } finally {
       setSaving(false)
     }
@@ -460,11 +419,11 @@ export function EsrsDatapointsForm() {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Indicadores y datos ESRS</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Datos normativos ESRS</h1>
           <p className="mt-2 text-muted-foreground">
-            Registra respuestas y referencias para los indicadores/datos seleccionados, agrupados por{" "}
-            <Term k="requisito_divulgacion">requisito de divulgación</Term>. La aplicación no decide por sí sola qué
-            información es suficiente.
+            Completa los <Term k="datapoint">datos normativos</Term> que piden los <Term k="esrs">ESRS</Term>, agrupados por{" "}
+            <Term k="requisito_divulgacion">requisito de divulgación</Term>. La inteligencia artificial no decide los
+            datos normativos.
           </p>
         </div>
         <div className="flex gap-2">
@@ -490,20 +449,10 @@ export function EsrsDatapointsForm() {
           {errorMessage}
         </div>
       ) : null}
-      {validationMessages.length > 0 ? (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-medium">La plataforma ha devuelto estas validaciones:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {validationMessages.slice(0, 8).map((message, index) => (
-              <li key={`${message}-${index}`}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       {loadingInitial ? (
         <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando información del paso 5...</CardContent>
+          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando datos normativos del paso 5...</CardContent>
         </Card>
       ) : !corpus ? (
         <Card>
@@ -513,7 +462,7 @@ export function EsrsDatapointsForm() {
               <div>
                 <p className="font-medium text-foreground">No hay materialidad final confirmada</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Completa el paso 4 para que la plataforma prepare la lista de información aplicable.
+                  Completa el paso 4 para que la plataforma genere el listado de datos normativos aplicable.
                 </p>
               </div>
             </div>
@@ -534,39 +483,10 @@ export function EsrsDatapointsForm() {
           </Card>
 
           <Card>
-            <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="reporting-entity-scheme">Esquema del identificador de la entidad</Label>
-                <Input
-                  id="reporting-entity-scheme"
-                  value={reportingEntity.identifier_scheme}
-                  onInput={(event) => updateReportingEntity({ identifier_scheme: event.currentTarget.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reporting-entity-id">Identificador de la entidad</Label>
-                <Input
-                  id="reporting-entity-id"
-                  value={reportingEntity.identifier}
-                  onInput={(event) => updateReportingEntity({ identifier: event.currentTarget.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reporting-entity-name">Nombre de la entidad</Label>
-                <Input
-                  id="reporting-entity-name"
-                  value={reportingEntity.name ?? ""}
-                  onInput={(event) => updateReportingEntity({ name: event.currentTarget.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardContent className="space-y-5 pt-6">
               <div className="grid gap-4 lg:grid-cols-3">
                 <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">Cobertura de información</p>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Cobertura de datos normativos</p>
                   <p className="mt-1 text-sm text-foreground">
                     {mappingSummary.mappingStatusLabel || "-"} / {mappingSummary.coverageStatusLabel || "-"}
                   </p>
@@ -575,10 +495,10 @@ export function EsrsDatapointsForm() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">Fase-in</p>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Aplicación gradual</p>
                   <p className="mt-1 text-sm text-foreground">{phaseSummary.status || "-"}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {phaseSummary.applicablePhaseInCount} elementos potencialmente aplicables
+                    {phaseSummary.applicablePhaseInCount} datos normativos potencialmente aplicables
                   </p>
                 </div>
                 <div>
@@ -604,7 +524,7 @@ export function EsrsDatapointsForm() {
                     <div key={item.key || item.title} className="rounded-md border border-border px-3 py-2 text-sm">
                       <p className="font-medium text-foreground">{item.title || item.key}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.statusLabel || "-"} · {item.datapointCount} elementos
+                        {item.statusLabel || "-"} · {item.datapointCount} datos normativos
                       </p>
                     </div>
                   ))}
@@ -621,7 +541,7 @@ export function EsrsDatapointsForm() {
                   <div>
                     <p className="font-semibold text-foreground">Qué es esta lista</p>
                     <p className="mt-1 text-sm text-foreground">
-                      Cada fila es un indicador/dato concreto que pide el estándar: una cifra, una explicación o una referencia. La lista combina requisitos transversales disponibles y, cuando la configuración lo permite, información temática derivada de los asuntos materiales confirmados. El objetivo no es responderlo todo de golpe: es inventariar qué tienes, qué falta y qué debe revisar tu organización.
+                      Cada fila es un dato concreto que pide el estándar: una cifra o una explicación. La lista sale de los temas que confirmaste en el paso 4 — no la decide la inteligencia artificial. El objetivo de hoy no es responderlo todo: es inventariar qué tienes y qué te falta.
                     </p>
                   </div>
                   <button type="button" onClick={dismissIntro} className="text-muted-foreground hover:text-foreground" aria-label="Cerrar">
@@ -640,7 +560,7 @@ export function EsrsDatapointsForm() {
                 {[
                   { key: "mandatory_only" as const, label: "Solo obligatorios" },
                   { key: "all" as const, label: "Todos" },
-                  { key: "phase_in" as const, label: "Aplazables (fase-in)" },
+                  { key: "phase_in" as const, label: "Aplazables temporalmente" },
                 ].map((f) => (
                   <button
                     key={f.key}
@@ -717,7 +637,7 @@ export function EsrsDatapointsForm() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-3 pt-3">
                     {group.rows.length === 0 ? (
-                      <div className="text-xs text-muted-foreground px-1">Sin indicadores/datos en este filtro.</div>
+                      <div className="text-xs text-muted-foreground px-1">Sin datos normativos en este filtro.</div>
                     ) : (
                       group.rows.map((rowLike: any) => {
                         const datapoint: LaravelEsrsDatapoint = rowLike.datapoint || rowLike
@@ -726,9 +646,6 @@ export function EsrsDatapointsForm() {
                         const badge = obligationBadge(datapoint)
                         const phaseLabel = phaseInBadgeLabel(datapoint, lessThan750)
                         const currentTriageLabel = draft.triage ? TRIAGE_OPTIONS[draft.triage] : null
-                        const metadata = datapointMetadata[datapoint.id] ?? {}
-                        const concept = draft.concept ?? metadata.concept
-                        const suggestedKind = (draft.suggested_value_kind || metadata.suggested_value_kind || "string") as LaravelEsrsFactValueKind
 
                         if (viewMode === "inventory") {
                           return (
@@ -769,7 +686,7 @@ export function EsrsDatapointsForm() {
                             <CardContent className="space-y-4 pt-6">
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div>
-                                  <p className="text-xs font-medium uppercase text-muted-foreground">{datapoint.standard || "Elemento"}</p>
+                                  <p className="text-xs font-medium uppercase text-muted-foreground">{datapoint.standard || "Dato normativo"}</p>
                                   <h2 className="mt-1 text-base font-semibold text-foreground">{datapoint.name}</h2>
                                   <p className="mt-1 text-sm text-muted-foreground">{datapointSubtitle(datapoint)}</p>
                                   {applicability.reason ? (
@@ -784,21 +701,11 @@ export function EsrsDatapointsForm() {
                                       </span>
                                     ) : null}
                                     {applicability.phaseInLessThan750 || applicability.phaseInAllUndertakings ? (
-                                      <span className="rounded-md border border-border px-2 py-1">Fase-in</span>
+                                      <span className="rounded-md border border-border px-2 py-1">Aplicación gradual</span>
                                     ) : null}
                                   </div>
                                   {applicability.limitations.length > 0 ? (
                                     <p className="mt-2 text-xs text-amber-700">{applicability.limitations.join(" ")}</p>
-                                  ) : null}
-                                  {concept ? (
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                      Concepto XBRL: {concept.concept_id || "sin mapping"} · {concept.taggable_state}
-                                    </p>
-                                  ) : null}
-                                  {concept?.taggable_state && concept.taggable_state !== "mapped" ? (
-                                    <p className="mt-2 text-xs text-amber-700">
-                                      Este concepto queda documentado como evidencia, pero no es exportable como etiqueta iXBRL.
-                                    </p>
                                   ) : null}
                                 </div>
                                 <div className="flex flex-col items-end gap-1 text-xs">
@@ -829,8 +736,16 @@ export function EsrsDatapointsForm() {
                                     ))}
                                   </select>
                                   {draft.status === "not_applicable" && !draft.note ? (
-                                    <p className="text-xs text-amber-700">Indica una razón y una evidencia para guardar como no aplica.</p>
+                                    <p className="text-xs text-amber-700">Opcional: ¿por qué no aplica? Una frase ayuda a tu auditor.</p>
                                   ) : null}
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`${datapoint.id}-value`}>Valor / respuesta</Label>
+                                  <Input
+                                    id={`${datapoint.id}-value`}
+                                    value={draft.value}
+                                    onInput={(event) => updateDraft(datapoint.id, { value: event.currentTarget.value })}
+                                  />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor={`${datapoint.id}-evidence`}>Evidencia</Label>
@@ -847,31 +762,6 @@ export function EsrsDatapointsForm() {
                                     value={draft.note}
                                     onInput={(event) => updateDraft(datapoint.id, { note: event.currentTarget.value })}
                                   />
-                                </div>
-                                <div className="space-y-3 lg:col-span-3">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="text-sm font-medium text-foreground">Datos estructurados</div>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addFact(datapoint.id, suggestedKind)}>
-                                      <Plus className="h-4 w-4" />
-                                      Añadir dato
-                                    </Button>
-                                  </div>
-                                  {draft.value ? (
-                                    <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                                      Respuesta antigua conservada para migración: {draft.value}
-                                    </div>
-                                  ) : null}
-                                  {(draft.facts ?? []).map((fact, factIndex) => (
-                                    <FactEditor
-                                      key={fact.fact_id ?? factIndex}
-                                      datapointId={datapoint.id}
-                                      fact={fact}
-                                      factIndex={factIndex}
-                                      suggestedKind={suggestedKind}
-                                      onChange={(patch) => updateFact(datapoint.id, factIndex, patch)}
-                                      onRemove={() => removeFact(datapoint.id, factIndex)}
-                                    />
-                                  ))}
                                 </div>
                               </div>
                             </CardContent>
@@ -902,7 +792,7 @@ export function EsrsDatapointsForm() {
           {/* recovery prompt (F2) */}
           {showRecoveryPrompt && pendingRecoveryDrafts ? (
             <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 shadow">
-              <p>Tienes cambios sin guardar de una sesión anterior. ¿Recuperarlos?</p>
+              <p>{recoveryIsConflict ? "Las respuestas cambiaron en otra pestaña. ¿Quieres recuperar tus cambios sobre la versión actualizada?" : "Tienes cambios sin guardar de una sesión anterior. ¿Recuperarlos?"}</p>
               <div className="mt-2 flex gap-2">
                 <Button size="sm" onClick={acceptRecovery}>Recuperar</Button>
                 <Button size="sm" variant="outline" onClick={declineRecovery}>Descartar</Button>
@@ -922,203 +812,4 @@ function SummaryMetric({ label, value }: { label: string; value: number | string
       <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
     </div>
   )
-}
-
-function FactEditor({
-  datapointId,
-  fact,
-  factIndex,
-  suggestedKind,
-  onChange,
-  onRemove,
-}: {
-  datapointId: string
-  fact: LaravelEsrsDatapointFact
-  factIndex: number
-  suggestedKind: LaravelEsrsFactValueKind
-  onChange: (patch: Partial<LaravelEsrsDatapointFact>) => void
-  onRemove: () => void
-}) {
-  const valueKind = fact.value_kind || suggestedKind
-  const numeric = factKindRequiresDecimals(valueKind)
-  const unitRequired = factKindRequiresUnit(valueKind)
-  const context = fact.context ?? createTypedDefaultFact(valueKind).context
-  const dimensions = context.dimensions ?? []
-  const unitMeasure = fact.unit?.measure ?? factKindUnitPlaceholder(valueKind)
-
-  const changeKind = (nextKind: LaravelEsrsFactValueKind) => {
-    const next = createTypedDefaultFact(nextKind)
-    onChange({
-      value_kind: nextKind,
-      value: next.value,
-      decimals: next.decimals,
-      unit: next.unit,
-    })
-  }
-
-  const updateContext = (patch: Partial<LaravelEsrsDatapointFact["context"]>) => {
-    onChange({ context: { ...context, ...patch } })
-  }
-
-  const updateDimension = (dimensionIndex: number, patch: { axis?: string; member?: string }) => {
-    const next = [...dimensions]
-    next[dimensionIndex] = { ...(next[dimensionIndex] ?? { axis: "", member: "" }), ...patch }
-    updateContext({ dimensions: next })
-  }
-
-  return (
-    <div className="space-y-4 rounded-md border border-border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-medium uppercase text-muted-foreground">Dato {factIndex + 1}</div>
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove} aria-label="Eliminar dato">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-kind`}>Tipo</Label>
-          <select
-            id={`${datapointId}-${factIndex}-kind`}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            value={valueKind}
-            onChange={(event) => changeKind(event.target.value as LaravelEsrsFactValueKind)}
-          >
-            {valueKindOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}{option.value === suggestedKind ? " (sugerido)" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-value`}>Valor</Label>
-          {valueKind === "boolean" ? (
-            <select
-              id={`${datapointId}-${factIndex}-value`}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-              value={fact.value === true ? "true" : "false"}
-              onChange={(event) => onChange({ value: event.target.value === "true" })}
-            >
-              <option value="true">Sí</option>
-              <option value="false">No</option>
-            </select>
-          ) : valueKind === "narrative" ? (
-            <Textarea
-              id={`${datapointId}-${factIndex}-value`}
-              value={typeof fact.value === "string" ? fact.value : ""}
-              onInput={(event) => onChange({ value: event.currentTarget.value })}
-            />
-          ) : (
-            <Input
-              id={`${datapointId}-${factIndex}-value`}
-              type={valueKind === "date" ? "date" : "text"}
-              inputMode={numeric ? "decimal" : "text"}
-              value={typeof fact.value === "string" ? fact.value : ""}
-              onInput={(event) => onChange({ value: event.currentTarget.value })}
-            />
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-fact-evidence`}>Referencia de evidencia</Label>
-          <Input
-            id={`${datapointId}-${factIndex}-fact-evidence`}
-            value={fact.evidence_reference ?? ""}
-            onInput={(event) => onChange({ evidence_reference: event.currentTarget.value })}
-          />
-        </div>
-
-        {numeric ? (
-          <div className="space-y-2">
-            <Label htmlFor={`${datapointId}-${factIndex}-decimals`}>Decimales</Label>
-            <Input
-              id={`${datapointId}-${factIndex}-decimals`}
-              type="number"
-              min={-18}
-              max={18}
-              value={fact.decimals ?? 0}
-              onInput={(event) => onChange({ decimals: Number.parseInt(event.currentTarget.value || "0", 10) })}
-            />
-          </div>
-        ) : null}
-
-        {unitRequired ? (
-          <div className="space-y-2">
-            <Label htmlFor={`${datapointId}-${factIndex}-unit`}>Unidad</Label>
-            <Input
-              id={`${datapointId}-${factIndex}-unit`}
-              placeholder={factKindUnitPlaceholder(valueKind)}
-              value={unitMeasure}
-              onInput={(event) => onChange({ unit: { measure: event.currentTarget.value } })}
-            />
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${datapointId}-${factIndex}-period`}>Periodo</Label>
-          <select
-            id={`${datapointId}-${factIndex}-period`}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            value={context.period_type}
-            onChange={(event) => updateContext({
-              period_type: event.target.value as "duration" | "instant",
-              start_date: "",
-              end_date: "",
-              instant_date: "",
-            })}
-          >
-            <option value="duration">Duración</option>
-            <option value="instant">Instantáneo</option>
-          </select>
-        </div>
-        {context.period_type === "duration" ? (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor={`${datapointId}-${factIndex}-start`}>Inicio</Label>
-              <Input id={`${datapointId}-${factIndex}-start`} type="date" value={context.start_date ?? ""} onInput={(event) => updateContext({ start_date: event.currentTarget.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`${datapointId}-${factIndex}-end`}>Fin</Label>
-              <Input id={`${datapointId}-${factIndex}-end`} type="date" value={context.end_date ?? ""} onInput={(event) => updateContext({ end_date: event.currentTarget.value })} />
-            </div>
-          </>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor={`${datapointId}-${factIndex}-instant`}>Fecha</Label>
-            <Input id={`${datapointId}-${factIndex}-instant`} type="date" value={context.instant_date ?? ""} onInput={(event) => updateContext({ instant_date: event.currentTarget.value })} />
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label>Dimensiones</Label>
-          <Button type="button" variant="outline" size="sm" onClick={() => updateContext({ dimensions: [...dimensions, { axis: "", member: "" }] })}>
-            <Plus className="h-4 w-4" />
-            Añadir dimensión
-          </Button>
-        </div>
-        {dimensions.map((dimension, dimensionIndex) => (
-          <div key={dimensionIndex} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-            <Input aria-label="Eje" value={dimension.axis} onInput={(event) => updateDimension(dimensionIndex, { axis: event.currentTarget.value })} />
-            <Input aria-label="Miembro" value={dimension.member} onInput={(event) => updateDimension(dimensionIndex, { member: event.currentTarget.value })} />
-            <Button type="button" variant="ghost" size="sm" onClick={() => updateContext({ dimensions: dimensions.filter((_, index) => index !== dimensionIndex) })} aria-label="Eliminar dimensión">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function validationErrors(payload: unknown): string[] {
-  if (!payload || typeof payload !== "object") return []
-  const errors = (payload as { errors?: unknown }).errors
-  if (!errors || typeof errors !== "object") return []
-  return Object.values(errors).flatMap((value) => Array.isArray(value) ? value.map(String) : [String(value)])
 }

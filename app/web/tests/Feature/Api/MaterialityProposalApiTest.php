@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -59,9 +61,9 @@ it('returns a normalized P6 materiality proposal for the separate frontend', fun
                 'esrs_e2_pollution' => 1,
                 'esrs_e3_other' => 1,
             ],
-            'model_profile' => 'new_format_732_v1_gpt41',
-            'model_key_count' => 102,
-            'mapped_key_count' => 94,
+            'model_profile' => 'legacy_v0',
+            'model_key_count' => 96,
+            'mapped_key_count' => 92,
             'feature_metadata' => [
                 'derived_fields' => [],
                 'defaulted_fields' => [],
@@ -69,10 +71,9 @@ it('returns a normalized P6 materiality proposal for the separate frontend', fun
             ],
             'mapping_metadata' => [
                 'laravel' => [
-                    'mapping_version' => 'new_format_732_v1',
+                    'mapping_version' => 'v0',
                     'mapping_status' => 'runtime-approved-for-candidate-suggestions',
-                    'mapping_model_key_count' => 102,
-                    'mapping_key_count' => 94,
+                    'mapping_key_count' => 92,
                 ],
             ],
             'evidence_refs' => [],
@@ -91,12 +92,11 @@ it('returns a normalized P6 materiality proposal for the separate frontend', fun
         ->assertJsonPath('data.ai.summary', 'AI proposed 2 candidate ESRS topics. 1 predicted ESRS key needs manual review.')
         ->assertJsonPath('data.ai.review_required_prediction_keys', ['esrs_e3_other'])
         ->assertJsonPath('data.ai.raw_prediction_key_count', 3)
-        ->assertJsonPath('data.ai.model_profile', 'new_format_732_v1_gpt41')
-        ->assertJsonPath('data.ai.model_key_count', 102)
-        ->assertJsonPath('data.ai.mapped_key_count', 94)
+        ->assertJsonPath('data.ai.model_profile', 'legacy_v0')
+        ->assertJsonPath('data.ai.model_key_count', 96)
+        ->assertJsonPath('data.ai.mapped_key_count', 92)
         ->assertJsonPath('data.ai.feature_metadata.missing_required_fields', [])
-        ->assertJsonPath('data.ai.mapping_metadata.laravel.mapping_version', 'new_format_732_v1')
-        ->assertJsonPath('data.ai.mapping_metadata.laravel.mapping_model_key_count', 102)
+        ->assertJsonPath('data.ai.mapping_metadata.laravel.mapping_version', 'v0')
         ->assertJsonPath('data.ai.evidence_refs', [])
         ->assertJsonPath('data.ready_for_confirmation', true);
 
@@ -116,6 +116,7 @@ it('stores P6 proposal review actions for traceability', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [
                 (string) $this->e2Topic->id => 'unsure',
             ],
@@ -138,6 +139,42 @@ it('stores P6 proposal review actions for traceability', function () {
         ->toBe('unsure');
     expect(data_get($characterization->form_data, 'materiality_proposal_review.reviewed_at'))
         ->not->toBeNull();
+});
+
+it('rejects a stale P6 proposal review without overwriting the newer review', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e1Topic->id, $this->e2Topic->id],
+        'submitted_at' => now()->subMinute(),
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-proposal')
+        ->assertOk()
+        ->assertJsonPath('data.review.revision', 0);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
+            'topic_actions' => [(string) $this->e1Topic->id => 'accepted'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.review.revision', 1);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
+            'topic_actions' => [(string) $this->e1Topic->id => 'rejected'],
+        ])
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'stale_materiality_state')
+        ->assertJsonPath('data.current_revision', 1);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-proposal')
+        ->assertOk()
+        ->assertJsonPath('data.review.topic_actions.'.$this->e1Topic->id, 'accepted');
 });
 
 it('filters stored P6 proposal review actions to the current proposal topics', function () {
@@ -261,6 +298,7 @@ it('rejects P6 proposal review before the proposal is completed', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [
                 (string) $this->e1Topic->id => 'accepted',
             ],
@@ -278,6 +316,7 @@ it('marks P6 proposal review as reviewed when every proposed topic has an action
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [
                 (string) $this->e1Topic->id => 'accepted',
                 (string) $this->e2Topic->id => 'rejected',
@@ -300,6 +339,7 @@ it('rejects malformed P6 proposal review topic keys', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [
                 $this->e1Topic->id.'abc' => 'accepted',
             ],
@@ -323,6 +363,7 @@ it('rejects unsupported P6 proposal review actions and reason chips', function (
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [
                 (string) $this->e1Topic->id => 'approved',
             ],
@@ -346,6 +387,7 @@ it('rejects an empty P6 proposal review action set', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [],
         ])
         ->assertUnprocessable()
@@ -433,6 +475,7 @@ it('uses a specific validation message when a completed proposal has no topics t
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-proposal', [
+            'expected_revision' => 0,
             'topic_actions' => [],
         ])
         ->assertUnprocessable()

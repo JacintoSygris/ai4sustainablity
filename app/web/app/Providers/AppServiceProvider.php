@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Support\CanonicalPublicUrl;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\Provider as MicrosoftProvider;
+use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,15 +27,29 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $publicComposeFrontendUrl = env('PUBLIC_COMPOSE_FRONTEND_URL');
+        $trustedHosts = (bool) config('app.enforce_trusted_hosts', false)
+            ? array_values(array_filter((array) config('app.trusted_hosts', []), 'is_string'))
+            : [];
+        SymfonyRequest::setTrustedHosts($trustedHosts);
 
-        if (is_string($publicComposeFrontendUrl) && filter_var($publicComposeFrontendUrl, FILTER_VALIDATE_URL) !== false) {
-            $scheme = parse_url($publicComposeFrontendUrl, PHP_URL_SCHEME);
+        ResetPassword::createUrlUsing(static fn ($notifiable, string $token): string => CanonicalPublicUrl::to(
+            '/reset-password',
+            ['email' => $notifiable->getEmailForPasswordReset()],
+        ).'#token='.rawurlencode($token));
 
-            if (in_array($scheme, ['http', 'https'], true)) {
-                URL::forceRootUrl(rtrim($publicComposeFrontendUrl, '/'));
-            }
-        }
+        VerifyEmail::createUrlUsing(static function ($notifiable): string {
+            $relativeUrl = URL::temporarySignedRoute(
+                'verification.verify',
+                now()->addMinutes((int) config('auth.verification.expire', 60)),
+                [
+                    'id' => $notifiable->getKey(),
+                    'hash' => sha1($notifiable->getEmailForVerification()),
+                ],
+                absolute: false,
+            );
+
+            return CanonicalPublicUrl::root().$relativeUrl;
+        });
 
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('microsoft', MicrosoftProvider::class);

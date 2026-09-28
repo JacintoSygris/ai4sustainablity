@@ -1,0 +1,143 @@
+import { createClient } from "@libsql/client"
+
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+})
+
+const migrations = [
+  // Drop existing tables with wrong column names
+  `DROP TABLE IF EXISTS surveyData`,
+  `DROP TABLE IF EXISTS report`,
+  `DROP TABLE IF EXISTS verification`,
+  `DROP TABLE IF EXISTS account`,
+  `DROP TABLE IF EXISTS session`,
+  `DROP TABLE IF EXISTS user`,
+
+  // Create user table with camelCase columns and onboarding fields
+  `CREATE TABLE user (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    emailVerified INTEGER DEFAULT 0,
+    image TEXT,
+    purpose TEXT,
+    role TEXT,
+    referralSource TEXT,
+    onboardingCompleted INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+  )`,
+
+  // Create session table
+  `CREATE TABLE session (
+    id TEXT PRIMARY KEY,
+    expiresAt INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    ipAddress TEXT,
+    userAgent TEXT,
+    userId TEXT NOT NULL,
+    FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+  )`,
+
+  // Create account table
+  `CREATE TABLE account (
+    id TEXT PRIMARY KEY,
+    accountId TEXT NOT NULL,
+    providerId TEXT NOT NULL,
+    userId TEXT NOT NULL,
+    accessToken TEXT,
+    refreshToken TEXT,
+    idToken TEXT,
+    accessTokenExpiresAt INTEGER,
+    refreshTokenExpiresAt INTEGER,
+    scope TEXT,
+    password TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+  )`,
+
+  // Create verification table
+  `CREATE TABLE verification (
+    id TEXT PRIMARY KEY,
+    identifier TEXT NOT NULL,
+    value TEXT NOT NULL,
+    expiresAt INTEGER NOT NULL,
+    createdAt INTEGER,
+    updatedAt INTEGER
+  )`,
+
+  `CREATE TABLE report (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT,
+    currentStep INTEGER NOT NULL DEFAULT 1,
+    totalSteps INTEGER NOT NULL DEFAULT 6,
+    status TEXT NOT NULL DEFAULT 'draft',
+    materialTopics TEXT,
+    finalTopics TEXT,
+    topicJustifications TEXT,
+    step1Completed INTEGER NOT NULL DEFAULT 0,
+    step2Completed INTEGER NOT NULL DEFAULT 0,
+    step3Completed INTEGER NOT NULL DEFAULT 0,
+    step4Completed INTEGER NOT NULL DEFAULT 0,
+    step5Completed INTEGER NOT NULL DEFAULT 0,
+    step6Completed INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+  )`,
+
+  `CREATE TABLE surveyData (
+    id TEXT PRIMARY KEY,
+    reportId TEXT NOT NULL,
+    companyName TEXT,
+    sector TEXT,
+    products TEXT,
+    regions TEXT,
+    employees TEXT,
+    size TEXT,
+    legalForm TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (reportId) REFERENCES report(id) ON DELETE CASCADE
+  )`,
+
+  // Create indexes
+  `CREATE INDEX IF NOT EXISTS idx_user_email ON user(email)`,
+  `CREATE INDEX IF NOT EXISTS idx_session_token ON session(token)`,
+  `CREATE INDEX IF NOT EXISTS idx_session_userId ON session(userId)`,
+  `CREATE INDEX IF NOT EXISTS idx_account_userId ON account(userId)`,
+  `CREATE INDEX IF NOT EXISTS idx_report_userId ON report(userId)`,
+  `CREATE INDEX IF NOT EXISTS idx_surveyData_reportId ON surveyData(reportId)`,
+]
+
+async function runMigrations() {
+  console.log("Starting database migrations...\n")
+
+  for (let i = 0; i < migrations.length; i++) {
+    const migration = migrations[i]
+    const preview = migration.substring(0, 50).replace(/\s+/g, " ")
+
+    try {
+      await client.execute(migration)
+      console.log(`✓ Migration ${i + 1}/${migrations.length} completed: ${preview}...`)
+    } catch (error) {
+      console.error(`✗ Migration ${i + 1} failed: ${preview}...`)
+      console.error(`  Error: ${error.message}`)
+      process.exit(1)
+    }
+  }
+
+  console.log("\n✓ All migrations completed successfully!")
+
+  // Verify tables were created
+  const tables = await client.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+  console.log("\nCreated tables:")
+  tables.rows.forEach((row) => console.log(`  - ${row.name}`))
+}
+
+runMigrations().catch(console.error)

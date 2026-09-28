@@ -7,10 +7,11 @@ use App\Models\Characterization;
 use App\Models\ReportAuditEvent;
 use App\Models\ReportingFact;
 use App\Services\EsrsDatapointCorpusBuilder;
+use App\Services\Report\ReportFactValue;
 use App\Services\Report\ReportingFactProjector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +46,7 @@ class ReportFactController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'facts' => ['present', 'array'],
+            'facts' => ['present', 'array', 'max:250'],
             'facts.*.datapoint_id' => ['required', 'string', 'max:255'],
             'facts.*.applicability' => ['required', 'string', Rule::in([
                 'applicable',
@@ -67,26 +68,29 @@ class ReportFactController extends Controller
             'facts.*.value' => ['nullable'],
             'facts.*.unit' => ['nullable', 'string', 'max:64'],
             'facts.*.decimals' => ['nullable', 'integer', 'min:0', 'max:12'],
-            'facts.*.dimensions' => ['present', 'array'],
+            'facts.*.dimensions' => ['present', 'array', 'max:25'],
             'facts.*.dimensions.*' => ['required', 'array:axis,member'],
             'facts.*.dimensions.*.axis' => ['required', 'string', 'max:255'],
             'facts.*.dimensions.*.member' => ['required', 'string', 'max:255'],
             'facts.*.language' => ['nullable', 'string', 'max:16'],
             'facts.*.nil' => ['required', 'boolean'],
             'facts.*.nil_reason' => ['nullable', 'string', 'max:1000'],
-            'facts.*.evidence_refs' => ['present', 'array'],
+            'facts.*.evidence_refs' => ['present', 'array', 'max:50'],
             'facts.*.evidence_refs.*' => ['array:type,value'],
             'facts.*.evidence_refs.*.type' => ['required', 'string', 'max:100'],
             'facts.*.evidence_refs.*.value' => ['required', 'string', 'max:2000'],
             'facts.*.provenance' => ['required', 'string', Rule::in(['api'])],
             'facts.*.approval_status' => ['required', 'string', Rule::in(['review_required'])],
-            'facts.*.blocking_reasons' => ['present', 'array'],
+            'facts.*.blocking_reasons' => ['present', 'array', 'max:50'],
             'facts.*.blocking_reasons.*' => ['string', 'max:255'],
         ]);
 
-        $validator->after(function ($validator) use ($request, $characterization, $corpusBuilder) {
+        $validator->after(function ($validator) use ($request, $characterization) {
+            if ($validator->errors()->has('facts')) {
+                return;
+            }
+
             $facts = $request->input('facts', []);
-            $allowedDatapointIds = array_flip($this->corpusDatapointIds($corpusBuilder->build($characterization)));
             $seenFactIds = [];
 
             foreach (is_array($facts) ? $facts : [] as $index => $fact) {
@@ -102,10 +106,6 @@ class ReportFactController extends Controller
                 $evidenceRefs = is_array($fact['evidence_refs'] ?? null) ? $fact['evidence_refs'] : [];
                 $dimensions = is_array($fact['dimensions'] ?? null) ? $fact['dimensions'] : [];
                 $canonicalDimensions = $this->canonicalDimensions($dimensions);
-
-                if ($datapointId !== '' && ! isset($allowedDatapointIds[$datapointId])) {
-                    $validator->errors()->add("facts.$index.datapoint_id", 'The datapoint is not part of the current reporting corpus.');
-                }
 
                 if (($fact['approval_status'] ?? null) === 'approved') {
                     $validator->errors()->add("facts.$index.approval_status", 'Approved facts are not accepted by this endpoint.');
@@ -144,6 +144,20 @@ class ReportFactController extends Controller
 
                     if ($valueType === 'text' && ! filled($language)) {
                         $validator->errors()->add("facts.$index.language", 'Text facts require a language.');
+                    }
+
+                    if (is_string($valueType)) {
+                        try {
+                            ReportFactValue::scalar([
+                                'value_type' => $valueType,
+                                'value' => $fact['value'] ?? null,
+                            ]);
+                        } catch (\RuntimeException) {
+                            $validator->errors()->add(
+                                "facts.$index.value",
+                                'The fact value does not match its declared value type.'
+                            );
+                        }
                     }
                 }
 
@@ -204,43 +218,94 @@ class ReportFactController extends Controller
             ], 422);
         }
 
-        foreach ($validator->validated()['facts'] as $fact) {
-            $datapointId = trim((string) $fact['datapoint_id']);
-            $language = filled($fact['language'] ?? null) ? trim((string) $fact['language']) : null;
-            $dimensions = $this->canonicalDimensions($fact['dimensions']);
-            $factId = ReportingFact::factId(
-                $characterization->id,
-                ReportingFact::PROFILE_ID,
-                $datapointId,
-                $dimensions,
-                $fact['value_type'],
-                $language,
-            );
+        $validatedFacts = $validator->validated()['facts'];
 
-            ReportingFact::updateOrCreate(
-                [
-                    'characterization_id' => $characterization->id,
-                    'fact_id' => $factId,
-                ],
-                [
-                    'schema_version' => ReportingFact::SCHEMA_VERSION,
-                    'profile_id' => ReportingFact::PROFILE_ID,
-                    'datapoint_id' => $datapointId,
-                    'applicability' => $fact['applicability'],
-                    'value_type' => $fact['value_type'],
-                    'value' => $fact['value'] ?? null,
-                    'unit' => $fact['unit'] ?? null,
-                    'decimals' => $fact['decimals'] ?? null,
-                    'dimensions' => $dimensions,
-                    'language' => $language,
-                    'nil' => (bool) $fact['nil'],
-                    'nil_reason' => $fact['nil_reason'] ?? null,
-                    'evidence_refs' => $fact['evidence_refs'],
-                    'provenance' => 'api',
-                    'approval_status' => 'review_required',
-                    'blocking_reasons' => $fact['blocking_reasons'],
-                ],
+        $writeResult = DB::transaction(function () use ($characterization, $request, $validatedFacts, $corpusBuilder): array {
+            $lockedCharacterization = Characterization::query()
+                ->whereKey($characterization->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $allowedDatapointIds = array_flip(
+                $this->corpusDatapointIds($corpusBuilder->build($lockedCharacterization))
             );
+            $corpusErrors = [];
+
+            foreach ($validatedFacts as $index => $fact) {
+                $datapointId = trim((string) $fact['datapoint_id']);
+                if ($datapointId !== '' && ! isset($allowedDatapointIds[$datapointId])) {
+                    $corpusErrors["facts.$index.datapoint_id"][] = 'The datapoint is not part of the current reporting corpus.';
+                }
+            }
+
+            if ($corpusErrors !== []) {
+                return ['errors' => $corpusErrors];
+            }
+
+            $factIds = [];
+
+            foreach ($validatedFacts as $fact) {
+                $datapointId = trim((string) $fact['datapoint_id']);
+                $language = filled($fact['language'] ?? null) ? trim((string) $fact['language']) : null;
+                $dimensions = $this->canonicalDimensions($fact['dimensions']);
+                $factId = ReportingFact::factId(
+                    $characterization->id,
+                    ReportingFact::PROFILE_ID,
+                    $datapointId,
+                    $dimensions,
+                    $fact['value_type'],
+                    $language,
+                );
+
+                ReportingFact::updateOrCreate(
+                    [
+                        'characterization_id' => $characterization->id,
+                        'fact_id' => $factId,
+                    ],
+                    [
+                        'schema_version' => ReportingFact::SCHEMA_VERSION,
+                        'profile_id' => ReportingFact::PROFILE_ID,
+                        'datapoint_id' => $datapointId,
+                        'applicability' => $fact['applicability'],
+                        'value_type' => $fact['value_type'],
+                        'value' => $fact['value'] ?? null,
+                        'unit' => $fact['unit'] ?? null,
+                        'decimals' => $fact['decimals'] ?? null,
+                        'dimensions' => $dimensions,
+                        'language' => $language,
+                        'nil' => (bool) $fact['nil'],
+                        'nil_reason' => $fact['nil_reason'] ?? null,
+                        'evidence_refs' => $fact['evidence_refs'],
+                        'provenance' => 'api',
+                        'approval_status' => 'review_required',
+                        'blocking_reasons' => $fact['blocking_reasons'],
+                        'reviewed_at' => null,
+                        'reviewed_by_user_id' => null,
+                        'review_declaration_sha256' => null,
+                    ],
+                );
+                $factIds[] = $factId;
+            }
+
+            ReportAuditEvent::create([
+                'user_id' => $request->user()->id,
+                'characterization_id' => $characterization->id,
+                'event_type' => 'facts_upserted',
+                'payload' => [
+                    'characterization_id' => $characterization->id,
+                    'fact_count' => count($factIds),
+                    'fact_ids' => $factIds,
+                ],
+            ]);
+
+            return ['errors' => []];
+        });
+
+        if ($writeResult['errors'] !== []) {
+            return response()->json([
+                'message' => 'The reporting fact payload is invalid.',
+                'code' => 'reporting_fact_invalid',
+                'errors' => $writeResult['errors'],
+            ], 422);
         }
 
         return response()->json(['data' => $this->state($characterization->fresh(), $projector)]);
@@ -260,7 +325,7 @@ class ReportFactController extends Controller
             ->firstOrFail();
 
         $validator = Validator::make($request->all(), [
-            'review_declaration' => ['required', 'string'],
+            'review_declaration' => ['required', 'string', 'max:2000'],
         ]);
 
         if ($validator->fails() || trim((string) $request->input('review_declaration', '')) === '') {
@@ -281,36 +346,59 @@ class ReportFactController extends Controller
             ], 409);
         }
 
-        $previousStatus = $reportingFact->approval_status;
-        $updates = [
-            'approval_status' => 'reviewed',
-        ];
+        $reviewDeclaration = trim((string) $validator->validated()['review_declaration']);
+        $reviewDeclarationHash = hash('sha256', $reviewDeclaration);
 
-        if (Schema::hasColumn($reportingFact->getTable(), 'reviewed_at')) {
-            $updates['reviewed_at'] = now();
-        }
+        $result = DB::transaction(function () use ($characterization, $reportingFact, $request, $reviewDeclarationHash): array {
+            Characterization::query()->whereKey($characterization->id)->lockForUpdate()->firstOrFail();
+            $lockedFact = ReportingFact::query()
+                ->where('characterization_id', $characterization->id)
+                ->whereKey($reportingFact->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $lockedReviewability = $this->factReviewability($lockedFact);
 
-        foreach (['reviewer_user_id', 'reviewed_by_user_id'] as $reviewerColumn) {
-            if (Schema::hasColumn($reportingFact->getTable(), $reviewerColumn)) {
-                $updates[$reviewerColumn] = $request->user()->id;
+            if (! $lockedReviewability['reviewable']) {
+                return ['response' => response()->json([
+                    'message' => 'The reporting fact is not reviewable.',
+                    'code' => 'report_fact_not_reviewable',
+                    'reasons' => $lockedReviewability['reasons'],
+                ], 409)];
             }
-        }
 
-        $reportingFact->forceFill($updates)->save();
+            $previousStatus = $lockedFact->approval_status;
+            $updates = [
+                'approval_status' => 'reviewed',
+                'reviewed_at' => now(),
+                'reviewed_by_user_id' => $request->user()->id,
+                'review_declaration_sha256' => $reviewDeclarationHash,
+            ];
 
-        ReportAuditEvent::create([
-            'user_id' => $request->user()->id,
-            'characterization_id' => $characterization->id,
-            'event_type' => 'fact_reviewed',
-            'payload' => [
+            $lockedFact->forceFill($updates)->save();
+
+            ReportAuditEvent::create([
                 'user_id' => $request->user()->id,
                 'characterization_id' => $characterization->id,
-                'fact_id' => $reportingFact->fact_id,
-                'datapoint_id' => $reportingFact->datapoint_id,
-                'previous_approval_status' => $previousStatus,
-                'approval_status' => 'reviewed',
-            ],
-        ]);
+                'event_type' => 'fact_reviewed',
+                'payload' => [
+                    'user_id' => $request->user()->id,
+                    'characterization_id' => $characterization->id,
+                    'fact_id' => $lockedFact->fact_id,
+                    'datapoint_id' => $lockedFact->datapoint_id,
+                    'previous_approval_status' => $previousStatus,
+                    'approval_status' => 'reviewed',
+                    'review_declaration_sha256' => $reviewDeclarationHash,
+                ],
+            ]);
+
+            return ['fact' => $lockedFact];
+        });
+
+        if (isset($result['response'])) {
+            return $result['response'];
+        }
+
+        $reportingFact = $result['fact'];
 
         return response()->json([
             'data' => ['id' => $reportingFact->id] + $reportingFact->fresh()->toApiArray(),
@@ -332,6 +420,15 @@ class ReportFactController extends Controller
             ->all();
 
         $legacyProjection = $projector->projectLegacy($characterization);
+        $persistedDatapointIds = array_fill_keys(
+            array_column($persistedFacts, 'datapoint_id'),
+            true,
+        );
+        $pendingP9Suggestions = array_values(array_filter(
+            $legacyProjection,
+            fn (array $fact): bool => ($fact['applicability'] ?? null) === 'applicable'
+                && ! isset($persistedDatapointIds[$fact['datapoint_id'] ?? '']),
+        ));
 
         return [
             'characterization_id' => $characterization->id,
@@ -341,6 +438,8 @@ class ReportFactController extends Controller
             'persisted_fact_count' => count($persistedFacts),
             'legacy_projection' => $legacyProjection,
             'legacy_projection_count' => count($legacyProjection),
+            'pending_p9_suggestions' => $pendingP9Suggestions,
+            'pending_p9_suggestion_count' => count($pendingP9Suggestions),
         ];
     }
 

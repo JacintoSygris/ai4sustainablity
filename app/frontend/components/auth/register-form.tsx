@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import Script from "next/script"
+import { mountSecurityCheck } from "@/public/consent/security.mjs"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,11 +14,11 @@ import { getLaravelRegisterConfig } from "@/lib/laravel-api"
 import { fetchLaravelCsrfToken, laravelAuthHeaders, laravelValidationMessage } from "@/lib/laravel-auth"
 
 const DEFAULT_HONEYPOT_FIELD = "company_website"
-const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js"
 
 export function RegisterForm() {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const securityHost = useRef<HTMLDivElement>(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -26,9 +26,17 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [honeypotField, setHoneypotField] = useState(DEFAULT_HONEYPOT_FIELD)
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null)
-  const [requireEmailVerification, setRequireEmailVerification] = useState(false)
+
+  useEffect(() => {
+    if (securityHost.current) return mountSecurityCheck(securityHost.current, {
+      enabled: registrationEnabled,
+      siteKey: turnstileSiteKey,
+      action: "register",
+    })
+  }, [registrationEnabled, turnstileSiteKey])
 
   useEffect(() => {
     let mounted = true
@@ -41,16 +49,17 @@ export function RegisterForm() {
 
         const config = response.data
 
+        setRegistrationEnabled(Boolean(config.registration_enabled))
+
         if (config.honeypot_field) {
           setHoneypotField(config.honeypot_field)
         }
 
         setTurnstileSiteKey(config.turnstile_site_key ?? null)
-        setRequireEmailVerification(Boolean(config.require_email_verification))
       })
       .catch(() => {
-        // Registration keeps working with the honeypot default and without a
-        // challenge widget when the configuration endpoint is unavailable.
+        setRegistrationEnabled(false)
+        setError("El registro no está disponible en este momento.")
       })
 
     return () => {
@@ -61,6 +70,11 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    if (!registrationEnabled) {
+      setError("El registro no está disponible en este momento.")
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden")
@@ -110,7 +124,7 @@ export function RegisterForm() {
         return
       }
 
-      router.push(requireEmailVerification ? "/verify-email" : "/dashboard")
+      router.push("/login?registration=pending")
       router.refresh()
     } catch {
       setError("Error al crear la cuenta. Intenta de nuevo.")
@@ -121,13 +135,10 @@ export function RegisterForm() {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-      {turnstileSiteKey ? <Script src={TURNSTILE_SCRIPT_SRC} strategy="afterInteractive" /> : null}
 
       <div className="text-center">
         <h1 className="text-2xl font-semibold text-foreground">Crear cuenta</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Organiza información ESRS con propuestas revisables y decisiones humanas
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Empieza a generar informes ESG con inteligencia artificial</p>
       </div>
 
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
@@ -205,11 +216,9 @@ export function RegisterForm() {
         />
       </div>
 
-      {turnstileSiteKey ? (
-        <div className="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto" />
-      ) : null}
+      <div ref={securityHost} />
 
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || !registrationEnabled}>
         {loading ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
 

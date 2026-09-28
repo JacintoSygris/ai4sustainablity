@@ -1,0 +1,31 @@
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+
+async function getAuthHandlers() {
+  const [{ auth }, { toNextJsHandler }] = await Promise.all([import("@/lib/auth"), import("better-auth/next-js")])
+
+  return toNextJsHandler(auth)
+}
+
+export async function GET(request: Request) {
+  const localBackendDisabled = assertLocalNextBackendEnabled()
+
+  if (localBackendDisabled) {
+    return localBackendDisabled
+  }
+
+  const authHandlers = await getAuthHandlers()
+
+  return authHandlers.GET(request)
+}
+
+export async function POST(request: Request) {
+  const localBackendDisabled = assertLocalNextBackendEnabled()
+
+  if (localBackendDisabled) {
+    return localBackendDisabled
+  }
+
+  const authHandlers = await getAuthHandlers()
+
+  return authHandlers.POST(request)
+}

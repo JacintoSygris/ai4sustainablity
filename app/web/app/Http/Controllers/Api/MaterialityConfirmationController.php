@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
 use App\Services\CharacterizationPredictionMapper;
+use App\Services\CharacterizationStateTransaction;
 use App\Services\EsrsDatapointCorpusBuilder;
 use App\Support\DoubleMaterialityProcessState;
 use Illuminate\Http\Request;
@@ -76,18 +77,14 @@ class MaterialityConfirmationController extends Controller
         return response()->json(['data' => $this->confirmationState($characterization, $datapoints)]);
     }
 
-    public function update(Request $request, EsrsDatapointCorpusBuilder $datapoints)
+    public function update(
+        Request $request,
+        EsrsDatapointCorpusBuilder $datapoints,
+        CharacterizationStateTransaction $stateTransactions,
+    )
     {
-        $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
-        $p6TopicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
-
-        if ($characterization->status !== Characterization::STATUS_COMPLETED || $p6TopicIds === []) {
-            throw ValidationException::withMessages([
-                'characterization' => 'A completed P6 materiality proposal is required before final confirmation.',
-            ]);
-        }
-
         $validated = $request->validate([
+            'expected_revision' => ['required', 'integer', 'min:0'],
             'confirmed_topic_ids' => ['present', 'array'],
             'confirmed_topic_ids.*' => ['integer', 'distinct', 'exists:esrs_topics,id'],
             'change_reasons' => ['sometimes', 'array'],
@@ -110,49 +107,76 @@ class MaterialityConfirmationController extends Controller
             'e1_not_material_explanation' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $confirmedTopicIds = $this->topicIds($validated['confirmed_topic_ids']);
-        $validReasonTopicIds = array_values(array_unique([
-            ...$p6TopicIds,
-            ...$confirmedTopicIds,
-        ]));
+        $characterizationId = Characterization::forUser($request->user()->id)->firstOrFail()->id;
+        $outcome = $stateTransactions->run($characterizationId, function (Characterization $characterization) use ($validated): array {
+            $currentRevision = $this->confirmationRevision($characterization);
 
-        $this->validateReasonTopicKeys($validated['change_reasons'] ?? [], $validReasonTopicIds, 'change_reasons');
-        $this->validateReasonTopicKeys($validated['change_reason_notes'] ?? [], $validReasonTopicIds, 'change_reason_notes');
-        $this->validateExistingTopicKeys($validated['dimensions'] ?? [], 'dimensions');
-        $this->validateExistingTopicKeys($validated['guided_answers'] ?? [], 'guided_answers');
+            if ($validated['expected_revision'] !== $currentRevision) {
+                return ['conflict' => true, 'current_revision' => $currentRevision];
+            }
 
-        if ($this->removesE1($characterization, $confirmedTopicIds)
-            && blank($validated['e1_not_material_explanation'] ?? null)) {
-            throw ValidationException::withMessages([
-                'e1_not_material_explanation' => 'An explanation is required when E1 is removed from final materiality.',
+            $p6TopicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
+            if ($characterization->status !== Characterization::STATUS_COMPLETED || $p6TopicIds === []) {
+                throw ValidationException::withMessages([
+                    'characterization' => 'A completed P6 materiality proposal is required before final confirmation.',
+                ]);
+            }
+
+            $confirmedTopicIds = $this->topicIds($validated['confirmed_topic_ids']);
+            $validReasonTopicIds = array_values(array_unique([...$p6TopicIds, ...$confirmedTopicIds]));
+
+            $this->validateReasonTopicKeys($validated['change_reasons'] ?? [], $validReasonTopicIds, 'change_reasons');
+            $this->validateReasonTopicKeys($validated['change_reason_notes'] ?? [], $validReasonTopicIds, 'change_reason_notes');
+            $this->validateExistingTopicKeys($validated['dimensions'] ?? [], 'dimensions');
+            $this->validateExistingTopicKeys($validated['guided_answers'] ?? [], 'guided_answers');
+            $this->validateGuidedAnswerConsistency($validated['guided_answers'] ?? [], $confirmedTopicIds);
+
+            if ($this->removesE1($characterization, $confirmedTopicIds)
+                && blank($validated['e1_not_material_explanation'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'e1_not_material_explanation' => 'An explanation is required when E1 is removed from final materiality.',
+                ]);
+            }
+
+            $formData = $characterization->form_data ?? [];
+            $guidedAnswers = $this->normalizeGuidedAnswers($validated['guided_answers'] ?? []);
+            $decisionBasis = $this->deriveDecisionBasis(
+                $guidedAnswers,
+                DoubleMaterialityProcessState::fromFormData($formData)
+            );
+
+            Arr::set($formData, 'materiality_confirmation', [
+                'revision' => $currentRevision + 1,
+                'confirmed_topic_ids' => $confirmedTopicIds,
+                'change_reasons' => $this->normalizeKeyedArrays($validated['change_reasons'] ?? []),
+                'change_reason_notes' => $this->normalizeKeyedStrings($validated['change_reason_notes'] ?? []),
+                'dimensions' => $this->normalizeKeyedStrings($validated['dimensions'] ?? []),
+                'guided_answers' => $guidedAnswers,
+                'decision_basis' => $decisionBasis,
+                'p6_snapshot' => [
+                    'topic_ids' => $p6TopicIds,
+                    'captured_at' => now()->toJSON(),
+                ],
+                'e1_not_material_explanation' => $validated['e1_not_material_explanation'] ?? null,
+                'confirmed_at' => now()->toJSON(),
             ]);
+
+            $characterization->forceFill(['form_data' => $formData])->save();
+
+            return ['conflict' => false, 'characterization_id' => $characterization->id];
+        });
+
+        if ($outcome['conflict']) {
+            return response()->json([
+                'message' => 'La confirmación ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.',
+                'code' => 'stale_materiality_state',
+                'data' => ['current_revision' => $outcome['current_revision']],
+            ], 409);
         }
 
-        $formData = $characterization->form_data ?? [];
-        $guidedAnswers = $this->normalizeGuidedAnswers($validated['guided_answers'] ?? []);
-        $decisionBasis = $this->deriveDecisionBasis(
-            $guidedAnswers,
-            DoubleMaterialityProcessState::fromFormData($formData)
-        );
+        $characterization = Characterization::findOrFail($outcome['characterization_id']);
 
-        Arr::set($formData, 'materiality_confirmation', [
-            'confirmed_topic_ids' => $confirmedTopicIds,
-            'change_reasons' => $this->normalizeKeyedArrays($validated['change_reasons'] ?? []),
-            'change_reason_notes' => $this->normalizeKeyedStrings($validated['change_reason_notes'] ?? []),
-            'dimensions' => $this->normalizeKeyedStrings($validated['dimensions'] ?? []),
-            'guided_answers' => $guidedAnswers,
-            'decision_basis' => $decisionBasis,
-            'p6_snapshot' => [
-                'topic_ids' => $p6TopicIds,
-                'captured_at' => now()->toJSON(),
-            ],
-            'e1_not_material_explanation' => $validated['e1_not_material_explanation'] ?? null,
-            'confirmed_at' => now()->toJSON(),
-        ]);
-
-        $characterization->forceFill(['form_data' => $formData])->save();
-
-        return response()->json(['data' => $this->confirmationState($characterization->fresh(), $datapoints)]);
+        return response()->json(['data' => $this->confirmationState($characterization, $datapoints)]);
     }
 
     public function preview(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -238,6 +262,7 @@ class MaterialityConfirmationController extends Controller
                 ...$confirmedTopicIds,
             ]))),
             'confirmation' => [
+                'revision' => $this->confirmationRevision($characterization),
                 'change_reasons' => $this->filterKeyedMap(Arr::get($confirmation, 'change_reasons', []), $currentTopicIds),
                 'change_reason_notes' => $this->filterKeyedMap(Arr::get($confirmation, 'change_reason_notes', []), $currentTopicIds),
                 'dimensions' => $this->filterKeyedMap(Arr::get($confirmation, 'dimensions', []), $currentTopicIds),
@@ -247,6 +272,13 @@ class MaterialityConfirmationController extends Controller
             ],
             'preview' => $preview,
         ];
+    }
+
+    private function confirmationRevision(Characterization $characterization): int
+    {
+        $revision = Arr::get($characterization->form_data ?? [], 'materiality_confirmation.revision', 0);
+
+        return is_numeric($revision) ? max(0, (int) $revision) : 0;
     }
 
     /**
@@ -353,6 +385,27 @@ class MaterialityConfirmationController extends Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $guidedAnswers
+     * @param  array<int, int>  $confirmedTopicIds
+     */
+    private function validateGuidedAnswerConsistency(array $guidedAnswers, array $confirmedTopicIds): void
+    {
+        foreach ($guidedAnswers as $topicId => $answer) {
+            $isConfirmed = in_array((int) $topicId, $confirmedTopicIds, true);
+            $isMaterial = Arr::get($answer, 'final_result') === 'material';
+
+            if ($isConfirmed === $isMaterial) {
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'guided_answers.'.$topicId.'.final_result' =>
+                    'The guided final result must match the final confirmed topic set.',
+            ]);
+        }
     }
 
     /**

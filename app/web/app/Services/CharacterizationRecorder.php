@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Bus;
 
 class CharacterizationRecorder
 {
+    private const LEI_SCHEME = 'https://standards.iso.org/iso/17442';
+
+    public function __construct(private readonly CharacterizationStateTransaction $stateTransactions) {}
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -34,8 +38,9 @@ class CharacterizationRecorder
      */
     private function saveOnce(User $user, array $payload): Characterization
     {
-        $characterization = $user->characterization()->first()
-            ?? $user->characterization()->make();
+        $dispatch = false;
+        $characterization = $this->stateTransactions->runForUser($user->id, function (?Characterization $characterization, User $lockedUser) use ($payload, &$dispatch): Characterization {
+            $characterization ??= $lockedUser->characterization()->make();
 
         $previousStatus = $characterization->status ?? Characterization::STATUS_DRAFT;
         $status = Arr::get($payload, 'status', Characterization::STATUS_DRAFT);
@@ -83,6 +88,18 @@ class CharacterizationRecorder
 
         if (array_key_exists('stock_listed', $companyProfilePayload)) {
             $formData['company_profile']['stock_listed'] = $this->toNullableBoolean($companyProfilePayload['stock_listed']);
+        }
+
+        if (array_key_exists('entity_identifier', $companyProfilePayload)) {
+            $lei = $companyProfilePayload['entity_identifier'];
+
+            if (is_string($lei) && trim($lei) !== '') {
+                $formData['company_profile']['entity_identifier'] = strtoupper(trim($lei));
+                $formData['company_profile']['entity_identifier_scheme'] = self::LEI_SCHEME;
+            } else {
+                $formData['company_profile']['entity_identifier'] = null;
+                $formData['company_profile']['entity_identifier_scheme'] = null;
+            }
         }
 
         if (array_key_exists('esrs_topic_ids', $payload)) {
@@ -147,6 +164,7 @@ class CharacterizationRecorder
         ];
 
         if ($status === Characterization::STATUS_SUBMITTED) {
+            $attributes['submission_generation'] = ((int) ($characterization->submission_generation ?? 0)) + 1;
             $attributes['submitted_at'] = now();
             $attributes['retry_count'] = 0;
             $attributes['next_retry_at'] = null;
@@ -159,10 +177,17 @@ class CharacterizationRecorder
         $characterization->updateStatus($status, $attributes);
 
         if ($status === Characterization::STATUS_SUBMITTED) {
+            $dispatch = true;
+        }
+
+            return $characterization->refresh();
+        });
+
+        if ($dispatch) {
             Bus::dispatch(new SubmitCharacterizationJob($characterization));
         }
 
-        return $characterization->refresh();
+        return $characterization;
     }
 
     private function isCharacterizationUserUniqueViolation(QueryException $exception): bool

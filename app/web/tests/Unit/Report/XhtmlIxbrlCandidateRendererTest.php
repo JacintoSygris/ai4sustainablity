@@ -17,9 +17,13 @@ it('renders deterministic parseable XHTML with iXBRL namespaces and schemaRef', 
 
     expect($first)->toBe($second);
     expect($first)->toContain('xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"');
+    expect($first)->toContain('xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-02-12"');
     expect($first)->toContain('link:schemaRef');
     expect($first)->toContain('https://xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd');
     expect($first)->toContain('<ix:nonFraction');
+    expect($first)->toContain('unitRef="u_EUR"');
+    expect($first)->toContain('decimals="2"');
+    expect($first)->toMatch('/<ix:nonFraction[^>]*>123\.45<\/ix:nonFraction>/');
     expect($first)->toContain('scheme="https://standards.iso.org/iso/17442"');
     expect($first)->toContain('TESTENTITYID00000000');
     expect($first)->not->toContain('snapshot-entity-')

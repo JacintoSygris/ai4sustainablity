@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -68,6 +70,7 @@ it('stores final materiality confirmation and returns added and removed topics',
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id],
             'change_reasons' => [
                 (string) $this->s1Topic->id => ['stakeholders', 'new_data'],
@@ -94,6 +97,41 @@ it('stores final materiality confirmation and returns added and removed topics',
         ->toBe(['stakeholders', 'new_data']);
 });
 
+it('rejects a stale P8 confirmation without overwriting the newer confirmation', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id],
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-confirmation')
+        ->assertOk()
+        ->assertJsonPath('data.confirmation.revision', 0);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
+            'confirmed_topic_ids' => [$this->e2Topic->id],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.confirmation.revision', 1);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
+            'confirmed_topic_ids' => [$this->s1Topic->id],
+        ])
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'stale_materiality_state')
+        ->assertJsonPath('data.current_revision', 1);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-confirmation')
+        ->assertOk()
+        ->assertJsonPath('data.confirmed_topic_ids', [$this->e2Topic->id]);
+});
+
 it('accepts a detailed E1 non-material explanation up to 2000 characters', function () {
     Characterization::factory()->create([
         'user_id' => $this->user->id,
@@ -103,6 +141,7 @@ it('accepts a detailed E1 non-material explanation up to 2000 characters', funct
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'e1_not_material_explanation' => str_repeat('a', 1500),
         ])
@@ -111,6 +150,7 @@ it('accepts a detailed E1 non-material explanation up to 2000 characters', funct
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'e1_not_material_explanation' => str_repeat('b', 2100),
         ])
@@ -138,6 +178,7 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id],
             'dimensions' => [
                 (string) $this->e2Topic->id => 'both',
@@ -161,6 +202,7 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 1,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'dimensions' => [
                 (string) $this->e2Topic->id => 'operational',
@@ -171,6 +213,7 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 1,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'guided_answers' => [
                 (string) $this->e2Topic->id => guidedMaterialityAnswer(['impacto' => 'urgent']),
@@ -181,6 +224,7 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 1,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'guided_answers' => [
                 '999999' => guidedMaterialityAnswer(),
@@ -188,6 +232,39 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['guided_answers']);
+});
+
+it('rejects guided verdicts that contradict the final confirmed topic set', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+    ]);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
+            'confirmed_topic_ids' => [$this->e2Topic->id],
+            'guided_answers' => [
+                (string) $this->e2Topic->id => guidedMaterialityAnswer([
+                    'suggested_result' => 'no_material',
+                    'final_result' => 'no_material',
+                ]),
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['guided_answers.'.$this->e2Topic->id.'.final_result']);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
+            'confirmed_topic_ids' => [],
+            'guided_answers' => [
+                (string) $this->e2Topic->id => guidedMaterialityAnswer(),
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['guided_answers.'.$this->e2Topic->id.'.final_result']);
 });
 
 it('derives decision basis and captures the P6 snapshot on save', function () {
@@ -199,6 +276,7 @@ it('derives decision basis and captures the P6 snapshot on save', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertOk()
@@ -224,6 +302,7 @@ it('derives decision basis and captures the P6 snapshot on save', function () {
 
     $this->actingAs($admUser)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertOk()
@@ -238,6 +317,7 @@ it('derives decision basis and captures the P6 snapshot on save', function () {
 
     $this->actingAs($guidedUser)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
             'guided_answers' => [
                 (string) $this->e2Topic->id => guidedMaterialityAnswer(),
@@ -256,6 +336,7 @@ it('marks a confirmed materiality selection stale when the P6 proposal changes a
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertOk()
@@ -275,6 +356,7 @@ it('marks a confirmed materiality selection stale when the P6 proposal changes a
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 1,
             'confirmed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id],
         ])
         ->assertOk()
@@ -313,6 +395,7 @@ it('previews candidate materiality without mutating the stored confirmation', fu
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertOk();
@@ -456,6 +539,7 @@ it('rejects final confirmation until a completed non-empty P6 proposal exists', 
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertUnprocessable()
@@ -471,6 +555,7 @@ it('rejects final confirmation until a completed non-empty P6 proposal exists', 
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [],
         ])
         ->assertUnprocessable()
@@ -485,12 +570,13 @@ it('requires the final confirmation topic list key to be present while allowing 
     ]);
 
     $this->actingAs($this->user)
-        ->putJson('/api/materiality-confirmation', [])
+        ->putJson('/api/materiality-confirmation', ['expected_revision' => 0])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['confirmed_topic_ids']);
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [],
             'change_reasons' => [
                 (string) $this->e2Topic->id => ['threshold'],
@@ -532,6 +618,7 @@ it('rejects non-canonical or stale reason topic keys', function () {
     foreach (['0', '-1', '04', $this->s1Topic->id.'x', (string) $unrelatedTopic->id] as $invalidKey) {
         $this->actingAs($this->user)
             ->putJson('/api/materiality-confirmation', [
+                'expected_revision' => 0,
                 'confirmed_topic_ids' => [$this->s1Topic->id],
                 'change_reasons' => [
                     $invalidKey => ['stakeholders'],
@@ -543,6 +630,7 @@ it('rejects non-canonical or stale reason topic keys', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->s1Topic->id],
             'change_reason_notes' => [
                 (string) $unrelatedTopic->id => 'This topic is not part of the current P6/P8 set.',
@@ -690,6 +778,7 @@ it('requires an explanation when E1 was proposed but removed from final material
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [$this->e2Topic->id],
         ])
         ->assertUnprocessable()
@@ -705,6 +794,7 @@ it('requires an explanation when E1 was proposed and the final topic list is emp
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
             'confirmed_topic_ids' => [],
         ])
         ->assertUnprocessable()

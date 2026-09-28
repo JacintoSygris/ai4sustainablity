@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
+use App\Services\CharacterizationStateTransaction;
 use App\Services\DocumentEvidencePresenter;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class MaterialityProposalController extends Controller
         'other',
     ];
 
-    public function __construct(private readonly DocumentEvidencePresenter $documentEvidencePresenter) {}
+    public function __construct(
+        private readonly DocumentEvidencePresenter $documentEvidencePresenter,
+        private readonly CharacterizationStateTransaction $stateTransactions,
+    ) {}
 
     public function show(Request $request)
     {
@@ -44,9 +48,8 @@ class MaterialityProposalController extends Controller
 
     public function update(Request $request)
     {
-        $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
-
         $validated = $request->validate([
+            'expected_revision' => ['required', 'integer', 'min:0'],
             'topic_actions' => ['present', 'array'],
             'topic_actions.*' => ['string', Rule::in(self::ACTION_KEYS)],
             'action_reasons' => ['sometimes', 'array'],
@@ -56,22 +59,44 @@ class MaterialityProposalController extends Controller
             'action_notes.*' => ['nullable', 'string', 'max:300'],
         ]);
 
-        $proposalTopicIds = $this->proposalTopicIds($characterization);
-        $this->validateReviewPrecondition($characterization, $proposalTopicIds);
-        $this->validateReviewActionCoverage($validated['topic_actions']);
-        $this->validateReviewTopicKeys($validated, $proposalTopicIds);
+        $characterizationId = Characterization::forUser($request->user()->id)->firstOrFail()->id;
+        $outcome = $this->stateTransactions->run($characterizationId, function (Characterization $characterization) use ($validated): array {
+            $currentRevision = $this->reviewRevision($characterization);
 
-        $formData = $characterization->form_data ?? [];
-        Arr::set($formData, 'materiality_proposal_review', [
-            'topic_actions' => $this->normalizeKeyedStrings($validated['topic_actions']),
-            'action_reasons' => $this->normalizeKeyedArrays($validated['action_reasons'] ?? []),
-            'action_notes' => $this->normalizeKeyedStrings($validated['action_notes'] ?? []),
-            'reviewed_at' => now()->toJSON(),
-        ]);
+            if ($validated['expected_revision'] !== $currentRevision) {
+                return ['conflict' => true, 'current_revision' => $currentRevision];
+            }
 
-        $characterization->forceFill(['form_data' => $formData])->save();
+            $proposalTopicIds = $this->proposalTopicIds($characterization);
+            $this->validateReviewPrecondition($characterization, $proposalTopicIds);
+            $this->validateReviewActionCoverage($validated['topic_actions']);
+            $this->validateReviewTopicKeys($validated, $proposalTopicIds);
 
-        return response()->json(['data' => $this->proposalState($characterization->fresh())]);
+            $formData = $characterization->form_data ?? [];
+            Arr::set($formData, 'materiality_proposal_review', [
+                'revision' => $currentRevision + 1,
+                'topic_actions' => $this->normalizeKeyedStrings($validated['topic_actions']),
+                'action_reasons' => $this->normalizeKeyedArrays($validated['action_reasons'] ?? []),
+                'action_notes' => $this->normalizeKeyedStrings($validated['action_notes'] ?? []),
+                'reviewed_at' => now()->toJSON(),
+            ]);
+
+            $characterization->forceFill(['form_data' => $formData])->save();
+
+            return ['conflict' => false, 'characterization_id' => $characterization->id];
+        });
+
+        if ($outcome['conflict']) {
+            return response()->json([
+                'message' => 'La revisión ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.',
+                'code' => 'stale_materiality_state',
+                'data' => ['current_revision' => $outcome['current_revision']],
+            ], 409);
+        }
+
+        $characterization = Characterization::findOrFail($outcome['characterization_id']);
+
+        return response()->json(['data' => $this->proposalState($characterization)]);
     }
 
     /**
@@ -164,6 +189,7 @@ class MaterialityProposalController extends Controller
                 $missingTopicIds === [] => 'reviewed',
                 default => 'in_progress',
             },
+            'revision' => $this->reviewRevision($characterization),
             'topic_actions' => $topicActions,
             'action_reasons' => $this->filterToCurrentTopicKeys(Arr::get($review, 'action_reasons', []), $validTopicKeys),
             'action_notes' => $this->filterToCurrentTopicKeys(Arr::get($review, 'action_notes', []), $validTopicKeys),
@@ -178,11 +204,19 @@ class MaterialityProposalController extends Controller
     {
         return [
             'status' => 'not_started',
+            'revision' => 0,
             'topic_actions' => [],
             'action_reasons' => [],
             'action_notes' => [],
             'reviewed_at' => null,
         ];
+    }
+
+    private function reviewRevision(Characterization $characterization): int
+    {
+        $revision = Arr::get($characterization->form_data ?? [], 'materiality_proposal_review.revision', 0);
+
+        return is_numeric($revision) ? max(0, (int) $revision) : 0;
     }
 
     /**

@@ -223,6 +223,50 @@ function buildDraftPayload(formData: FormState) {
   }
 }
 
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="text-foreground">{value || "-"}</p>
+    </div>
+  )
+}
+
+function MultiSelectCheckboxes({
+  id,
+  label,
+  options,
+  values,
+  onChange,
+}: {
+  id: string
+  label: string
+  options: SelectOption[]
+  values: string[]
+  onChange: (values: string[]) => void
+}) {
+  const toggleValue = (value: string) => {
+    onChange(values.includes(value) ? values.filter((current) => current !== value) : [...values, value])
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div id={id} className="max-h-44 overflow-y-auto rounded-md border border-input bg-background p-2">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className="flex min-h-10 cursor-pointer items-center gap-3 rounded-sm px-2 py-2 text-sm hover:bg-muted"
+          >
+            <Checkbox checked={values.includes(option.value)} onCheckedChange={() => toggleValue(option.value)} />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function InitialSurveyForm() {
   const router = useRouter()
   const [expanded, setExpanded] = useState(true)
@@ -419,48 +463,6 @@ export function InitialSurveyForm() {
     }
   }
 
-  const ReadOnlyField = ({ label, value }: { label: string; value: string }) => (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="text-foreground">{value || "-"}</p>
-    </div>
-  )
-
-  const MultiSelectCheckboxes = ({
-    id,
-    label,
-    options,
-    values,
-    onChange,
-  }: {
-    id: string
-    label: string
-    options: SelectOption[]
-    values: string[]
-    onChange: (values: string[]) => void
-  }) => {
-    const toggleValue = (value: string) => {
-      onChange(values.includes(value) ? values.filter((current) => current !== value) : [...values, value])
-    }
-
-    return (
-      <div className="space-y-2">
-        <Label>{label}</Label>
-        <div id={id} className="max-h-44 overflow-y-auto rounded-md border border-input bg-background p-2">
-          {options.map((option) => (
-            <label
-              key={option.value}
-              className="flex min-h-10 cursor-pointer items-center gap-3 rounded-sm px-2 py-2 text-sm hover:bg-muted"
-            >
-              <Checkbox checked={values.includes(option.value)} onCheckedChange={() => toggleValue(option.value)} />
-              <span>{option.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex-1">
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
@@ -568,7 +570,7 @@ export function InitialSurveyForm() {
                     {formData.entityIdentifier ? (
                       <ReadOnlyField
                         label="LEI de la entidad"
-                        value={`${formData.entityIdentifier} - permite preparar el contexto de entidad del candidato técnico.`}
+                        value={`${formData.entityIdentifier} - se conserva como identificador de la entidad para futuros formatos electrónicos.`}
                       />
                     ) : null}
                     <ReadOnlyField label="Regiones" value={optionLabels(regionOptions, formData.regions)} />
@@ -674,6 +676,7 @@ export function InitialSurveyForm() {
                         <Input
                           id="reportingYear"
                           min={2000}
+                          max={new Date().getFullYear()}
                           type="number"
                           value={formData.reportingYear}
                           onChange={(e) => updateForm({ reportingYear: e.target.value })}
@@ -771,14 +774,14 @@ export function InitialSurveyForm() {
                           autoCapitalize="characters"
                           maxLength={20}
                           value={formData.entityIdentifier}
-                          onChange={(event) => updateForm({ entityIdentifier: event.target.value.trim().toUpperCase() })}
+                          onChange={(e) => updateForm({ entityIdentifier: e.target.value.trim().toUpperCase() })}
                           aria-invalid={fieldErrors.entityIdentifier ? "true" : undefined}
                           aria-describedby={
                             fieldErrors.entityIdentifier ? "entityIdentifier-error" : "entityIdentifier-help"
                           }
                         />
                         <p id="entityIdentifier-help" className="text-xs text-muted-foreground">
-                          Necesario para preparar un candidato técnico validado. Debe ser el LEI oficial de 20 caracteres; no uses NIF/CIF ni la razón social.
+                          Se conserva como identificador oficial de la entidad para futuros formatos electrónicos regulados. Debe ser el LEI oficial de 20 caracteres; no use NIF/CIF ni la razón social.
                         </p>
                         {fieldErrors.entityIdentifier ? (
                           <p id="entityIdentifier-error" className="text-sm text-destructive">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\CharacterizationCapacityException;
 use App\Jobs\SubmitCharacterizationJob;
 use App\Models\Characterization;
 use App\Models\User;
@@ -62,6 +63,53 @@ it('handles the status lifecycle within the submission job', function () {
     expect($characterization->result_data)->toBeArray();
     expect($characterization->completed_at)->not->toBeNull();
     expect($characterization->last_error)->toBeNull();
+});
+
+it('does not apply an older gateway response after the characterization is resubmitted', function () {
+    $originalTopic = \App\Models\EsrsTopic::where('esrs_code', 'E1')->firstOrFail();
+    $newerTopic = \App\Models\EsrsTopic::where('esrs_code', 'E2')->firstOrFail();
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_SUBMITTED,
+        'submission_generation' => 1,
+        'esrs_topic_ids' => [$originalTopic->id],
+        'form_data' => ['esg_focus' => ['topic_ids' => [$originalTopic->id]]],
+        'submitted_at' => now(),
+    ]);
+
+    $gateway = new class($characterization->id, $newerTopic->id) implements CharacterizationGateway
+    {
+        public function __construct(private readonly int $characterizationId, private readonly int $newerTopicId) {}
+
+        public function submit(Characterization $characterization): array
+        {
+            Characterization::query()->whereKey($this->characterizationId)->update([
+                'status' => Characterization::STATUS_SUBMITTED,
+                'submission_generation' => 2,
+                'esrs_topic_ids' => json_encode([$this->newerTopicId]),
+                'form_data' => json_encode(['esg_focus' => ['topic_ids' => [$this->newerTopicId]]]),
+                'result_data' => null,
+                'completed_at' => null,
+            ]);
+
+            return [
+                'status' => 'completed',
+                'candidate_topics' => [
+                    ['ar16_topic_id' => $characterization->esrs_topic_ids[0], 'suggested' => true],
+                ],
+            ];
+        }
+    };
+
+    (new SubmitCharacterizationJob($characterization))->handle($gateway);
+
+    $characterization->refresh();
+    expect($characterization->submission_generation)->toBe(2)
+        ->and($characterization->status)->toBe(Characterization::STATUS_SUBMITTED)
+        ->and($characterization->esrs_topic_ids)->toBe([$newerTopic->id])
+        ->and($characterization->form_data['esg_focus']['topic_ids'])->toBe([$newerTopic->id])
+        ->and($characterization->result_data)->toBeNull()
+        ->and($characterization->completed_at)->toBeNull();
 });
 
 it('skips submission jobs already claimed by another worker', function () {
@@ -128,6 +176,63 @@ it('records retry metadata and releases the job inside the retry window', functi
     expect($characterization->last_error)->toBe('Python service unavailable');
     expect($characterization->last_job_attempted_at)->not->toBeNull();
     expect($characterization->next_retry_at)->not->toBeNull();
+});
+
+it('uses the bounded capacity retry instruction and keeps the submission waiting', function () {
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_SUBMITTED,
+        'nace_code' => 'A',
+        'submitted_at' => now()->subHour(),
+        'retry_count' => 0,
+    ]);
+
+    $gateway = new class implements CharacterizationGateway
+    {
+        public function submit(Characterization $characterization): array
+        {
+            throw new CharacterizationCapacityException(17);
+        }
+    };
+
+    $job = (new SubmitCharacterizationJob($characterization))->withFakeQueueInteractions();
+    $job->handle($gateway);
+
+    $job->assertReleased(17);
+    $characterization->refresh();
+
+    expect($characterization->status)->toBe(Characterization::STATUS_WAITING)
+        ->and($characterization->retry_count)->toBe(1)
+        ->and($characterization->next_retry_at)->not->toBeNull();
+});
+
+it('binds queue retries to the submitted-at 72-hour domain deadline', function () {
+    $submittedAt = now()->subHours(5)->startOfSecond();
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_WAITING,
+        'submitted_at' => $submittedAt,
+    ]);
+
+    $job = new SubmitCharacterizationJob($characterization);
+
+    expect($job->retryUntil()->getTimestamp())->toBe($submittedAt->copy()->addHours(72)->getTimestamp());
+});
+
+it('reconciles business state when the queue exhausts the retry deadline before handle runs', function () {
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_WAITING,
+        'submitted_at' => now()->subHours(73),
+        'next_retry_at' => now()->subHour(),
+    ]);
+
+    (new SubmitCharacterizationJob($characterization))->failed(new RuntimeException('retry deadline exhausted'));
+
+    $characterization->refresh();
+    expect($characterization->status)->toBe(Characterization::STATUS_TIMED_OUT)
+        ->and($characterization->next_retry_at)->toBeNull()
+        ->and($characterization->last_error)->toBe('retry deadline exhausted');
 });
 
 it('marks submissions timed out once the retry window is exhausted', function () {

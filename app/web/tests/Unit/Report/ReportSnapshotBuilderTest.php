@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Report\ReportSnapshotBuilder;
 use App\Services\Report\ReportStalenessDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
@@ -78,6 +79,46 @@ it('detects a lei change after snapshot creation as characterization stale state
 
     expect($result['is_stale'])->toBeTrue()
         ->and($result['reasons'])->toContain('characterization_changed');
+});
+
+it('keeps a stale snapshot historical when live state later returns to its original hashes', function () {
+    $characterization = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    $fact = reportSnapshotUnitFact($characterization, ['value' => ['text' => 'Original value.']]);
+    $snapshot = app(ReportSnapshotBuilder::class)->create($characterization);
+    $detector = app(ReportStalenessDetector::class);
+
+    $fact->update(['value' => ['text' => 'Changed value.']]);
+    expect($detector->refreshState($snapshot)['is_stale'])->toBeTrue();
+
+    $fact->update(['value' => ['text' => 'Original value.']]);
+    $restored = $detector->refreshState($snapshot->fresh());
+
+    expect($restored['is_stale'])->toBeTrue()
+        ->and($restored['stale_state'])->toBe(\App\Models\ReportSnapshot::STALE_STALE)
+        ->and($restored['reasons'])->toContain('reporting_facts_changed')
+        ->and($snapshot->fresh()->stale_state)->toBe(\App\Models\ReportSnapshot::STALE_STALE);
+});
+
+it('rolls back the stale transition when its audit event cannot be written', function () {
+    $characterization = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    $fact = reportSnapshotUnitFact($characterization);
+    $snapshot = app(ReportSnapshotBuilder::class)->create($characterization);
+    $fact->update(['value' => ['text' => 'Changed value.']]);
+
+    DB::unprepared(<<<'SQL'
+        CREATE TRIGGER fail_snapshot_stale_audit
+        BEFORE INSERT ON report_audit_events
+        WHEN NEW.event_type = 'snapshot_stale_detected'
+        BEGIN
+            SELECT RAISE(ABORT, 'forced stale audit failure');
+        END;
+    SQL);
+
+    expect(fn () => app(ReportStalenessDetector::class)->refreshState($snapshot))
+        ->toThrow(\Illuminate\Database\QueryException::class);
+
+    expect($snapshot->fresh()->stale_state)->toBe(\App\Models\ReportSnapshot::STALE_FRESH)
+        ->and(\App\Models\ReportAuditEvent::where('event_type', 'snapshot_stale_detected')->count())->toBe(0);
 });
 
 function reportSnapshotUnitCharacterization(User $user, EsrsTopic $topic): Characterization

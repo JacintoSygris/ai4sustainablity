@@ -76,21 +76,28 @@ return [
 
     'p6_document_upload' => [
         'enabled' => (bool) env('P6_DOCUMENT_UPLOAD_ENABLED', false),
+        'ai_worker_timeout' => env('P6_AI_WORKER_TIMEOUT_SECONDS', 180),
         'extract_timeout' => env('P6_DOCUMENT_EXTRACT_TIMEOUT', 240),
         'job_timeout' => env('P6_DOCUMENT_EXTRACT_JOB_TIMEOUT', 300),
-        // Fail-closed virus scan for public uploads (ClamAV). The configured
-        // binary must be available in the web runtime when scanning is enabled.
+        'max_documents' => env('P6_DOCUMENT_MAX_DOCUMENTS', 5),
+        'max_total_bytes' => env('P6_DOCUMENT_MAX_TOTAL_BYTES', 262144000),
+        'max_global_bytes' => env('P6_DOCUMENT_MAX_GLOBAL_BYTES', 5368709120),
+        'max_global_documents' => env('P6_DOCUMENT_MAX_GLOBAL_DOCUMENTS', 1000),
+        // Fail-closed virus scan for public uploads (ClamAV). Default OFF so
+        // local/CI pass; turn ON in production with clamav installed on the VPS.
         'scan' => [
             'enabled' => (bool) env('P6_DOCUMENT_SCAN_ENABLED', false),
-            'binary' => env('P6_DOCUMENT_SCAN_BINARY', 'clamdscan'),
+            'binary' => env('P6_DOCUMENT_SCAN_BINARY', 'clamscan'),
+            'timeout_seconds' => env('P6_DOCUMENT_SCAN_TIMEOUT_SECONDS', 30),
+            'max_concurrent' => env('P6_DOCUMENT_SCAN_MAX_CONCURRENT', 2),
         ],
     ],
 
-    // Public-launch auth hardening. Both guards FAIL-OPEN when unconfigured so
-    // local/CI stay green; the production env turns them on (see
-    // app/web/.env.production.example). Verification enforcement is a separate
-    // flag applied to wizard/API routes via the `verified.optional` middleware.
+    // Public-launch auth hardening. Production registration stays unavailable
+    // until explicitly enabled and every prerequisite passes a fail-closed check.
     'auth_hardening' => [
+        'public_registration_enabled' => (bool) env('AUTH_PUBLIC_REGISTRATION_ENABLED', false),
+        'password_reset_enabled' => (bool) env('AUTH_PASSWORD_RESET_ENABLED', false),
         'require_email_verification' => (bool) env('AUTH_REQUIRE_EMAIL_VERIFICATION', false),
         'turnstile' => [
             // Cloudflare Turnstile. When site_key+secret are absent the guard is
@@ -98,9 +105,17 @@ return [
             'site_key' => env('TURNSTILE_SITE_KEY'),
             'secret' => env('TURNSTILE_SECRET'),
             'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
+            'expected_hostname' => env('TURNSTILE_EXPECTED_HOSTNAME'),
+            'expected_action' => env('TURNSTILE_EXPECTED_ACTION', 'register'),
         ],
         // Honeypot: a field bots fill and humans never see; must be empty.
         'honeypot_field' => env('AUTH_HONEYPOT_FIELD', 'company_website'),
+    ],
+
+    'private_dev' => [
+        'auto_login' => env('PRIVATE_DEV_AUTO_LOGIN', false),
+        'user_email' => env('PRIVATE_DEV_USER_EMAIL', 'i4sdev@i4s.local'),
+        'user_name' => env('PRIVATE_DEV_USER_NAME', 'I4S Dev'),
     ],
 
     'esrs_datapoints' => [

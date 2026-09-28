@@ -1,0 +1,25 @@
+-- Add step completion columns to report table
+ALTER TABLE report ADD COLUMN step1Completed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE report ADD COLUMN step2Completed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE report ADD COLUMN step3Completed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE report ADD COLUMN step4Completed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE report ADD COLUMN step5Completed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE report ADD COLUMN step6Completed INTEGER NOT NULL DEFAULT 0;
+
+-- Create survey data table
+CREATE TABLE IF NOT EXISTS surveyData (
+  id TEXT PRIMARY KEY,
+  reportId TEXT NOT NULL,
+  companyName TEXT,
+  sector TEXT,
+  products TEXT,
+  regions TEXT,
+  employees TEXT,
+  size TEXT,
+  legalForm TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  FOREIGN KEY (reportId) REFERENCES report(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveyData_reportId ON surveyData(reportId);

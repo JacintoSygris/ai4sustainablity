@@ -4,6 +4,7 @@ namespace App\Services\Report;
 
 use App\Models\ReportAuditEvent;
 use App\Models\ReportSnapshot;
+use Illuminate\Support\Facades\DB;
 
 class ReportStalenessDetector
 {
@@ -54,33 +55,45 @@ class ReportStalenessDetector
      */
     public function refreshState(ReportSnapshot $snapshot): array
     {
-        $result = $this->detect($snapshot);
+        return DB::transaction(function () use ($snapshot): array {
+            $locked = ReportSnapshot::query()
+                ->whereKey($snapshot->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $result = $this->detect($locked);
 
-        $stateChanged = $snapshot->stale_state !== $result['stale_state'] || ($snapshot->stale_reasons ?? []) !== $result['reasons'];
+            if ($locked->stale_state === ReportSnapshot::STALE_STALE) {
+                $result['is_stale'] = true;
+                $result['stale_state'] = ReportSnapshot::STALE_STALE;
+                $result['reasons'] = $locked->stale_reasons ?? [];
 
-        if ($stateChanged) {
-            $snapshot->forceFill([
-                'stale_state' => $result['stale_state'],
+                return $result;
+            }
+
+            if (! $result['is_stale']) {
+                return $result;
+            }
+
+            $locked->forceFill([
+                'stale_state' => ReportSnapshot::STALE_STALE,
                 'stale_reasons' => $result['reasons'],
             ])->save();
-        }
 
-        if ($result['is_stale'] && $stateChanged) {
             ReportAuditEvent::create([
-                'user_id' => $snapshot->user_id,
-                'characterization_id' => $snapshot->characterization_id,
-                'report_snapshot_id' => $snapshot->id,
+                'user_id' => $locked->user_id,
+                'characterization_id' => $locked->characterization_id,
+                'report_snapshot_id' => $locked->id,
                 'event_type' => 'snapshot_stale_detected',
                 'payload' => [
-                    'snapshot_id' => $snapshot->id,
-                    'characterization_id' => $snapshot->characterization_id,
-                    'snapshot_hash' => $snapshot->snapshot_hash,
+                    'snapshot_id' => $locked->id,
+                    'characterization_id' => $locked->characterization_id,
+                    'snapshot_hash' => $locked->snapshot_hash,
                     'reasons' => $result['reasons'],
                     'hashes' => $result['hashes'],
                 ],
             ]);
-        }
 
-        return $result;
+            return $result;
+        }, 3);
     }
 }

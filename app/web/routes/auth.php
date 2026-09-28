@@ -17,10 +17,6 @@ Route::middleware('guest')->group(function () {
         ->whereIn('provider', ['google', 'microsoft'])
         ->name('social.redirect');
 
-    Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])
-        ->whereIn('provider', ['google', 'microsoft'])
-        ->name('social.callback');
-
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
@@ -39,28 +35,44 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:5,1,password-reset:')
         ->name('password.email');
     Route::get('laravel/forgot-password', [PasswordResetLinkController::class, 'create']);
-    Route::post('laravel/forgot-password', [PasswordResetLinkController::class, 'store']);
+    Route::post('laravel/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:5,1,password-reset:');
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+    Route::get('reset-password', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
         ->name('password.store');
 });
 
+Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])
+    ->middleware('throttle:20,1')
+    ->whereIn('provider', ['google', 'microsoft'])
+    ->name('social.callback');
+
 Route::middleware('auth')->group(function () {
+    Route::get('profile/oauth-identities/{provider}/redirect', [SocialLoginController::class, 'link'])
+        ->middleware(['verified', 'password.confirm', 'throttle:10,1'])
+        ->whereIn('provider', ['google', 'microsoft'])
+        ->name('social.link');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
+        ->middleware(['signed:relative', 'throttle:6,1'])
         ->name('verification.verify');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
+    Route::get('laravel/email/verification-notification', EmailVerificationPromptController::class);
+    Route::post('laravel/email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
+        ->middleware('throttle:6,1');
 
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');

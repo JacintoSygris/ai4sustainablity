@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendPasswordResetLink;
+use App\Models\User;
+use App\Support\PasswordResetGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Support\Timebox;
 use Illuminate\View\View;
 
 class PasswordResetLinkController extends Controller
@@ -15,6 +21,8 @@ class PasswordResetLinkController extends Controller
      */
     public function create(): View
     {
+        abort_unless(PasswordResetGuard::available(), 404);
+
         return view('auth.forgot-password');
     }
 
@@ -25,20 +33,34 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(PasswordResetGuard::available(), 404);
+
         $request->validate([
             'email' => ['required', 'email'],
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        [$userId, $email, $authVersion, $generation] = app(Timebox::class)->call(function () use ($request): array {
+            $email = mb_strtolower((string) $request->string('email'));
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+            return DB::transaction(function () use ($email): array {
+                $generation = (string) Str::uuid();
+                $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->lockForUpdate()->first();
+
+                if (! $user) {
+                    return [0, $email, -1, $generation];
+                }
+
+                Password::deleteToken($user);
+                $user->forceFill(['password_reset_generation' => $generation])->save();
+
+                return [$user->getKey(), $user->email, (int) $user->auth_version, $generation];
+            });
+        }, 250_000);
+
+        SendPasswordResetLink::dispatch($userId, $email, $authVersion, $generation);
+
+        // Always return the same response so this endpoint cannot be used to
+        // discover whether an email address belongs to an account.
+        return back()->with('status', __('Si existe una cuenta con ese correo, recibirás un enlace para restablecer la contraseña.'));
     }
 }

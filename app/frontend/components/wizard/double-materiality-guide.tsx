@@ -193,7 +193,7 @@ export function DoubleMaterialityGuide() {
                 <AlertCircle className="mt-0.5 h-5 w-5 text-amber-500" />
                 <div>
                   <p className="font-medium text-foreground">{localized(guide.warning)}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{localized(guide.next_step.note)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{localized(guide.next_step?.note ?? guide.handoff.note)}</p>
                 </div>
               </div>
             </CardContent>

@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['services.private_dev.auto_login' => false]);
+
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
 
     $this->user = User::factory()->create();
@@ -93,7 +95,7 @@ it('stores frontend ESRS datapoint responses for the current corpus', function (
     ]);
 
     $payload = [
-        'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
+        'expected_revision' => 0,
         'responses' => [
             [
                 'datapoint_id' => 'BP-1_01',
@@ -104,7 +106,7 @@ it('stores frontend ESRS datapoint responses for the current corpus', function (
             [
                 'datapoint_id' => 'E2.IRO-1_01',
                 'status' => 'completed',
-                'facts' => [validFact(['value' => 'Pollution IRO screening completed.'])],
+                'value' => 'Pollution IRO screening completed.',
                 'note' => 'Reviewed with operations lead.',
             ],
         ],
@@ -127,7 +129,7 @@ it('stores frontend ESRS datapoint responses for the current corpus', function (
         'id' => $characterization->id,
     ]);
 
-    expect($characterization->fresh()->form_data['esrs_datapoint_responses']['responses']['E2.IRO-1_01']['facts'][0]['value'])
+    expect($characterization->fresh()->form_data['esrs_datapoint_responses']['responses']['E2.IRO-1_01']['value'])
         ->toBe('Pollution IRO screening completed.');
 
     $this->actingAs($this->user)
@@ -139,8 +141,8 @@ it('stores frontend ESRS datapoint responses for the current corpus', function (
     @unlink($mappingPath);
 });
 
-it('stores valid monetary and percent facts with server derived concepts', function () {
-    Characterization::factory()->create([
+it('rejects a stale response revision without overwriting the newer state', function () {
+    $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
         'esrs_topic_ids' => [$this->e2Topic->id],
@@ -151,173 +153,38 @@ it('stores valid monetary and percent facts with server derived concepts', funct
         ],
     ]);
 
-    $payload = [
-        'reporting_entity' => [
-            'identifier_scheme' => 'https://example.test/entity-id',
-            'identifier' => 'IA4S-001',
-            'name' => 'Entidad Demo',
-        ],
-        'responses' => [[
-            'datapoint_id' => 'BP-1_01',
-            'status' => 'completed',
-            'facts' => [
-                validFact(['value_kind' => 'monetary', 'value' => '1234.50', 'decimals' => 2, 'unit' => ['measure' => 'iso4217:EUR']]),
-                validFact(['value_kind' => 'percent', 'value' => '12.5', 'decimals' => 1, 'unit' => ['measure' => 'pure']]),
-            ],
-        ]],
-    ];
-
-    $response = $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', $payload)
-        ->assertOk()
-        ->assertJsonPath('data.schema_version', 'v1')
-        ->assertJsonPath('data.reporting_entity.identifier', 'IA4S-001')
-        ->assertJsonPath('data.responses.BP-1_01.concept.concept_id', 'esrs:BasisForPreparationOfSustainabilityStatement')
-        ->assertJsonPath('data.summary.completed_count', 1)
-        ->assertJsonPath('data.summary.facts_count', 2);
-
-    expect($response->json('data.responses.BP-1_01.facts.0.value'))->toBe('1234.50');
-    expect($response->json('data.responses.BP-1_01.facts.0.concept.concept_id'))->toBe('esrs:BasisForPreparationOfSustainabilityStatement');
-});
-
-it('rejects malformed numeric lexical values and missing fact context', function () {
-    Characterization::factory()->create([
-        'user_id' => $this->user->id,
-        'status' => Characterization::STATUS_COMPLETED,
-        'esrs_topic_ids' => [$this->e2Topic->id],
-        'form_data' => ['materiality_confirmation' => ['confirmed_topic_ids' => [$this->e2Topic->id]]],
-    ]);
-
-    $base = [
-        'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'id'],
-        'responses' => [[
-            'datapoint_id' => 'BP-1_01',
-            'status' => 'completed',
-            'facts' => [validFact(['value_kind' => 'monetary', 'value' => '1,234.50', 'decimals' => 2, 'unit' => ['measure' => 'iso4217:EUR']])],
-        ]],
-    ];
-
-    $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', $base)
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['responses.0.facts.0.value']);
-
-    unset($base['responses'][0]['facts'][0]['context']);
-
-    $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', $base)
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['responses.0.facts.0.context']);
-});
-
-it('rejects completed responses without facts and not applicable without evidence and reason', function () {
-    Characterization::factory()->create([
-        'user_id' => $this->user->id,
-        'status' => Characterization::STATUS_COMPLETED,
-        'esrs_topic_ids' => [$this->e2Topic->id],
-        'form_data' => ['materiality_confirmation' => ['confirmed_topic_ids' => [$this->e2Topic->id]]],
-    ]);
-
-    $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'id'],
-            'responses' => [['datapoint_id' => 'BP-1_01', 'status' => 'completed']],
-        ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['responses.0.facts']);
-
-    $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', [
-            'responses' => [['datapoint_id' => 'BP-1_01', 'status' => 'not_applicable']],
-        ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['responses.0.note', 'responses.0.evidence_reference']);
-});
-
-it('ignores user supplied concept ids and exposes v0 compatibility without counting legacy completed as final', function () {
-    $characterization = Characterization::factory()->create([
-        'user_id' => $this->user->id,
-        'status' => Characterization::STATUS_COMPLETED,
-        'esrs_topic_ids' => [$this->e2Topic->id],
-        'form_data' => [
-            'materiality_confirmation' => ['confirmed_topic_ids' => [$this->e2Topic->id]],
-            'esrs_datapoint_responses' => [
-                'schema_version' => 'v0',
-                'updated_at' => now()->toJSON(),
-                'responses' => [
-                    'BP-1_01' => [
-                        'datapoint_id' => 'BP-1_01',
-                        'status' => 'completed',
-                        'value' => 'Legacy text answer.',
-                        'evidence_reference' => 'Legacy evidence',
-                        'updated_at' => now()->toJSON(),
-                    ],
-                ],
-            ],
-        ],
-    ]);
-
     $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints/responses')
         ->assertOk()
-        ->assertJsonPath('data.schema_version', 'v1')
-        ->assertJsonPath('data.stored_schema_version', 'v0')
-        ->assertJsonPath('data.responses.BP-1_01.legacy_value', 'Legacy text answer.')
-        ->assertJsonPath('data.responses.BP-1_01.facts', [])
-        ->assertJsonPath('data.responses.BP-1_01.fact_readiness.state', 'invalid_completed')
-        ->assertJsonPath('data.summary.completed_count', 0)
-        ->assertJsonPath('data.summary.invalid_completed_count', 1);
+        ->assertJsonPath('data.revision', 0);
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'id'],
+            'expected_revision' => 0,
             'responses' => [[
                 'datapoint_id' => 'BP-1_01',
-                'status' => 'completed',
-                'facts' => [[...validFact(), 'concept' => ['concept_id' => 'esrs:Injected', 'taggable_state' => 'mapped']]],
+                'status' => 'draft',
+                'value' => 'Newest saved value.',
             ]],
         ])
         ->assertOk()
-        ->assertJsonPath('data.responses.BP-1_01.facts.0.concept.concept_id', 'esrs:BasisForPreparationOfSustainabilityStatement');
-
-    $stored = $characterization->fresh()->form_data['esrs_datapoint_responses'];
-    expect($stored['schema_version'])->toBe('v1');
-    expect($stored['responses']['BP-1_01'])->not->toHaveKey('concept');
-    expect($stored['responses']['BP-1_01']['facts'][0])->not->toHaveKey('concept');
-});
-
-it('exports one response csv row per fact with appended v1 content and keeps blank fact rows', function () {
-    Characterization::factory()->create([
-        'user_id' => $this->user->id,
-        'status' => Characterization::STATUS_COMPLETED,
-        'esrs_topic_ids' => [$this->e2Topic->id],
-        'form_data' => ['materiality_confirmation' => ['confirmed_topic_ids' => [$this->e2Topic->id]]],
-    ]);
+        ->assertJsonPath('data.revision', 1);
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
-            'responses' => [
-                ['datapoint_id' => 'BP-1_01', 'status' => 'completed', 'facts' => [
-                    validFact(['value_kind' => 'monetary', 'value' => '10.00', 'decimals' => 2, 'unit' => ['measure' => 'iso4217:EUR']]),
-                    validFact(['value_kind' => 'percent', 'value' => '5', 'decimals' => 0, 'unit' => ['measure' => 'pure']]),
-                ]],
-                ['datapoint_id' => 'IRO-1_01', 'status' => 'draft', 'note' => 'No facts yet.'],
-            ],
+            'expected_revision' => 0,
+            'responses' => [[
+                'datapoint_id' => 'BP-1_01',
+                'status' => 'draft',
+                'value' => 'Stale overwrite.',
+            ]],
         ])
-        ->assertOk();
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'datapoint_responses_conflict')
+        ->assertJsonPath('current_revision', 1);
 
-    $rows = csvRows($this->actingAs($this->user)
-        ->get('/api/esrs-datapoints/responses/export.csv')
-        ->assertOk()
-        ->getContent());
-    $header = array_shift($rows);
-    $byDatapoint = collect($rows)->groupBy(array_search('datapoint_id', $header, true));
-
-    expect($header)->toContain('schema_version', 'reporting_entity_identifier', 'fact_id', 'fact_value_kind', 'fact_lexical_value', 'fact_unit', 'fact_dimensions', 'fact_evidence_reference');
-    expect($byDatapoint->get('BP-1_01'))->toHaveCount(2);
-    expect($byDatapoint->get('BP-1_01')->pluck(array_search('fact_lexical_value', $header, true))->all())->toBe(['10.00', '5']);
-    expect($byDatapoint->get('IRO-1_01')->first()[array_search('fact_id', $header, true)])->toBe('');
+    expect($characterization->fresh()->form_data['esrs_datapoint_responses']['responses']['BP-1_01']['value'])
+        ->toBe('Newest saved value.');
 });
 
 it('rejects duplicate canonical datapoint response ids after trimming', function () {
@@ -334,7 +201,7 @@ it('rejects duplicate canonical datapoint response ids after trimming', function
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -377,7 +244,7 @@ it('accepts trimmed response ids and explicit full-replacement clear semantics',
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => validReportingEntity(),
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => ' BP-1_01 ',
@@ -389,7 +256,7 @@ it('accepts trimmed response ids and explicit full-replacement clear semantics',
                 [
                     'datapoint_id' => 'E2.IRO-1_01',
                     'status' => 'completed',
-                    'facts' => [validFact(['value' => 'Pollution IRO screening completed.'])],
+                    'value' => 'Pollution IRO screening completed.',
                 ],
             ],
         ])
@@ -399,7 +266,7 @@ it('accepts trimmed response ids and explicit full-replacement clear semantics',
 
     $replacement = $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
+            'expected_revision' => 1,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -420,7 +287,7 @@ it('accepts trimmed response ids and explicit full-replacement clear semantics',
     expect(array_keys($replacement->json('data.responses')))->toBe(['BP-1_01']);
 
     $this->actingAs($this->user)
-        ->putJson('/api/esrs-datapoints/responses', ['responses' => []])
+        ->putJson('/api/esrs-datapoints/responses', ['expected_revision' => 2, 'responses' => []])
         ->assertOk()
         ->assertJsonPath('data.summary.response_count', 0)
         ->assertJsonPath('data.summary.completion_status', 'not_started')
@@ -459,7 +326,7 @@ it('preserves orphaned datapoint responses across saves and reattaches them when
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => validReportingEntity(),
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -469,7 +336,7 @@ it('preserves orphaned datapoint responses across saves and reattaches them when
                 [
                     'datapoint_id' => 'E2.IRO-1_01',
                     'status' => 'completed',
-                    'facts' => [validFact(['value' => 'Pollution IRO screening completed.'])],
+                    'value' => 'Pollution IRO screening completed.',
                     'evidence_reference' => 'E2 evidence pack',
                     'note' => 'Keep this if E2 leaves scope temporarily.',
                 ],
@@ -483,7 +350,7 @@ it('preserves orphaned datapoint responses across saves and reattaches them when
 
     $shrunken = $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
+            'expected_revision' => 1,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -498,13 +365,10 @@ it('preserves orphaned datapoint responses across saves and reattaches them when
         ->assertJsonPath('data.summary.completion_ratio', 0)
         ->assertJsonPath('data.orphaned.count', 1);
 
-    $orphanedResponse = $shrunken->json('data.orphaned.responses')['E2.IRO-1_01'];
-
-    expect($orphanedResponse)->toMatchArray([
+    expect($shrunken->json('data.orphaned.responses')['E2.IRO-1_01'])->toMatchArray([
+        'value' => 'Pollution IRO screening completed.',
         'evidence_reference' => 'E2 evidence pack',
     ]);
-    expect($orphanedResponse['facts'][0]['value'])
-        ->toBe('Pollution IRO screening completed.');
     expect($shrunken->json('data.responses'))->not->toHaveKey('E2.IRO-1_01');
 
     expect($characterization->fresh()->form_data['esrs_datapoint_responses']['responses'])
@@ -542,6 +406,7 @@ it('round-trips triage marks and persists rows with only triage set', function (
 
     $response = $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -577,6 +442,7 @@ it('rejects unsupported datapoint response triage values', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -603,6 +469,7 @@ it('rejects responses for datapoints outside the current corpus', function () {
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'S1.SBM-3_01',
@@ -678,8 +545,7 @@ it('exposes orphaned response ids without counting them as live responses', func
         ->assertOk()
         ->assertJsonPath('data.characterization_id', $characterization->id)
         ->assertJsonPath('data.summary.response_count', 2)
-        ->assertJsonPath('data.summary.completed_count', 0)
-        ->assertJsonPath('data.summary.invalid_completed_count', 1)
+        ->assertJsonPath('data.summary.completed_count', 1)
         ->assertJsonPath('data.orphaned.count', 1);
 
     expect($responseState->json('data.orphaned.responses')['S1.SBM-3_01']['value'])
@@ -702,20 +568,20 @@ it('exposes orphaned response ids without counting them as live responses', func
         ->getJson('/api/report')
         ->assertOk()
         ->assertJsonPath('data.sections.datapoint_responses.response_count', 2)
-        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 0)
+        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 1)
         ->assertJsonPath('data.sections.datapoint_responses.orphaned_response_count', 1);
 
     expect(collect($report->json('data.limitations'))->firstWhere('key', 'orphaned_datapoint_responses'))
         ->toMatchArray([
             'key' => 'orphaned_datapoint_responses',
-            'message' => 'Some stored responses no longer match the current materiality scope. They are preserved and will reattach if the scope includes them again.',
+            'message' => 'Algunas respuestas guardadas ya no coinciden con el alcance de materialidad vigente. Se conservan y volverán a incorporarse si el alcance las incluye de nuevo.',
         ]);
 
     $draft = $this->actingAs($this->user)
         ->getJson('/api/report/draft')
         ->assertOk()
         ->assertJsonPath('data.datapoints.response_count', 2)
-        ->assertJsonPath('data.datapoints.completed_count', 0)
+        ->assertJsonPath('data.datapoints.completed_count', 1)
         ->assertJsonPath('data.datapoints.orphaned_response_count', 1);
 
     expect(collect($draft->json('data.limitations'))->pluck('key')->all())
@@ -749,7 +615,7 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
 
     $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => validReportingEntity(),
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
@@ -760,7 +626,7 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
                 [
                     'datapoint_id' => 'E2.IRO-1_01',
                     'status' => 'completed',
-                    'facts' => [validFact(['value' => 'Pollution IRO screening completed.'])],
+                    'value' => 'Pollution IRO screening completed.',
                     'note' => 'Reviewed with operations lead.',
                 ],
             ],
@@ -778,7 +644,7 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
     $datapointIdColumn = array_search('datapoint_id', $header, true);
     $responseValueColumn = array_search('response_value', $header, true);
 
-    expect(array_slice($header, 0, 17))->toBe([
+    expect($header)->toBe([
         'block_key',
         'disclosure_requirement_key',
         'datapoint_id',
@@ -797,7 +663,6 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
         'note',
         'response_updated_at',
     ]);
-    expect($header)->toContain('schema_version', 'fact_id', 'fact_value_kind', 'fact_lexical_value', 'fact_evidence_reference');
 
     $corpusCount = $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints')
@@ -1366,17 +1231,17 @@ it('defaults voluntary and phase-in datapoints to unselected and bases completio
     // Completion is measured against required datapoints only; optional responses count separately.
     $responseState = $this->actingAs($this->user)
         ->putJson('/api/esrs-datapoints/responses', [
-            'reporting_entity' => ['identifier_scheme' => 'scheme', 'identifier' => 'entity-1'],
+            'expected_revision' => 0,
             'responses' => [
                 [
                     'datapoint_id' => 'BP-1_01',
                     'status' => 'completed',
-                    'facts' => [validFact(['value' => 'Prepared on a consolidated basis.'])],
+                    'value' => 'Prepared on a consolidated basis.',
                 ],
                 [
                     'datapoint_id' => 'S1.SBM-3_01',
                     'status' => 'completed',
-                    'facts' => [validFact(['value' => 'Optional deferred datapoint answered anyway.'])],
+                    'value' => 'Optional deferred datapoint answered anyway.',
                 ],
             ],
         ])
@@ -1447,6 +1312,7 @@ it('ships an approved canonical AR16 matter to DR mapping covering every selecta
 
     expect($payload['version'])->toBe('esrs2023-ar16-dr-v1');
     expect($payload['source']['status'])->toBe('approved');
+    expect($payload['source']['approved_at'])->toBe('2026-06-11');
     expect(collect($payload['mappings'])->pluck('ar16_topic_id')->sort()->values()->all())
         ->toBe(EsrsTopic::orderBy('id')->pluck('id')->all());
     expect(collect($payload['mappings'])->where('needs_review', true))->toBeEmpty();
@@ -1481,6 +1347,7 @@ it('keeps P9 fail-closed when the canonical mapping is downgraded to draft', fun
     );
 
     $payload['source']['status'] = 'draft';
+    $payload['source']['approved_at'] = null;
 
     $mappingPath = tempnam(sys_get_temp_dir(), 'i4s-dr-map-');
 
@@ -1644,33 +1511,4 @@ function csvRows(string $csv): array
     fclose($handle);
 
     return $rows;
-}
-
-function validFact(array $overrides = []): array
-{
-    return array_replace_recursive([
-        'value_kind' => 'narrative',
-        'value' => 'Prepared on a consolidated basis.',
-        'decimals' => null,
-        'unit' => null,
-        'context' => [
-            'period_type' => 'duration',
-            'start_date' => '2025-01-01',
-            'end_date' => '2025-12-31',
-            'instant_date' => null,
-            'dimensions' => [
-                ['axis' => 'esrs:ConsolidationAxis', 'member' => 'esrs:ConsolidatedMember'],
-            ],
-        ],
-        'evidence_reference' => 'Evidence pack 2025',
-    ], $overrides);
-}
-
-function validReportingEntity(array $overrides = []): array
-{
-    return array_replace([
-        'identifier_scheme' => 'scheme',
-        'identifier' => 'entity-1',
-        'name' => 'Entidad Demo',
-    ], $overrides);
 }

@@ -1,0 +1,47 @@
+import { NextResponse } from "next/server"
+import { headers } from "next/headers"
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+
+async function getLocalBackend() {
+  const [{ auth }, { getUserReport, resetStepCompletion }] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/queries"),
+  ])
+
+  return { auth, getUserReport, resetStepCompletion }
+}
+
+export async function POST(request: Request) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, getUserReport, resetStepCompletion } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { step } = body
+
+    const report = await getUserReport(session.user.id)
+    if (!report) {
+      return NextResponse.json({ error: "No report found" }, { status: 404 })
+    }
+
+    // Reset this step and all subsequent steps
+    await resetStepCompletion(report.id, step)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error resetting step:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CharacterizationCapacityException;
 use App\Models\Characterization;
 use App\Models\NaceCode;
 use App\Services\Contracts\CharacterizationGateway;
@@ -88,6 +89,11 @@ class ApiCharacterizationGateway implements CharacterizationGateway
         }
 
         if ($response->failed()) {
+            $capacityException = $this->capacityException($response);
+            if ($capacityException !== null) {
+                throw $capacityException;
+            }
+
             throw new RuntimeException(
                 'External characterization API responded with an error (HTTP '.$response->status().'): '
                 .$this->responseFailureDetail($response)
@@ -131,6 +137,25 @@ class ApiCharacterizationGateway implements CharacterizationGateway
             ],
             'evidence_refs' => $this->arrayOrEmpty($predictionEnvelope['evidence_refs'] ?? null),
         ];
+    }
+
+    private function capacityException(Response $response): ?CharacterizationCapacityException
+    {
+        if ($response->status() !== 503 || $response->json('detail.code') !== 'prediction_capacity_busy') {
+            return null;
+        }
+
+        $retryAfter = trim($response->header('Retry-After', ''));
+        if ($retryAfter === '' || preg_match('/^\d+$/', $retryAfter) !== 1) {
+            return null;
+        }
+
+        $seconds = (int) $retryAfter;
+        if ($seconds < 1) {
+            return null;
+        }
+
+        return new CharacterizationCapacityException(min(300, $seconds));
     }
 
     private function counted(int $count, string $singular): string

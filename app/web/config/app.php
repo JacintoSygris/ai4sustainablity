@@ -1,5 +1,8 @@
 <?php
 
+$applicationUrl = (string) env('APP_URL', 'http://localhost');
+$defaultTrustedHost = (string) (parse_url($applicationUrl, PHP_URL_HOST) ?: 'localhost');
+
 return [
 
     /*
@@ -52,7 +55,14 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => $applicationUrl,
+
+    'trusted_hosts' => array_values(array_filter(array_map(
+        static fn (string $host): string => trim($host),
+        explode(',', (string) env('TRUSTED_HOSTS', $defaultTrustedHost)),
+    ))),
+
+    'enforce_trusted_hosts' => (bool) env('ENFORCE_TRUSTED_HOSTS', env('APP_ENV', 'production') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

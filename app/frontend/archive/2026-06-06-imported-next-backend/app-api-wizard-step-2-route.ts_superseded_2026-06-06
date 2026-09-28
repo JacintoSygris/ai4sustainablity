@@ -1,0 +1,97 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { headers } from "next/headers"
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+
+async function getLocalBackend() {
+  const [{ auth }, { db }, { report }, { eq }] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/db"),
+    import("@/lib/schema"),
+    import("drizzle-orm"),
+  ])
+
+  return { auth, db, report, eq }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, report, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { reportId, selectedTopics } = await request.json()
+
+    if (!reportId || !selectedTopics) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    // Update report with step 2 data
+    await db
+      .update(report)
+      .set({
+        materialTopics: JSON.stringify(selectedTopics),
+        currentStep: 3,
+        step2Completed: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(report.id, reportId))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error saving step 2:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, report, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const reportId = searchParams.get("reportId")
+
+    if (!reportId) {
+      return NextResponse.json({ error: "Missing reportId" }, { status: 400 })
+    }
+
+    const [reportData] = await db.select().from(report).where(eq(report.id, reportId))
+
+    if (!reportData) {
+      return NextResponse.json({ error: "Report not found" }, { status: 404 })
+    }
+
+    const selectedTopics = reportData.materialTopics ? JSON.parse(reportData.materialTopics) : []
+
+    return NextResponse.json({
+      selectedTopics,
+      isCompleted: reportData.step2Completed === true,
+    })
+  } catch (error) {
+    console.error("Error fetching step 2 data:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

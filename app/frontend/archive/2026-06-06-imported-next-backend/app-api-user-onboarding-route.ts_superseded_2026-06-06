@@ -1,0 +1,52 @@
+import { assertLocalNextBackendEnabled } from "@/lib/local-next-backend"
+import { headers } from "next/headers"
+import { NextResponse } from "next/server"
+
+async function getLocalBackend() {
+  const [{ auth }, { db }, { user }, { eq }] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/db"),
+    import("@/lib/schema"),
+    import("drizzle-orm"),
+  ])
+
+  return { auth, db, user, eq }
+}
+
+export async function POST(request: Request) {
+  try {
+    const localBackendDisabled = assertLocalNextBackendEnabled()
+
+    if (localBackendDisabled) {
+      return localBackendDisabled
+    }
+
+    const { auth, db, user, eq } = await getLocalBackend()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { purpose, role, referralSources } = body
+
+    await db
+      .update(user)
+      .set({
+        purpose,
+        role,
+        referralSource: JSON.stringify(referralSources),
+        onboardingCompleted: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, session.user.id))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Onboarding error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

@@ -87,13 +87,29 @@ export function missingReviewTopicIds(proposalTopicIds, topicActions) {
   return proposalTopicKeys(proposalTopicIds).filter((topicId) => !actions[topicId])
 }
 
-export function buildReviewPayload({ proposalTopicIds, topicActions, actionReasons = {}, actionNotes = {} }) {
+export function saveCompletionMatchesEditVersion(capturedVersion, currentVersion) {
+  return Number.isInteger(capturedVersion) && capturedVersion === currentVersion
+}
+
+export function buildDraftReviewPayload({ proposalTopicIds, topicActions, actionReasons = {}, actionNotes = {} }) {
   const validTopicKeys = currentTopicKeySet(proposalTopicIds ?? [])
   const cleanActions = Object.fromEntries(
     Object.entries(topicActions ?? {})
       .map(([topicId, action]) => [canonicalTopicKey(topicId), action])
       .filter(([topicId, action]) => topicId && validTopicKeys.has(topicId) && reviewActionSet.has(action)),
   )
+  const answeredTopicKeys = new Set(Object.keys(cleanActions))
+
+  return {
+    topic_actions: cleanActions,
+    action_reasons: cleanReasons(actionReasons, answeredTopicKeys),
+    action_notes: cleanNotes(actionNotes, answeredTopicKeys),
+  }
+}
+
+export function buildReviewPayload({ proposalTopicIds, topicActions, actionReasons = {}, actionNotes = {} }) {
+  const payload = buildDraftReviewPayload({ proposalTopicIds, topicActions, actionReasons, actionNotes })
+  const cleanActions = payload.topic_actions
   const missingTopicIds = missingReviewTopicIds(proposalTopicIds ?? [], cleanActions)
 
   if (missingTopicIds.length > 0) {
@@ -105,10 +121,6 @@ export function buildReviewPayload({ proposalTopicIds, topicActions, actionReaso
 
   return {
     ok: true,
-    payload: {
-      topic_actions: cleanActions,
-      action_reasons: cleanReasons(actionReasons, validTopicKeys),
-      action_notes: cleanNotes(actionNotes, validTopicKeys),
-    },
+    payload,
   }
 }

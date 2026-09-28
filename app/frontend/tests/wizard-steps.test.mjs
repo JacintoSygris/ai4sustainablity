@@ -7,12 +7,12 @@ test("wizard step titles match the canonical six-step journey", () => {
   assert.deepEqual(
     WIZARD_STEPS.map((step) => step.title),
     [
-      "Encuesta inicial",
-      "Revisión de temas materiales",
+      "Describe la organización",
+      "Revisa asuntos propuestos",
       "Doble materialidad",
-      "Selección final de temas relevantes",
-      "Datapoints (ESRS)",
-      "Informe",
+      "Confirma asuntos materiales",
+      "Reúne indicadores/datos ESRS",
+      "Resultados",
     ],
   )
 })

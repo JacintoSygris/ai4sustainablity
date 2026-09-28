@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Characterization;
+use App\Services\CharacterizationStateTransaction;
 use App\Support\DoubleMaterialityGuide;
 use App\Support\DoubleMaterialityProcessState;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class DoubleMaterialityGuideController extends Controller
         ]);
     }
 
-    public function updateState(Request $request)
+    public function updateState(Request $request, CharacterizationStateTransaction $stateTransactions)
     {
         $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
 
@@ -59,27 +60,31 @@ class DoubleMaterialityGuideController extends Controller
             'acta.participants' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $formData = $characterization->form_data ?? [];
-        $current = DoubleMaterialityProcessState::fromFormData($formData);
-        $process = [
-            'checklist' => $current['checklist'],
-            'acta' => $current['acta'],
-            'updated_at' => now()->toJSON(),
-        ];
+        $characterization = $stateTransactions->run($characterization->id, function (Characterization $locked) use ($validated): Characterization {
+            $formData = $locked->form_data ?? [];
+            $current = DoubleMaterialityProcessState::fromFormData($formData);
+            $process = [
+                'checklist' => $current['checklist'],
+                'acta' => $current['acta'],
+                'updated_at' => now()->toJSON(),
+            ];
 
-        if (array_key_exists('checklist', $validated)) {
-            $process['checklist'] = DoubleMaterialityProcessState::checklistFromPayload($validated['checklist']);
-        }
+            if (array_key_exists('checklist', $validated)) {
+                $process['checklist'] = DoubleMaterialityProcessState::checklistFromPayload($validated['checklist']);
+            }
 
-        if (array_key_exists('acta', $validated)) {
-            $process['acta'] = DoubleMaterialityProcessState::actaFromPayload($validated['acta']);
-        }
+            if (array_key_exists('acta', $validated)) {
+                $process['acta'] = DoubleMaterialityProcessState::actaFromPayload($validated['acta']);
+            }
 
-        Arr::set($formData, 'double_materiality_process', $process);
-        $characterization->forceFill(['form_data' => $formData])->save();
+            Arr::set($formData, 'double_materiality_process', $process);
+            $locked->forceFill(['form_data' => $formData])->save();
+
+            return $locked;
+        });
 
         return response()->json([
-            'data' => DoubleMaterialityProcessState::fromFormData($characterization->fresh()->form_data ?? []),
+            'data' => DoubleMaterialityProcessState::fromFormData($characterization->form_data ?? []),
         ]);
     }
 }

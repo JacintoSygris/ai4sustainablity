@@ -1,0 +1,26 @@
+.airis-consent { font: 14px/1.5 system-ui, sans-serif; color: #172033; }
+.airis-consent [hidden] { display: none !important; }
+.airis-consent h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .5rem; }
+.airis-consent p { margin: .5rem 0; }
+.airis-consent-notice, .airis-consent-error { position: fixed; z-index: 100; background: white; border: 1px solid #64748b; box-shadow: 0 2px 15px #0002; padding: 1rem; }
+.airis-consent-notice { bottom: .5rem; left: .5rem; right: .5rem; max-width: 56rem; margin: auto; max-height: calc(100dvh - 1rem); box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; border-radius: .5rem; }
+.airis-consent-content { min-height: 0; overflow: auto; }
+.airis-consent-controls { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; padding: 1rem; }
+.airis-consent-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+.airis-consent-notice > .airis-consent-actions { flex-shrink: 0; margin-bottom: 0; }
+.airis-consent-actions > button { flex: 1 1 0; min-width: 0; }
+.airis-consent-button { appearance: none; background: #fff; color: #512291; border: 2px solid #512291; border-radius: .35rem; padding: .6rem .8rem; min-height: 44px; font: inherit; font-weight: 600; cursor: pointer; }
+.airis-consent-button:hover { background: #f0eafa; }
+.airis-consent :focus-visible { outline: 3px solid #145bbb; outline-offset: 3px; }
+.airis-consent-links { display: flex; flex-wrap: wrap; gap: 1rem; }
+.airis-consent a { color: #512291; text-decoration: underline; }
+.airis-consent-dialog { box-sizing: border-box; color: #172033; background: #fff; width: min(36rem, calc(100% - 2rem)); max-height: 85dvh; overflow: hidden; border: 1px solid #64748b; border-radius: .5rem; padding: 1.25rem; margin: auto; }
+.airis-consent-dialog::backdrop { background: #0006; }
+.airis-consent-option { display: flex; align-items: flex-start; gap: .75rem; margin: 1rem 0; }
+.airis-consent-option input { flex-shrink: 0; width: 1.2rem; height: 1.2rem; margin-top: .15rem; accent-color: #512291; }
+.airis-consent-error { bottom: .5rem; left: .5rem; right: .5rem; color: #8e1525; }
+.airis-consent-dialog .airis-consent-error, .airis-consent-notice .airis-consent-error { position: static; }
+@media (max-width: 400px) { .airis-consent-actions > button { flex: 1 1 100%; } }
+
+.airis-consent-dialog[open] { display: flex; flex-direction: column; }
+.airis-consent-error, .airis-consent-dialog > h2, .airis-consent-dialog > .airis-consent-actions { flex-shrink: 0; }

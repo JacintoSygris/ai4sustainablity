@@ -56,6 +56,192 @@ test("Phase 2 Laravel API client is same-origin by default and CSRF-capable", ()
   assert.match(source, /AbortController|timeout/i, "client must define request timeout behavior")
 })
 
+test("published P6, P8, and P9 contracts require and return optimistic revisions", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+  const schemas = contract.components.schemas
+
+  assert.ok(schemas.MaterialityProposalReviewRequest.required.includes("expected_revision"))
+  assert.ok(schemas.MaterialityProposalReview.required.includes("revision"))
+  assert.ok(schemas.MaterialityConfirmationRequest.required.includes("expected_revision"))
+  assert.ok(schemas.MaterialityConfirmationDetails.required.includes("revision"))
+  assert.ok(schemas.EsrsDatapointResponsesRequest.required.includes("expected_revision"))
+  assert.ok(schemas.EsrsDatapointResponsesState.required.includes("revision"))
+
+  for (const path of [
+    "/api/materiality-proposal",
+    "/api/materiality-confirmation",
+    "/api/esrs-datapoints/responses",
+  ]) {
+    assert.equal(
+      contract.paths[path].put.responses["409"].$ref,
+      "#/components/responses/OptimisticConcurrencyOrEmailUnverified",
+    )
+  }
+})
+
+test("published P6, P8, and P9 schemas describe the complete Laravel response surfaces", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+  const schemas = contract.components.schemas
+
+  for (const field of [
+    "topic_sync_status",
+    "model_profile",
+    "model_key_count",
+    "mapped_key_count",
+    "feature_metadata",
+    "mapping_metadata",
+    "evidence_refs",
+  ]) {
+    assert.ok(schemas.MaterialityProposalAi.required.includes(field), `P6 ai must require ${field}`)
+    assert.ok(schemas.MaterialityProposalAi.properties[field], `P6 ai must define ${field}`)
+  }
+  assert.ok(schemas.MaterialityProposalState.properties.document_evidence)
+  assert.equal(schemas.MaterialityProposalState.required.includes("document_evidence"), false)
+
+  for (const field of ["is_stale", "decision_basis", "p6_snapshot", "adm", "exposicion_defaults"]) {
+    assert.ok(schemas.MaterialityConfirmationState.required.includes(field), `P8 state must require ${field}`)
+  }
+  for (const field of ["dimensions", "guided_answers"]) {
+    assert.ok(schemas.MaterialityConfirmationDetails.required.includes(field), `P8 details must require ${field}`)
+  }
+  assert.deepEqual(schemas.MaterialityPreview.properties.mapping_granularity.enum, [
+    "disclosure_requirement_mapping_required",
+    "disclosure_requirement_level",
+  ])
+  assert.deepEqual(schemas.MaterialityPreview.properties.coverage_status.enum, ["topical_mapping_required", "dr_level"])
+  assert.deepEqual(schemas.MaterialityDecisionSheetSummary.properties.coverage_status.enum, ["topical_mapping_required", "dr_level"])
+  assert.ok(contract.paths["/api/materiality-confirmation/preview"].post)
+
+  assert.deepEqual(schemas.EsrsDatapointResponsesState.properties.schema_version.enum, ["v0", "v1"])
+  assert.ok(schemas.EsrsDatapointResponsesState.required.includes("orphaned"))
+  for (const field of ["decided_count", "decided_required_count", "optional_response_count"]) {
+    assert.ok(schemas.EsrsDatapointResponseSummary.required.includes(field), `P9 summary must require ${field}`)
+  }
+  const triageValues = ["have_it", "need_to_find", "not_applicable_candidate"]
+  assert.deepEqual(schemas.EsrsDatapointResponseInput.properties.triage.enum, [...triageValues, null])
+  assert.deepEqual(schemas.EsrsDatapointResponse.properties.triage.enum, triageValues)
+})
+
+test("published pagination envelopes reject undeclared top-level response fields", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+
+  for (const name of ["PaginatedNaceCodes", "PaginatedEsrsTopics"]) {
+    assert.equal(
+      contract.components.schemas[name].additionalProperties,
+      false,
+      `${name} must be a closed response envelope`,
+    )
+  }
+})
+
+test("published write and corpus schemas match Laravel validation and emitted payloads", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+  const schemas = contract.components.schemas
+  const canonicalTopicKey = "^[1-9][0-9]*$"
+
+  for (const field of ["topic_actions", "action_reasons", "action_notes"]) {
+    assert.equal(schemas.MaterialityProposalReviewRequest.properties[field].propertyNames.pattern, canonicalTopicKey)
+  }
+  assert.equal(schemas.MaterialityProposalReviewRequest.properties.topic_actions.minProperties, 1)
+  assert.equal(
+    schemas.MaterialityConfirmationRequest.properties.dimensions.$ref,
+    "#/components/schemas/MaterialityDimensions",
+  )
+  assert.equal(
+    schemas.MaterialityConfirmationRequest.properties.guided_answers.$ref,
+    "#/components/schemas/MaterialityGuidedAnswers",
+  )
+
+  assert.equal(schemas.EsrsDatapoint.properties.selection.$ref, "#/components/schemas/EsrsDatapointSelection")
+  assert.ok(schemas.EsrsDatapoint.required.includes("selection"))
+  for (const field of ["required_datapoint_count", "default_unselected_datapoint_count"]) {
+    assert.ok(schemas.EsrsDatapointSummary.required.includes(field))
+    assert.ok(schemas.EsrsDatapointSummary.properties[field])
+  }
+  assert.equal(schemas.EsrsPhaseInAssessment.properties.application.$ref, "#/components/schemas/EsrsPhaseInApplication")
+  assert.ok(schemas.EsrsPhaseInAssessment.required.includes("application"))
+  assert.deepEqual(schemas.EsrsMatterMapping.properties.coverage_status.enum, ["topical_mapping_required", "dr_level"])
+  assert.deepEqual(schemas.EsrsMatterMapping.properties.current_filter.enum, [
+    "topical_blocked_until_dr_mapping",
+    "mapped_disclosure_requirements",
+  ])
+  assert.deepEqual(schemas.EsrsMatterMappingTopic.properties.current_filter.enum, [
+    "topical_blocked_until_dr_mapping",
+    "disclosure_requirement_level",
+  ])
+  assert.ok(schemas.EsrsCompletionPhase.properties.status.enum.includes("blocked"))
+  assert.deepEqual(schemas.EsrsCompletionPhase.properties.coverage_status.enum, ["topical_mapping_required", "dr_level"])
+
+  const currentYear = new Date().getUTCFullYear()
+  assert.equal(schemas.CompanyProfile.properties.reporting_year.maximum, currentYear)
+  assert.equal(schemas.DataReadinessItem.properties.year.maximum, currentYear)
+  assert.match(read("components/wizard/initial-survey-form.tsx"), /max=\{new Date\(\)\.getFullYear\(\)\}/)
+})
+
+test("optimistic conflict schemas preserve both Laravel response shapes", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+  const schemas = contract.components.schemas
+  const branches = schemas.OptimisticConcurrencyConflictBody.oneOf.map((branch) => branch.$ref)
+
+  assert.deepEqual(branches, [
+    "#/components/schemas/MaterialityRevisionConflictBody",
+    "#/components/schemas/EsrsDatapointResponsesConflictBody",
+  ])
+  assert.deepEqual(schemas.MaterialityRevisionConflictBody.required, ["message", "code", "data"])
+  assert.deepEqual(schemas.MaterialityRevisionConflictData.required, ["current_revision"])
+  assert.deepEqual(schemas.EsrsDatapointResponsesConflictBody.required, ["message", "code", "current_revision", "data"])
+  assert.equal(
+    schemas.EsrsDatapointResponsesConflictBody.properties.data.$ref,
+    "#/components/schemas/EsrsDatapointResponsesState",
+  )
+})
+
+test("every session-protected OpenAPI operation documents email_unverified without losing concurrency conflicts", () => {
+  const contract = JSON.parse(
+    readFileSync(join(root, "../contracts/api/frontend-characterization-openapi-v0.json"), "utf8"),
+  )
+  const resolveRef = (ref) => ref.split("/").slice(1).reduce((value, key) => value[key], contract)
+  const emailResponse = resolveRef("#/components/responses/EmailUnverified")
+  const emailSchema = resolveRef(emailResponse.content["application/json"].schema.$ref)
+
+  assert.deepEqual(emailSchema.required, ["message", "code"])
+  assert.equal(emailSchema.additionalProperties, false)
+  assert.equal(emailSchema.properties.code.const, "email_unverified")
+
+  for (const [path, pathItem] of Object.entries(contract.paths)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!operation || !["get", "post", "put", "patch", "delete"].includes(method) || !operation.security?.length) continue
+      const response409 = operation.responses?.["409"]
+      assert.ok(response409, `${method.toUpperCase()} ${path} must document email_unverified 409`)
+      const expectedRef = method === "put" && [
+        "/api/materiality-proposal",
+        "/api/materiality-confirmation",
+        "/api/esrs-datapoints/responses",
+      ].includes(path)
+        ? "#/components/responses/OptimisticConcurrencyOrEmailUnverified"
+        : "#/components/responses/EmailUnverified"
+      assert.equal(response409.$ref, expectedRef, `${method.toUpperCase()} ${path} must preserve its exact 409 meanings`)
+      if (expectedRef === "#/components/responses/OptimisticConcurrencyOrEmailUnverified") {
+        const compositeSchema = resolveRef(expectedRef).content["application/json"].schema
+        assert.deepEqual(
+          compositeSchema.oneOf.map((branch) => branch.$ref),
+          ["#/components/schemas/OptimisticConcurrencyConflictBody", "#/components/schemas/EmailUnverifiedBody"],
+        )
+      }
+    }
+  }
+})
+
 test("Next local dev can reserve /api/* for Laravel through rewrites", () => {
   const source = read("next.config.mjs")
 
@@ -81,7 +267,7 @@ test("imported Next backend routes are retired from active Next API paths", () =
   }
 })
 
-test("retired local backend helpers and scripts are absent", () => {
+test("imported Better Auth Turso Drizzle helpers and scripts are superseded outside active paths", () => {
   const retiredActiveFiles = [
     "lib/auth-client.ts",
     "lib/auth.ts",
@@ -101,11 +287,13 @@ test("retired local backend helpers and scripts are absent", () => {
     assert.equal(existsSync(join(root, file)), false, `${file} must not remain active`)
   }
 
-  assert.equal(
-    existsSync(join(root, "archive/2026-06-06-imported-next-backend")),
-    false,
-    "retired backend source must not be distributed",
-  )
+  const archivedFiles = listFiles("archive/2026-06-06-imported-next-backend", () => true, { excludeArchive: false })
+
+  assert.equal(archivedFiles.length, 19, "retired backend source must be preserved as archived files")
+
+  for (const file of archivedFiles) {
+    assert.doesNotMatch(file, /\.(ts|tsx)$/)
+  }
 })
 
 test("active frontend source no longer imports retired backend packages or helpers", () => {
@@ -162,9 +350,9 @@ test("landing feature icons do not request generated placeholder jpg URLs", () =
   assert.match(source, /<feature\.icon/, "feature icons should render from the local icon component")
 })
 
-test("root layout does not load Vercel-only analytics", () => {
+test("root layout does not load Vercel-only analytics on the VPS frontend", () => {
   const source = read("app/layout.tsx")
 
-  assert.doesNotMatch(source, /@vercel\/analytics/, "frontend must not request /_vercel/insights/script.js")
-  assert.doesNotMatch(source, /<Analytics/, "Vercel Analytics component must not render")
+  assert.doesNotMatch(source, /@vercel\/analytics/, "VPS deployment must not request /_vercel/insights/script.js")
+  assert.doesNotMatch(source, /<Analytics/, "Vercel Analytics component must not render on the VPS deployment")
 })

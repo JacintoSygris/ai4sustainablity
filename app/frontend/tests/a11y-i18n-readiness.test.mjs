@@ -59,6 +59,27 @@ test("dashboard header exposes named account controls", () => {
   assert.match(source, /<HelpCircle[^>]+aria-hidden=["']true["']/)
 })
 
+test("materiality workflows expose labelled searches and announced errors", () => {
+  const p6 = read("components/wizard/material-topics-form.tsx")
+  const p8 = read("components/wizard/final-topics-selection.tsx")
+
+  assert.match(p6, /aria-label=["']Buscar tema ESRS["']/)
+  assert.match(p8, /aria-label=["']Buscar tema ESRS["']/)
+  assert.match(p6, /role=["']alert["']/)
+  assert.match(p8, /role=["']alert["']/)
+})
+
+test("dashboard logout treats an expired Laravel session as signed out", () => {
+  const source = read("components/dashboard/dashboard-header.tsx")
+  const logout = read("lib/laravel-logout.mjs")
+
+  assert.match(source, /runLaravelLogout/)
+  assert.match(source, /role=["']alert["']/)
+  assert.match(logout, /error\?\.status === 401/)
+  assert.match(logout, /response\?\.status === 401/)
+  assert.match(source, /router\.replace\(["']\/login["']\)/)
+})
+
 test("Next frontend applies baseline security headers to rendered routes", () => {
   const source = read("next.config.mjs")
 

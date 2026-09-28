@@ -6,10 +6,12 @@ import test from "node:test"
 import {
   compactDrafts,
   completionPlanItems,
+  createResponseSaveQueue,
   datapointApplicabilitySummary,
   flattenCorpus,
   p9ExportLinks,
   p9MappingSummary,
+  parseDatapointResponsesConflict,
   phaseInSummary,
 } from "../lib/esrs-datapoints-state.mjs"
 
@@ -43,12 +45,17 @@ test("ESRS datapoints component reads and writes Laravel P9 APIs", () => {
   assert.match(source, /p9MappingSummary/, "P9 component must render Laravel mapping transparency metadata")
   assert.match(source, /datapointApplicabilitySummary/, "P9 component must render datapoint applicability metadata")
   assert.match(source, /p9ExportLinks/, "P9 component must render the P9 export links from helper state")
-  // P9 must keep triage support in the shared component contract.
+  // Plan 3 F2 additions per frozen contracts
   assert.match(source, /triage|TRIAGE_OPTIONS/, "P9 component must support triage field (have_it | need_to_find | not_applicable_candidate)")
   assert.match(source, /orphaned|orphaned\.count/, "P9 component must surface orphaned responses from Laravel GET /responses")
   assert.match(source, /localStorageDraftKey|p9_drafts_|p9_intro_dismissed/, "P9 must use localStorage recovery + dismissible intro per spec")
   assert.match(source, /Inventario rápido|Responder/, "P9 must offer exact triage-mode toggle copy")
-  assert.match(source, /Solo obligatorios|Todos|Aplazables \(fase-in\)/, "P9 must render obligation filter chips with exact Spanish labels")
+  assert.match(source, /Solo obligatorios|Todos|Aplazables temporalmente/, "P9 must render obligation filter chips with exact Spanish labels")
+  assert.doesNotMatch(
+    source,
+    /Datapoints ESRS|>datapoints<|\bdatapoints (?:del paso|potencialmente aplicables|en este filtro)|Cobertura de datapoints|respuestas de datapoints|Cargando datapoints|listado de datapoints|\|\| "Datapoint"/i,
+    "P9 visible copy must use datos normativos instead of the English term datapoint",
+  )
 })
 
 test("P9 text fields and saves use current draft state for scripted input fills", () => {
@@ -56,10 +63,91 @@ test("P9 text fields and saves use current draft state for scripted input fills"
 
   assert.match(source, /draftsRef\s*=\s*useRef/, "P9 must keep a current drafts ref outside render closures")
   assert.match(source, /draftsRef\.current\s*=\s*next/, "P9 draft updates must refresh the current drafts ref")
-  assert.match(source, /compactTypedDrafts\(draftsRef\.current\)/, "P9 saves must compact the current drafts ref through the typed adapter, not stale render state")
-  assert.match(source, /onInput=\{\(event\) => onChange\(\{ value: event\.currentTarget\.value \}\)\}/, "P9 structured fact value fields must react to DOM input events used by browser scripts")
+  assert.match(source, /compactDrafts\(draftsRef\.current\)/, "P9 saves must compact the current drafts ref, not stale render state")
+  assert.match(source, /saveQueueRef/, "P9 saves must be serialized through one queue")
+  assert.match(source, /editVersionRef/, "P9 must distinguish the edit version captured by each save")
+  assert.match(source, /expected_revision/, "P9 must send the last acknowledged server revision")
+  assert.match(source, /onInput=\{\(event\) => updateDraft\(datapoint\.id, \{ value: event\.currentTarget\.value \}\)\}/, "P9 value fields must react to DOM input events used by browser scripts")
   assert.match(source, /onInput=\{\(event\) => updateDraft\(datapoint\.id, \{ evidence_reference: event\.currentTarget\.value \}\)\}/, "P9 evidence fields must react to DOM input events used by browser scripts")
   assert.match(source, /onInput=\{\(event\) => updateDraft\(datapoint\.id, \{ note: event\.currentTarget\.value \}\)\}/, "P9 note fields must react to DOM input events used by browser scripts")
+})
+
+test("P9 save queue serializes writes and never marks a newer edit clean from an older response", async () => {
+  const pending = []
+  const calls = []
+  const queue = createResponseSaveQueue(0)
+  const persist = (payload) => {
+    calls.push(payload)
+    return new Promise((resolve) => pending.push(resolve))
+  }
+
+  const firstEdit = queue.markEdited()
+  const firstSave = queue.enqueue([{ datapoint_id: "A", status: "draft" }], firstEdit, persist)
+  const secondEdit = queue.markEdited()
+  const secondSave = queue.enqueue([{ datapoint_id: "A", status: "completed" }], secondEdit, persist)
+
+  await Promise.resolve()
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].expected_revision, 0)
+
+  pending.shift()({ data: { revision: 1 } })
+  const firstResult = await firstSave
+  assert.equal(firstResult.isLatestEdit, false)
+
+  await Promise.resolve()
+  assert.equal(calls.length, 2)
+  assert.equal(calls[1].expected_revision, 1)
+
+  pending.shift()({ data: { revision: 2 } })
+  const secondResult = await secondSave
+  assert.equal(secondResult.isLatestEdit, true)
+  assert.equal(queue.revision(), 2)
+})
+
+test("invalidated P9 queue suppresses queued dispatches and marks in-flight completion obsolete", async () => {
+  const pending = []
+  const calls = []
+  const queue = createResponseSaveQueue(0)
+  const persist = (payload) => {
+    calls.push(payload)
+    return new Promise((resolve) => pending.push(resolve))
+  }
+
+  const firstSave = queue.enqueue([], queue.markEdited(), persist)
+  const queuedSave = queue.enqueue([], queue.markEdited(), persist)
+  await Promise.resolve()
+  assert.equal(calls.length, 1)
+
+  queue.invalidate()
+  pending.shift()({ data: { revision: 1 } })
+  assert.deepEqual(await firstSave, { discarded: true, isLatestEdit: false, response: null })
+  assert.deepEqual(await queuedSave, { discarded: true, isLatestEdit: false, response: null })
+  assert.equal(calls.length, 1)
+  assert.equal(queue.revision(), 0)
+})
+
+test("P9 conflict preserves local drafts and installs the authoritative response revision", () => {
+  const conflict = parseDatapointResponsesConflict({
+    status: 409,
+    payload: {
+      code: "datapoint_responses_conflict",
+      current_revision: 4,
+      data: {
+        revision: 4,
+        updated_at: "2026-09-23T20:00:00Z",
+        responses: { A: { status: "completed", value: "remote" } },
+      },
+    },
+  })
+
+  assert.equal(conflict.revision, 4)
+  assert.equal(conflict.responses.A.value, "remote")
+  assert.equal(parseDatapointResponsesConflict({ status: 409, payload: { code: "email_unverified" } }), null)
+  assert.equal(parseDatapointResponsesConflict({ status: 409, payload: { code: "datapoint_responses_conflict", data: {} } }), null)
+
+  const source = read("components/wizard/esrs-datapoints-form.tsx")
+  assert.match(source, /parseDatapointResponsesConflict/)
+  assert.match(source, /pendingRecoveryDrafts/)
 })
 
 test("P9 helpers compact response state with full-replacement clear semantics", () => {
@@ -72,12 +160,12 @@ test("P9 helpers compact response state with full-replacement clear semantics", 
       "BP-1_04": { status: "not_applicable", value: "", evidence_reference: "", note: "" },
     }),
     [
-      { datapoint_id: "BP-1_02", evidence_reference: "pack", facts: [], note: undefined, status: "draft", value: "consolidated" },
-      { datapoint_id: "BP-1_03", evidence_reference: undefined, facts: [], note: "done", status: "completed", value: undefined },
-      { datapoint_id: "BP-1_04", evidence_reference: undefined, facts: [], note: undefined, status: "not_applicable", value: undefined },
+      { datapoint_id: "BP-1_02", evidence_reference: "pack", note: undefined, status: "draft", value: "consolidated" },
+      { datapoint_id: "BP-1_03", evidence_reference: undefined, note: "done", status: "completed", value: undefined },
+      { datapoint_id: "BP-1_04", evidence_reference: undefined, note: undefined, status: "not_applicable", value: undefined },
     ],
   )
-  // Triage-only rows must survive; triage is included in the payload.
+  // triage-only rows must survive (additive per F2 frozen); triage included in payload
   const triageOnly = compactDrafts({
     "T-01": { status: "draft", value: "", evidence_reference: "", note: "", triage: "need_to_find" },
   })
@@ -145,10 +233,10 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
     currentFilter: "topical_blocked_until_dr_mapping",
     currentFilterLabel: "Bloqueado hasta mapear AR16 a DR",
     limitations: [
-      "Falta el mapa aprobado AR16 a DR. P9 no incluirá datapoints tópicos para evitar convertir un tema material en todo el estándar ESRS.",
+      "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar ESRS.",
     ],
     mappingGranularity: "disclosure_requirement_mapping_required",
-    mappingGranularityLabel: "Requiere mapa a Disclosure Requirement",
+    mappingGranularityLabel: "Requiere mapa a requisito de divulgación",
     mappingStatus: "pending",
     mappingStatusLabel: "Mapa pendiente",
   })

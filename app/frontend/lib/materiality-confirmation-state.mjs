@@ -46,6 +46,23 @@ export function sortTopics(topics) {
   })
 }
 
+export function topicSelectionKey(topicIds) {
+  const key = Array.from(topicIdSet(topicIds)).sort((left, right) => left - right).join(",")
+  return key || "empty"
+}
+
+export function createPreviewToken(topicIds, generation) {
+  return {
+    selection_key: topicSelectionKey(topicIds),
+    generation: Number.isInteger(generation) && generation >= 0 ? generation : 0,
+  }
+}
+
+export function previewTokenIsCurrent(token, topicIds, generation) {
+  return token?.selection_key === topicSelectionKey(topicIds)
+    && token?.generation === generation
+}
+
 function topicIdSet(topicIds) {
   return new Set((Array.isArray(topicIds) ? topicIds : Array.from(topicIds ?? [])).map(Number).filter((id) => id > 0))
 }
@@ -68,6 +85,73 @@ export function changedTopicIds(p6TopicIds, selectedTopicIds) {
   }
 
   return Array.from(changed).sort((left, right) => left - right)
+}
+
+export function selectedTopicIdsForGuidedAnswer(selectedTopicIds, topicId, answer) {
+  const selected = topicIdSet(selectedTopicIds)
+  const normalizedTopicId = Number(topicId)
+
+  if (normalizedTopicId <= 0) {
+    return selected
+  }
+
+  if (answer?.final_result === "material") {
+    selected.add(normalizedTopicId)
+  } else if (answer?.final_result === "no_material") {
+    selected.delete(normalizedTopicId)
+  }
+
+  return selected
+}
+
+export function guidedReviewTopicIds({ selectedTopicIds, guidedAnswers }) {
+  const selected = Array.from(selectedTopicIds).map(Number).filter(Number.isInteger)
+  const noMaterialIds = Object.entries(guidedAnswers || {})
+    .filter(([, answer]) => answer?.final_result === "no_material")
+    .map(([topicId]) => Number(topicId))
+    .filter(Number.isInteger)
+    .sort((a, b) => a - b)
+  const noMaterial = new Set(noMaterialIds)
+  const observationIds = selected
+    .filter((topicId) => {
+      const answer = guidedAnswers?.[String(topicId)]
+      return !noMaterial.has(topicId) && answer?.suggested_result === "en_observacion"
+    })
+    .sort((a, b) => a - b)
+  const observation = new Set(observationIds)
+  const materialIds = selected
+    .filter((topicId) => !noMaterial.has(topicId) && !observation.has(topicId))
+    .sort((a, b) => a - b)
+
+  return { materialIds, observationIds, noMaterialIds }
+}
+
+export function applyDirectTopicDecision(selectedTopicIds, guidedAnswers, topicId, selected) {
+  const nextSelected = topicIdSet(selectedTopicIds)
+  const normalizedTopicId = Number(topicId)
+
+  if (normalizedTopicId > 0) {
+    if (selected) nextSelected.add(normalizedTopicId)
+    else nextSelected.delete(normalizedTopicId)
+  }
+
+  const nextGuidedAnswers = { ...(guidedAnswers ?? {}) }
+  delete nextGuidedAnswers[String(normalizedTopicId)]
+
+  return { selectedTopicIds: nextSelected, guidedAnswers: nextGuidedAnswers }
+}
+
+export function consistentGuidedAnswers(guidedAnswers, selectedTopicIds) {
+  const selected = topicIdSet(selectedTopicIds)
+
+  return Object.fromEntries(
+    Object.entries(guidedAnswers ?? {}).filter(([topicId, answer]) => {
+      if (!validateGuidedAnswer(answer)) return false
+
+      const isSelected = selected.has(Number(topicId))
+      return answer.final_result === "material" ? isSelected : !isSelected
+    }),
+  )
 }
 
 export function cleanNotes(notes, validTopicIds) {
@@ -144,13 +228,7 @@ export function buildMaterialityConfirmationPayload({
   }
 
   if (guidedAnswers && typeof guidedAnswers === "object") {
-    const cleanGuided = {}
-    for (const [k, v] of Object.entries(guidedAnswers)) {
-      const key = String(k)
-      if (validateGuidedAnswer(v)) {
-        cleanGuided[key] = v
-      }
-    }
+    const cleanGuided = consistentGuidedAnswers(guidedAnswers, selected)
     if (Object.keys(cleanGuided).length > 0) payload.guided_answers = cleanGuided
   }
 

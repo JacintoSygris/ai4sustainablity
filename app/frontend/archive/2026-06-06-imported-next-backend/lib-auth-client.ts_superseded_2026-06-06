@@ -1,0 +1,28 @@
+import { createAuthClient } from "better-auth/react"
+
+const getBaseURL = () => {
+  // Client-side: always use window.location.origin
+  if (typeof window !== "undefined") {
+    return window.location.origin
+  }
+
+  // Server-side/build-time: check environment variables
+  // NEXT_PUBLIC_APP_URL takes priority if properly set
+  if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== "/") {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+
+  // Vercel provides VERCEL_URL during build/runtime
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+
+  // Fallback for local development
+  return "http://localhost:3000"
+}
+
+export const authClient = createAuthClient({
+  baseURL: getBaseURL(),
+})
+
+export const { signIn, signUp, signOut, useSession } = authClient

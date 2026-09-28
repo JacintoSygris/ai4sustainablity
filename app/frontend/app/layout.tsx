@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import "./globals.css";
+import "../public/consent/consent.css";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Airis - Preparación ESRS asistida",
-  description: "Asistente para organizar información ESRS 2023, propuestas revisables y decisiones humanas.",
+  description: "Asistente para preparar reportes ESRS 2023 con materialidad, datos normativos y evidencias organizadas.",
   icons: {
     icon: "/icon-light-32x32.png",
     apple: "/apple-icon.png",

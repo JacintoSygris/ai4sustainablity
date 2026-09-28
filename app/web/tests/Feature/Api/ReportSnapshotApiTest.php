@@ -94,6 +94,47 @@ it('returns an existing snapshot idempotently for identical factual state', func
         ->and(ReportAuditEvent::where('event_type', 'snapshot_created')->count())->toBe(3);
 });
 
+it('rolls back snapshot creation when its audit event cannot be written', function () {
+    $characterization = reportSnapshotApiCharacterization($this->user, $this->topic);
+    reportSnapshotApiFact($characterization, ['fact_id' => 'rf_atomic_snapshot']);
+    $this->withoutExceptionHandling();
+
+    ReportAuditEvent::creating(function (ReportAuditEvent $event): void {
+        if ($event->event_type === 'snapshot_created') {
+            throw new RuntimeException('synthetic snapshot audit failure');
+        }
+    });
+
+    expect(fn () => $this->actingAs($this->user)->postJson('/api/report/snapshot'))
+        ->toThrow(RuntimeException::class, 'synthetic snapshot audit failure');
+
+    expect(ReportSnapshot::where('characterization_id', $characterization->id)->count())->toBe(0)
+        ->and(ReportAuditEvent::where('characterization_id', $characterization->id)->count())->toBe(0);
+});
+
+it('rolls back snapshot approval when its audit event cannot be written', function () {
+    $characterization = reportSnapshotApiCharacterization($this->user, $this->topic);
+    reportSnapshotApiFact($characterization, [
+        'fact_id' => 'rf_atomic_approval',
+        'approval_status' => 'reviewed',
+    ]);
+    $snapshot = app(\App\Services\Report\ReportSnapshotBuilder::class)->create($characterization);
+    $this->withoutExceptionHandling();
+
+    ReportAuditEvent::creating(function (ReportAuditEvent $event): void {
+        if ($event->event_type === 'snapshot_approved') {
+            throw new RuntimeException('synthetic approval audit failure');
+        }
+    });
+
+    expect(fn () => $this->actingAs($this->user)->postJson("/api/report/snapshots/{$snapshot->id}/approve", [
+        'single_person_declaration' => 'I prepared, reviewed and approve this snapshot.',
+    ]))->toThrow(RuntimeException::class, 'synthetic approval audit failure');
+
+    expect(ReportApproval::where('report_snapshot_id', $snapshot->id)->count())->toBe(0)
+        ->and(ReportAuditEvent::where('event_type', 'snapshot_approved')->count())->toBe(0);
+});
+
 it('lists only the current users snapshots', function () {
     $ownCharacterization = reportSnapshotApiCharacterization($this->user, $this->topic);
     $otherCharacterization = reportSnapshotApiCharacterization($this->otherUser, $this->topic);
@@ -213,6 +254,60 @@ it('enforces reviewability, single-person declaration and staleness before appro
         ->assertJsonPath('code', 'report_stale');
 });
 
+it('does not approve a snapshot whose reviewed facts are all not applicable', function () {
+    $characterization = reportSnapshotApiCharacterization($this->user, $this->topic);
+    reportSnapshotApiFact($characterization, [
+        'fact_id' => 'rf_not_applicable_only',
+        'applicability' => 'not_applicable',
+        'value_type' => 'nil',
+        'value' => null,
+        'language' => null,
+        'nil' => false,
+        'approval_status' => 'reviewed',
+    ]);
+
+    $snapshotId = $this->actingAs($this->user)
+        ->postJson('/api/report/snapshot')
+        ->assertCreated()
+        ->json('data.id');
+
+    $this->actingAs($this->user)
+        ->postJson("/api/report/snapshots/{$snapshotId}/approve", [
+            'single_person_declaration' => 'I prepared, reviewed and approve this snapshot.',
+        ])
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'report_not_reviewable')
+        ->assertJsonPath('reasons', [
+            'no_claimable_report_content',
+            'completed_datapoint_facts_missing',
+        ]);
+});
+
+it('does not approve a snapshot when completed datapoints lack claimable facts', function () {
+    $characterization = reportSnapshotApiCharacterization($this->user, $this->topic, [
+        'BP-1_01' => ['datapoint_id' => 'BP-1_01', 'status' => 'completed'],
+        'BP-1_02' => ['datapoint_id' => 'BP-1_02', 'status' => 'completed'],
+    ]);
+    reportSnapshotApiFact($characterization, [
+        'fact_id' => 'rf_partial_coverage',
+        'datapoint_id' => 'BP-1_01',
+        'approval_status' => 'reviewed',
+    ]);
+
+    $snapshotId = $this->actingAs($this->user)
+        ->postJson('/api/report/snapshot')
+        ->assertCreated()
+        ->json('data.id');
+
+    $this->actingAs($this->user)
+        ->postJson("/api/report/snapshots/{$snapshotId}/approve", [
+            'single_person_declaration' => 'I prepared, reviewed and approve this snapshot.',
+        ])
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'report_not_reviewable')
+        ->assertJsonPath('reasons', ['completed_datapoint_facts_missing']);
+});
+
 it('marks a snapshot stale when only fact review state changes', function () {
     $characterization = reportSnapshotApiCharacterization($this->user, $this->topic);
     $fact = reportSnapshotApiFact($characterization, [
@@ -308,6 +403,15 @@ it('has no API route that updates or deletes snapshots', function () {
 
 function reportSnapshotApiCharacterization(User $user, EsrsTopic $topic, array $responses = []): Characterization
 {
+    if ($responses === []) {
+        $responses = [
+            'BP-1_01' => [
+                'datapoint_id' => 'BP-1_01',
+                'status' => 'completed',
+            ],
+        ];
+    }
+
     return Characterization::factory()->create([
         'user_id' => $user->id,
         'status' => Characterization::STATUS_COMPLETED,

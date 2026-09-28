@@ -26,7 +26,10 @@ class ReportIrBuilder
         private readonly FloorProseComposer $prose,
         private readonly NotMaterialTopicResolver $notMaterial,
         private readonly ReportClaimBuilder $claims,
+        private readonly ReportContentReadiness $contentReadiness,
+        private readonly ReportContentScope $contentScope,
         private readonly ReportingProfileRepository $profiles,
+        private readonly ReportSnapshotBuilder $snapshots,
     ) {}
 
     /**
@@ -50,7 +53,7 @@ class ReportIrBuilder
         }
 
         $disclaimers = [
-            'No es presentación oficial, aseguramiento, Taxonomía UE ni un documento iXBRL presentado.',
+            'No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.',
         ];
 
         if ($omissions['is_stale']) {
@@ -94,6 +97,7 @@ class ReportIrBuilder
     public function buildFromApprovedSnapshot(ReportSnapshot $snapshot): array
     {
         $approval = $this->approvedSnapshotApproval($snapshot);
+        $this->snapshots->assertFrozenSnapshotIntegrity($snapshot);
         $snapshotJson = is_array($snapshot->snapshot_json) ? $snapshot->snapshot_json : [];
         $profileId = (string) ($snapshot->profile_id ?: Arr::get($snapshotJson, 'profile.profile_id'));
 
@@ -120,7 +124,24 @@ class ReportIrBuilder
         $layout = $this->build($characterization);
         unset($layout['version_hash']);
 
-        $claims = $this->claims->build($facts, $snapshot->snapshot_hash, $profileId);
+        $completedDatapointIds = $this->contentScope->completedDatapointIds(
+            $characterization,
+            $this->corpus->build($characterization),
+        );
+        $completedDatapointSet = array_fill_keys($completedDatapointIds, true);
+        $claimableFacts = array_values(array_filter(
+            $facts,
+            fn (mixed $fact): bool => is_array($fact)
+                && isset($completedDatapointSet[(string) ($fact['datapoint_id'] ?? '')]),
+        ));
+
+        $claims = $this->claims->build($claimableFacts, $snapshot->snapshot_hash, $profileId);
+        $contentReadiness = $this->contentReadiness->assess(
+            $facts,
+            $completedDatapointIds,
+        );
+        $factDecisions = $this->factDecisions($facts, $claims, $completedDatapointIds);
+        $materialityTrace = $this->notMaterial->resolve($characterization);
         $ir = [
             'schema_version' => 'report_ir_v1',
             'source' => [
@@ -132,6 +153,9 @@ class ReportIrBuilder
                 'approved_at' => $approval->approved_at?->toJSON(),
             ],
             'claims' => $claims,
+            'content_readiness' => $contentReadiness,
+            'fact_decisions' => $factDecisions,
+            'materiality_trace' => $materialityTrace,
             'asset_versions' => $layout['asset_versions'],
             'company' => $layout['company'],
             'omission_section' => $layout['omission_section'],
@@ -143,6 +167,45 @@ class ReportIrBuilder
 
         return $ir;
     }
+
+    /**
+     * @param  list<array<string, mixed>>  $facts
+     * @param  list<array<string, mixed>>  $claims
+     * @param  list<string>  $completedDatapointIds
+     * @return list<array<string, mixed>>
+     */
+    private function factDecisions(array $facts, array $claims, array $completedDatapointIds): array
+    {
+        $claimableFactIds = array_fill_keys(
+            array_values(array_filter(array_column($claims, 'fact_id'), 'is_string')),
+            true,
+        );
+        $completedDatapointSet = array_fill_keys($completedDatapointIds, true);
+        $decisions = [];
+
+        foreach ($facts as $fact) {
+            if (! is_array($fact)) {
+                continue;
+            }
+
+            $factId = (string) ($fact['fact_id'] ?? '');
+            $fact['output_section'] = isset($claimableFactIds[$factId])
+                ? 'body'
+                : (($fact['applicability'] ?? null) === 'not_applicable'
+                    || ! isset($completedDatapointSet[(string) ($fact['datapoint_id'] ?? '')])
+                    ? 'not_applicable_appendix'
+                    : 'gap');
+            $decisions[] = $fact;
+        }
+
+        usort($decisions, fn (array $left, array $right): int => strcmp(
+            (string) ($left['fact_id'] ?? ''),
+            (string) ($right['fact_id'] ?? ''),
+        ));
+
+        return $decisions;
+    }
+
 
     private function approvedSnapshotApproval(ReportSnapshot $snapshot): ReportApproval
     {
@@ -199,17 +262,21 @@ class ReportIrBuilder
             $claimsById[(string) $claim['claim_id']] = $claim;
         }
 
-        foreach ($chapters as &$chapter) {
+        $factualChapters = [];
+
+        foreach ($chapters as $chapter) {
             if (! isset($chapter['sections']) || ! is_array($chapter['sections'])) {
                 continue;
             }
 
-            foreach ($chapter['sections'] as &$section) {
+            $factualSections = [];
+            foreach ($chapter['sections'] as $section) {
                 if (! isset($section['blocks']) || ! is_array($section['blocks'])) {
                     continue;
                 }
 
-                foreach ($section['blocks'] as &$block) {
+                $factualBlocks = [];
+                foreach ($section['blocks'] as $block) {
                     if (! array_key_exists('datapoint_id', $block)) {
                         continue;
                     }
@@ -217,17 +284,42 @@ class ReportIrBuilder
                     $baseSlots = is_array($block['slots'] ?? null) ? $block['slots'] : [];
                     $baseSlot = $baseSlots[0] ?? [];
                     $blockClaims = $claimsByDatapoint[(string) $block['datapoint_id']] ?? [];
+                    if ($blockClaims === []) {
+                        continue;
+                    }
+
+                    $block['name'] = 'Información reportada';
+                    $block['assertions'] = [];
+                    $block['guidance'] = [];
                     $block['claims'] = $blockClaims;
+                    $baseSlot['label'] = $block['name'];
                     $block['slots'] = array_map(
                         fn (string $claimId): array => $this->slotFromClaim($baseSlot, $claimsById[$claimId]),
                         $blockClaims,
                     );
+                    $factualBlocks[] = $block;
                 }
-            }
-        }
-        unset($chapter, $section, $block);
 
-        return $chapters;
+                if ($factualBlocks === []) {
+                    continue;
+                }
+
+                $section['blocks'] = $factualBlocks;
+                $section['cross_refs'] = [];
+                $section['cross_ref_sentences'] = [];
+                $factualSections[] = $section;
+            }
+
+            if ($factualSections === []) {
+                continue;
+            }
+
+            $chapter['sections'] = $factualSections;
+            $chapter['floor_prose'] = null;
+            $factualChapters[] = $chapter;
+        }
+
+        return $factualChapters;
     }
 
     /**

@@ -1,0 +1,94 @@
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
+
+// Better Auth required tables
+export const user = sqliteTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: integer("emailVerified", { mode: "boolean" }).notNull().default(false),
+  image: text("image"),
+  purpose: text("purpose"), // Trabajo, Estudios, Uso personal, Organizaciones sin fines de lucro
+  role: text("role"), // Freelance, CEO, Director, etc.
+  referralSource: text("referralSource"), // JSON array of sources
+  onboardingCompleted: integer("onboardingCompleted", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+})
+
+export const session = sqliteTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+})
+
+export const account = sqliteTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: integer("accessTokenExpiresAt", { mode: "timestamp" }),
+  refreshTokenExpiresAt: integer("refreshTokenExpiresAt", { mode: "timestamp" }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+})
+
+export const verification = sqliteTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }),
+})
+
+export const report = sqliteTable("report", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+  name: text("name"), // Optional report name
+  currentStep: integer("currentStep").notNull().default(1),
+  totalSteps: integer("totalSteps").notNull().default(6),
+  status: text("status").notNull().default("draft"), // draft, in_progress, completed
+  materialTopics: text("materialTopics"), // JSON array of selected topic IDs from step 2
+  finalTopics: text("finalTopics"), // JSON array of final confirmed topic IDs
+  topicJustifications: text("topicJustifications"), // JSON object with topic justifications
+  step1Completed: integer("step1Completed", { mode: "boolean" }).notNull().default(false),
+  step2Completed: integer("step2Completed", { mode: "boolean" }).notNull().default(false),
+  step3Completed: integer("step3Completed", { mode: "boolean" }).notNull().default(false),
+  step4Completed: integer("step4Completed", { mode: "boolean" }).notNull().default(false),
+  step5Completed: integer("step5Completed", { mode: "boolean" }).notNull().default(false),
+  step6Completed: integer("step6Completed", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+})
+
+export const surveyData = sqliteTable("surveyData", {
+  id: text("id").primaryKey(),
+  reportId: text("reportId")
+    .notNull()
+    .references(() => report.id),
+  companyName: text("companyName"),
+  sector: text("sector"),
+  products: text("products"),
+  regions: text("regions"),
+  employees: text("employees"),
+  size: text("size"),
+  legalForm: text("legalForm"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+})

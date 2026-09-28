@@ -2,6 +2,7 @@
 
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
+use App\Models\ReportingFact;
 use App\Models\User;
 use App\Services\EsrsDatapointCorpusBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,7 +69,8 @@ it('returns report package readiness and download endpoints for the separate fro
         ->assertJsonPath('data.downloads.p9_responses_csv.endpoint', '/api/esrs-datapoints/responses/export.csv')
         ->assertJsonPath('data.downloads.p9_datapoints_csv.endpoint', '/api/esrs-datapoints/export.csv')
         ->assertJsonPath('data.downloads.characterization_summary_pdf.endpoint', '/characterization/summary?format=pdf')
-        ->assertJsonPath('data.limitations.0.key', 'report_package_scope');
+        ->assertJsonPath('data.limitations.0.key', 'report_package_scope')
+        ->assertJsonPath('data.limitations.0.message', 'El paquete permite preparar el informe ESRS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.');
 
     expect($response->json('data.sections.esrs_datapoints.total_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.sections.datapoint_responses.response_count'))->toBe(2);
@@ -161,7 +163,7 @@ it('exposes stale materiality confirmation in report readiness without changing 
     expect(collect($response->json('data.limitations'))->firstWhere('key', 'materiality_confirmation_stale'))
         ->toMatchArray([
             'key' => 'materiality_confirmation_stale',
-            'message' => 'The final materiality confirmation predates the latest proposal changes. Re-confirm in step 4.',
+            'message' => 'La confirmación final de materialidad es anterior a los últimos cambios de la propuesta. Vuelve a confirmarla en el paso 4.',
         ]);
 
     $formData['materiality_confirmation']['p6_snapshot']['topic_ids'] = [$this->e2Topic->id, $s1Topic->id];
@@ -203,6 +205,34 @@ it('returns frontend-renderable report draft data from the current workflow stat
 
     expect($response->json('data.datapoints.total_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.datapoints.blocks'))->not->toBeEmpty();
+});
+
+it('reports auditable AR16 leaves separately from grouped material themes', function () {
+    $e1Topics = EsrsTopic::where('esrs_code', 'E1')->orderBy('id')->limit(2)->get();
+    $s1Topic = EsrsTopic::where('esrs_code', 'S1')->firstOrFail();
+    $confirmedTopicIds = [...$e1Topics->pluck('id')->all(), $s1Topic->id];
+    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
+    $formData = $characterization->form_data;
+    $formData['materiality_confirmation']['confirmed_topic_ids'] = $confirmedTopicIds;
+    $formData['materiality_confirmation']['p6_snapshot'] = [
+        'topic_ids' => $confirmedTopicIds,
+        'captured_at' => now()->toJSON(),
+    ];
+
+    $characterization->forceFill([
+        'esrs_topic_ids' => $confirmedTopicIds,
+        'form_data' => $formData,
+    ])->save();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/report/draft')
+        ->assertOk()
+        ->assertJsonPath('data.materiality.confirmed_topic_count', 3)
+        ->assertJsonPath('data.materiality.confirmed_theme_count', 2)
+        ->assertJsonPath('data.materiality.confirmed_themes.0.esrs_code', 'E1')
+        ->assertJsonPath('data.materiality.confirmed_themes.0.label', 'Cambio climático')
+        ->assertJsonPath('data.materiality.confirmed_themes.1.esrs_code', 'S1')
+        ->assertJsonPath('data.materiality.confirmed_themes.1.label', 'Personal propio');
 });
 
 it('distinguishes scoping-only report coverage mode', function () {
@@ -362,15 +392,15 @@ it('returns next actions for the actual incomplete report blocker', function () 
         ->assertJsonPath('data.next_actions.0', '/api/esrs-datapoints/responses');
 });
 
-it('treats not applicable datapoint responses as report-ready decisions', function () {
+it('separates a completed workflow from factual report readiness', function () {
     $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
     $corpus = app(EsrsDatapointCorpusBuilder::class)->build($characterization);
     $datapointIds = reportDatapointIds($corpus);
     $responses = collect($datapointIds)
-        ->mapWithKeys(fn (string $id): array => [
+        ->mapWithKeys(fn (string $id, int $index): array => [
             $id => [
                 'datapoint_id' => $id,
-                'status' => 'not_applicable',
+                'status' => $index < 10 ? 'completed' : 'not_applicable',
                 'updated_at' => now()->toJSON(),
             ],
         ])
@@ -392,8 +422,8 @@ it('treats not applicable datapoint responses as report-ready decisions', functi
         ->assertJsonPath('data.sections.double_materiality_guide.status', 'missing')
         ->assertJsonPath('data.sections.datapoint_responses.status', 'complete')
         ->assertJsonPath('data.sections.datapoint_responses.response_count', count($datapointIds))
-        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 0)
-        ->assertJsonPath('data.sections.datapoint_responses.not_applicable_count', count($datapointIds))
+        ->assertJsonPath('data.sections.datapoint_responses.completed_count', 10)
+        ->assertJsonPath('data.sections.datapoint_responses.not_applicable_count', count($datapointIds) - 10)
         ->assertJsonPath('data.sections.datapoint_responses.completion_ratio', 1);
 
     $report = $this->actingAs($this->user)
@@ -408,12 +438,93 @@ it('treats not applicable datapoint responses as report-ready decisions', functi
         ->getJson('/api/report/draft')
         ->assertOk()
         ->assertJsonPath('data.generation_status', 'report_preparation_package_ready')
-        ->assertJsonPath('data.readiness_status', 'ready')
+        ->assertJsonPath('data.readiness_status', 'incomplete')
+        ->assertJsonPath('data.workflow_status', 'ready')
+        ->assertJsonPath('data.workflow_complete', true)
+        ->assertJsonPath('data.report_content_status', 'incomplete')
+        ->assertJsonPath('data.report_content_ready', false)
         ->assertJsonPath('data.datapoints.response_status', 'complete')
         ->assertJsonPath('data.datapoints.response_count', count($datapointIds))
-        ->assertJsonPath('data.datapoints.completed_count', 0)
-        ->assertJsonPath('data.datapoints.not_applicable_count', count($datapointIds))
+        ->assertJsonPath('data.datapoints.completed_count', 10)
+        ->assertJsonPath('data.datapoints.not_applicable_count', count($datapointIds) - 10)
         ->assertJsonPath('data.datapoints.completion_ratio', 1);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/report')
+        ->assertOk()
+        ->assertJsonPath('data.status', 'incomplete')
+        ->assertJsonPath('data.workflow_complete', true)
+        ->assertJsonPath('data.report_content_ready', false)
+        ->assertJsonPath('data.sections.final_report_generation.status', 'blocked')
+        ->assertJsonPath('data.sections.final_report_generation.reason_code', 'no_persisted_facts')
+        ->assertJsonPath('data.downloads.report_package_html.status', 'ready');
+
+    ReportingFact::create([
+        'characterization_id' => $characterization->id,
+        'fact_id' => 'rf_partial_report_content',
+        'schema_version' => ReportingFact::SCHEMA_VERSION,
+        'profile_id' => ReportingFact::PROFILE_ID,
+        'datapoint_id' => $datapointIds[0],
+        'applicability' => 'applicable',
+        'value_type' => 'text',
+        'value' => ['text' => 'Hecho empresarial revisado para comprobar cobertura parcial.'],
+        'unit' => null,
+        'decimals' => null,
+        'dimensions' => [],
+        'language' => 'es',
+        'nil' => false,
+        'nil_reason' => null,
+        'evidence_refs' => [['type' => 'note', 'value' => 'Evidencia sintética de prueba.']],
+        'provenance' => 'api',
+        'approval_status' => 'reviewed',
+        'blocking_reasons' => [],
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/report')
+        ->assertOk()
+        ->assertJsonPath('data.sections.report_content.claimable_count', 1)
+        ->assertJsonPath('data.sections.report_content.required_count', 10)
+        ->assertJsonPath('data.sections.report_content.reason_code', 'completed_datapoint_facts_missing')
+        ->assertJsonPath('data.sections.final_report_generation.reason_code', 'completed_datapoint_facts_missing');
+});
+
+it('uses the same effective required datapoints as P9 when deciding P10 workflow completion', function () {
+    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
+    completeDoubleMaterialityProcess($characterization);
+    $corpus = app(EsrsDatapointCorpusBuilder::class)->build($characterization);
+    $datapoints = collect($corpus['blocks'])
+        ->flatMap(fn (array $block): array => $block['datapoints'] ?? []);
+    $requiredIds = $datapoints
+        ->filter(fn (array $datapoint): bool => (bool) data_get($datapoint, 'selection.default_selected', true))
+        ->pluck('id')
+        ->values();
+
+    expect($requiredIds)->not->toBeEmpty()
+        ->and($requiredIds->count())->toBeLessThan($datapoints->count());
+
+    $formData = $characterization->form_data;
+    $formData['esrs_datapoint_responses'] = [
+        'schema_version' => 'v1',
+        'revision' => 1,
+        'updated_at' => now()->toJSON(),
+        'responses' => $requiredIds->mapWithKeys(fn (string $id): array => [
+            $id => [
+                'datapoint_id' => $id,
+                'status' => 'completed',
+                'updated_at' => now()->toJSON(),
+            ],
+        ])->all(),
+    ];
+    $characterization->forceFill(['form_data' => $formData])->save();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/report')
+        ->assertOk()
+        ->assertJsonPath('data.workflow_complete', true)
+        ->assertJsonPath('data.sections.datapoint_responses.status', 'complete')
+        ->assertJsonPath('data.sections.datapoint_responses.effective_required_datapoint_count', $requiredIds->count())
+        ->assertJsonPath('data.sections.datapoint_responses.completion_ratio', 1);
 });
 
 it('exposes report download readiness metadata', function () {
@@ -460,7 +571,9 @@ it('exposes report download readiness metadata', function () {
     $this->actingAs($readyUser)
         ->getJson('/api/report')
         ->assertOk()
-        ->assertJsonPath('data.status', 'ready')
+        ->assertJsonPath('data.status', 'incomplete')
+        ->assertJsonPath('data.workflow_complete', true)
+        ->assertJsonPath('data.report_content_ready', false)
         ->assertJsonPath('data.downloads.report_package_html.status', 'ready')
         ->assertJsonPath('data.downloads.evidence_bundle_json.status', 'ready')
         ->assertJsonPath('data.downloads.p8_decision_sheet.status', 'ready')
@@ -478,8 +591,11 @@ it('generates a self-contained report package and evidence bundle when report in
     $readiness = $this->actingAs($this->user)
         ->getJson('/api/report')
         ->assertOk()
-        ->assertJsonPath('data.status', 'ready')
-        ->assertJsonPath('data.sections.final_report_generation.status', 'ready')
+        ->assertJsonPath('data.status', 'incomplete')
+        ->assertJsonPath('data.workflow_complete', true)
+        ->assertJsonPath('data.report_content_ready', false)
+        ->assertJsonPath('data.sections.final_report_generation.status', 'blocked')
+        ->assertJsonPath('data.sections.final_report_generation.reason_code', 'no_persisted_facts')
         ->assertJsonPath('data.downloads.report_package_html.endpoint', '/api/report/package')
         ->assertJsonPath('data.downloads.report_package_html.status', 'ready')
         ->assertJsonPath('data.downloads.evidence_bundle_json.endpoint', '/api/report/evidence-bundle')
@@ -501,6 +617,10 @@ it('generates a self-contained report package and evidence bundle when report in
 
     expect($html)
         ->toContain('<!doctype html>')
+        ->toContain('Datos normativos decididos')
+        ->toContain('Cobertura de datos normativos')
+        ->not->toContain('Datapoints')
+        ->not->toContain('xHTML/iXBRL')
         ->not->toContain('<script src=')
         ->not->toContain('<link href=');
 
@@ -511,7 +631,7 @@ it('generates a self-contained report package and evidence bundle when report in
         ->assertJsonPath('data.version', 'v0')
         ->assertJsonPath('data.characterization_id', $characterization->id)
         ->assertJsonPath('data.bundle.company.name', 'Entidad Demo')
-        ->assertJsonPath('data.bundle.readiness.status', 'ready')
+        ->assertJsonPath('data.bundle.readiness.status', 'incomplete')
         ->assertJsonPath('data.traceability.ar16_to_dr_mapping.status', 'loaded')
         ->assertJsonPath('data.traceability.source_endpoints.report_package', '/api/report/package');
 });

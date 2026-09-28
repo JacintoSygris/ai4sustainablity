@@ -1,5 +1,7 @@
 "use client"
 
+import { useOptionalStorage } from "@/lib/consent-storage"
+
 import type React from "react"
 
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -26,17 +28,29 @@ import {
 } from "@/lib/laravel-api"
 import {
   CHANGE_REASON_OPTIONS,
+  applyDirectTopicDecision,
   buildMaterialityConfirmationPayload,
   changedTopicIds,
+  consistentGuidedAnswers,
+  createPreviewToken,
+  guidedReviewTopicIds,
   isStaleConfirmation,
   localized,
   removesE1FromTopics,
+  selectedTopicIdsForGuidedAnswer,
   sortTopics,
+  topicSelectionKey,
   topicMatches,
   topicSubtitle,
   topicTitle,
 } from "@/lib/materiality-confirmation-state.mjs"
 import { TopicSignalAssistant } from "@/components/wizard/topic-signal-assistant"
+import {
+  buildMaterialityConfirmationDraft,
+  quarantineMaterialityConfirmationDraft,
+  rebaseMaterialityConfirmationDraft,
+  restoreMaterialityConfirmationDraft,
+} from "@/lib/materiality-confirmation-draft.mjs"
 
 type ChangeNotes = Record<string, string>
 type ChangeReasons = Record<string, string[]>
@@ -46,6 +60,7 @@ type GuidedAnswers = Record<string, any> // validated via build
 type Mode = "direct" | "guided"
 
 export function FinalTopicsSelection() {
+  const recoveryStorage = useOptionalStorage("recovery")
   const router = useRouter()
   const [reloadCounter, setReloadCounter] = useState(0)
   const [loadingInitial, setLoadingInitial] = useState(true)
@@ -61,23 +76,77 @@ export function FinalTopicsSelection() {
   const [changeNotes, setChangeNotes] = useState<ChangeNotes>({})
   const [e1Explanation, setE1Explanation] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [conflictedDraftRaw, setConflictedDraftRaw] = useState<string | null>(null)
 
   // F3 two-mode + guided state
   const [mode, setMode] = useState<Mode>("direct")
   const [hasUserChosenMode, setHasUserChosenMode] = useState(false)
-  const [guidedDrafts, setGuidedDrafts] = useState<GuidedAnswers>({}) // topicId -> guided answer
+  const [guidedDrafts, setGuidedDrafts] = useState<GuidedAnswers>({}) // topicId -> guided answer (live from assistant)
   const [inlineAssistantFor, setInlineAssistantFor] = useState<number | null>(null)
   const [previewEstimate, setPreviewEstimate] = useState<LaravelMaterialityConfirmation["preview"] | null>(null)
+  const [previewSelectionKey, setPreviewSelectionKey] = useState<string | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previewRequestId = useRef(0)
+  const previewGeneration = useRef(0)
+  const draftReadyFor = useRef<number | null>(null)
+  const draftDirty = useRef(false)
+  const draftMutationVersion = useRef(0)
+  const saveRequestId = useRef(0)
+  const saveInFlight = useRef(false)
+  const activeSaveRequestId = useRef(0)
+  const latestDraftRaw = useRef<string | null>(null)
+  const tabId = useRef("")
+  const selectedTopicKey = topicSelectionKey(selectedTopics)
+
+  const retirePreviewRequests = () => {
+    previewGeneration.current += 1
+    previewRequestId.current += 1
+    if (previewTimer.current) clearTimeout(previewTimer.current)
+    previewTimer.current = null
+  }
+
+  const invalidatePreview = () => {
+    retirePreviewRequests()
+    setPreviewEstimate(null)
+    setPreviewSelectionKey(null)
+    setPreviewLoading(false)
+  }
 
   // localStorage key per plan
   const getDraftKey = (charId: number | undefined) => `p8_guided_draft_${charId ?? "unknown"}`
+  const conflictDraftKey = (charId: number | undefined) => `${getDraftKey(charId)}_conflict`
+
+  const markDraftChanged = () => {
+    draftDirty.current = true
+    draftMutationVersion.current += 1
+  }
+
+  const serializeCurrentDraft = (serverRevision: number, requestId = activeSaveRequestId.current) => {
+    if (!confirmation) return null
+
+    return JSON.stringify(buildMaterialityConfirmationDraft({
+      baseRevision: serverRevision,
+      p6TopicIds: confirmation.p6_topic_ids,
+      selectedTopicIds: selectedTopics,
+      changeReasons,
+      changeNotes,
+      e1Explanation,
+      guidedAnswers: guidedDrafts,
+      mode,
+      tabId: tabId.current,
+      requestId,
+    }))
+  }
 
   useEffect(() => {
     let mounted = true
 
     async function loadP8() {
+      if (tabId.current === "") {
+        tabId.current = `tab_${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`}`
+      }
+      invalidatePreview()
       setLoadingInitial(true)
       setErrorMessage(null)
 
@@ -92,39 +161,57 @@ export function FinalTopicsSelection() {
           return
         }
 
-        setCsrfToken(sessionResponse.data.csrf_token)
         const conf = confirmationResponse.data
+        setCsrfToken(sessionResponse.data.csrf_token)
         setConfirmation(conf)
         setCatalogTopics(sortTopics(topicsResponse.data))
+        if (conf?.preview) {
+          setPreviewEstimate(conf.preview)
+          setPreviewSelectionKey(topicSelectionKey(conf.confirmed_topic_ids))
+        }
 
         if (conf) {
-          setSelectedTopics(new Set(conf.confirmed_topic_ids))
-          setChangeReasons(conf.confirmation.change_reasons ?? {})
-          setChangeNotes(conf.confirmation.change_reason_notes ?? {})
-          setE1Explanation(conf.confirmation.e1_not_material_explanation ?? "")
-
-          // seed dimensions/guided from server if present (additive)
-          if (conf.confirmation?.dimensions) {
-            // not editing here; used for initial if needed
-          }
-          if (conf.confirmation?.guided_answers) {
-            setGuidedDrafts(conf.confirmation.guided_answers)
-          }
-
           // decide initial mode per plan: acta_registered → direct offered first, else guided first
           const admReg = conf.adm?.acta_registered ?? false
           const initialMode: Mode = admReg ? "direct" : "guided"
-          setMode(initialMode)
-          setHasUserChosenMode(false)
-
-          // load any local guided draft
+          let localDraft = null
           try {
-            const draftRaw = typeof window !== "undefined" ? window.localStorage.getItem(getDraftKey(conf.characterization_id)) : null
+            const draftKey = getDraftKey(conf.characterization_id)
+            const quarantinedKey = conflictDraftKey(conf.characterization_id)
+            const storedConflict = typeof window !== "undefined" ? recoveryStorage.getItem(quarantinedKey) : null
+            if (storedConflict) setConflictedDraftRaw(storedConflict)
+            const draftRaw = typeof window !== "undefined" ? recoveryStorage.getItem(draftKey) : null
             if (draftRaw) {
-              const parsed = JSON.parse(draftRaw)
-              if (parsed && typeof parsed === "object") setGuidedDrafts((prev) => ({ ...prev, ...parsed }))
+              localDraft = restoreMaterialityConfirmationDraft(draftRaw, {
+                baseRevision: conf.confirmation.revision,
+                p6TopicIds: conf.p6_topic_ids,
+              })
+              if (!localDraft) {
+                const quarantined = quarantineMaterialityConfirmationDraft(draftRaw, {
+                  baseRevision: conf.confirmation.revision,
+                  p6TopicIds: conf.p6_topic_ids,
+                })
+                if (quarantined) {
+                  recoveryStorage.setItem(quarantinedKey, draftRaw)
+                  setConflictedDraftRaw(draftRaw)
+                }
+                recoveryStorage.removeItem(draftKey)
+              } else {
+                latestDraftRaw.current = draftRaw
+              }
             }
           } catch {}
+
+          setSelectedTopics(new Set(localDraft?.selected_topic_ids ?? conf.confirmed_topic_ids))
+          setChangeReasons(localDraft?.change_reasons ?? conf.confirmation.change_reasons ?? {})
+          setChangeNotes(localDraft?.change_notes ?? conf.confirmation.change_reason_notes ?? {})
+          setE1Explanation(localDraft?.e1_explanation ?? conf.confirmation.e1_not_material_explanation ?? "")
+          setGuidedDrafts(localDraft?.guided_answers ?? conf.confirmation.guided_answers ?? {})
+          setMode((localDraft?.mode as Mode | undefined) ?? initialMode)
+          setHasUserChosenMode(Boolean(localDraft))
+          draftDirty.current = Boolean(localDraft)
+          draftMutationVersion.current = 0
+          draftReadyFor.current = conf.characterization_id
         }
       } catch (error) {
         if (error instanceof LaravelApiError && error.status === 401) {
@@ -145,20 +232,33 @@ export function FinalTopicsSelection() {
 
     return () => {
       mounted = false
-      if (previewTimer.current) clearTimeout(previewTimer.current)
+      retirePreviewRequests()
     }
   }, [reloadCounter, router])
 
-  // persist guided drafts to localStorage (cleared on confirm)
+  // Persist the whole unsaved P8 decision, bound to the exact server revision and P6 snapshot.
   useEffect(() => {
-    if (!confirmation?.characterization_id) return
+    if (!confirmation?.characterization_id || draftReadyFor.current !== confirmation.characterization_id) return
+    if (!draftDirty.current) return
     try {
       const key = getDraftKey(confirmation.characterization_id)
-      if (Object.keys(guidedDrafts).length > 0) {
-        window.localStorage.setItem(key, JSON.stringify(guidedDrafts))
-      }
+      const draft = buildMaterialityConfirmationDraft({
+        baseRevision: confirmation.confirmation.revision,
+        p6TopicIds: confirmation.p6_topic_ids,
+        selectedTopicIds: selectedTopics,
+        changeReasons,
+        changeNotes,
+        e1Explanation,
+        guidedAnswers: guidedDrafts,
+        mode,
+        tabId: tabId.current,
+        requestId: activeSaveRequestId.current,
+      })
+      const draftRaw = JSON.stringify(draft)
+      latestDraftRaw.current = draftRaw
+      recoveryStorage.setItem(key, draftRaw)
     } catch {}
-  }, [guidedDrafts, confirmation?.characterization_id])
+  }, [changeNotes, changeReasons, confirmation, e1Explanation, guidedDrafts, mode, selectedTopics])
 
   const p6TopicIds = useMemo(() => new Set(confirmation?.p6_topic_ids ?? []), [confirmation])
   const changedTopicIdList = useMemo(
@@ -176,14 +276,13 @@ export function FinalTopicsSelection() {
   // dimensions derived from guided or direct (simple: both if both high, etc)
   const dimensions: Dimensions = useMemo(() => {
     const out: Dimensions = {}
-    const answers = { ... (confirmation?.confirmation?.guided_answers || {}), ...guidedDrafts }
-    for (const [tid, ans] of Object.entries(answers)) {
+    for (const [tid, ans] of Object.entries(guidedDrafts)) {
       if (!ans) continue
       const d = (ans as any).suggested_result ? deriveQuickDim(ans) : undefined
       if (d) out[String(tid)] = d
     }
     return out
-  }, [confirmation?.confirmation?.guided_answers, guidedDrafts])
+  }, [guidedDrafts])
 
   function deriveQuickDim(ans: any): "impact" | "financial" | "both" | undefined {
     const i = ans?.impacto
@@ -225,21 +324,34 @@ export function FinalTopicsSelection() {
 
   // debounced live preview for pinned bar (on selection/guided change)
   const refreshPreview = (candidateIds: number[]) => {
-    if (!csrfToken || candidateIds.length === 0) {
-      setPreviewEstimate(confirmation?.preview || null)
+    const requestId = ++previewRequestId.current
+    const previewToken = createPreviewToken(candidateIds, previewGeneration.current)
+    if (previewTimer.current) clearTimeout(previewTimer.current)
+    if (!csrfToken) {
+      setPreviewEstimate(null)
+      setPreviewSelectionKey(null)
+      setPreviewLoading(false)
       return
     }
-    if (previewTimer.current) clearTimeout(previewTimer.current)
     setPreviewLoading(true)
     previewTimer.current = setTimeout(async () => {
       try {
         const res = await previewLaravelMaterialityConfirmation({ candidate_topic_ids: candidateIds }, { csrfToken })
-        if (res?.data?.preview) setPreviewEstimate(res.data.preview)
+        if (
+          requestId !== previewRequestId.current
+          || previewToken.generation !== previewGeneration.current
+          || previewToken.selection_key !== topicSelectionKey(candidateIds)
+        ) return
+        if (res?.data?.preview) {
+          setPreviewEstimate(res.data.preview)
+          setPreviewSelectionKey(previewToken.selection_key)
+        }
       } catch {
-        // silent fallback to last server preview
-        if (confirmation?.preview) setPreviewEstimate(confirmation.preview)
+        if (requestId !== previewRequestId.current) return
+        setPreviewEstimate(null)
+        setPreviewSelectionKey(null)
       } finally {
-        setPreviewLoading(false)
+        if (requestId === previewRequestId.current) setPreviewLoading(false)
       }
     }, 600)
   }
@@ -249,28 +361,85 @@ export function FinalTopicsSelection() {
   const removedCount = Array.from(p6TopicIds).filter((topicId) => !selectedTopics.has(topicId)).length
   const unchangedCount = (confirmation?.p6_topic_ids?.length ?? 0) - removedCount
 
-  const reload = () => setReloadCounter((current) => current + 1)
+  const reload = () => {
+    invalidatePreview()
+    setReloadCounter((current) => current + 1)
+  }
+
+  const recoverConflictedDraft = () => {
+    if (!confirmation || !conflictedDraftRaw) return
+    const rebased = rebaseMaterialityConfirmationDraft(conflictedDraftRaw, {
+      baseRevision: confirmation.confirmation.revision,
+      p6TopicIds: confirmation.p6_topic_ids,
+    })
+    if (!rebased) return
+
+    const recoveredGuidedAnswers = consistentGuidedAnswers(rebased.guided_answers, rebased.selected_topic_ids)
+    const recoveredDraft = {
+      ...rebased,
+      guided_answers: recoveredGuidedAnswers,
+      tab_id: tabId.current,
+      request_id: 0,
+    }
+    markDraftChanged()
+    setSelectedTopics(new Set(rebased.selected_topic_ids))
+    setChangeReasons(rebased.change_reasons)
+    setChangeNotes(rebased.change_notes)
+    setE1Explanation(rebased.e1_explanation)
+    setGuidedDrafts(recoveredGuidedAnswers)
+    setMode(rebased.mode as Mode)
+    setHasUserChosenMode(true)
+    try {
+      recoveryStorage.setItem(
+        getDraftKey(confirmation.characterization_id),
+        JSON.stringify(recoveredDraft),
+      )
+      recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id))
+    } catch {}
+    setConflictedDraftRaw(null)
+    latestDraftRaw.current = JSON.stringify(recoveredDraft)
+    draftReadyFor.current = confirmation.characterization_id
+  }
+
+  const discardConflictedDraft = () => {
+    if (!confirmation) return
+    try { recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id)) } catch {}
+    setConflictedDraftRaw(null)
+  }
+
+  const chooseMode = (nextMode: Mode) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
+    setMode(nextMode)
+    setHasUserChosenMode(true)
+  }
 
   // --- direct mode handlers (keep old toggle + delta chips, plus ayudame + add) ---
   const toggleTopic = (topicId: number) => {
-    setSelectedTopics((current) => {
-      const next = new Set(current)
-      if (next.has(topicId)) next.delete(topicId)
-      else next.add(topicId)
-      return next
-    })
+    if (saveInFlight.current) return
+    markDraftChanged()
+    const transition = applyDirectTopicDecision(
+      selectedTopics,
+      guidedDrafts,
+      topicId,
+      !selectedTopics.has(topicId),
+    )
+    setSelectedTopics(transition.selectedTopicIds)
+    setGuidedDrafts(transition.guidedAnswers)
     setErrorMessage(null)
-    // live preview refresh
-    const nextSel = Array.from(selectedTopics.has(topicId) ? new Set([...selectedTopics].filter((x) => x !== topicId)) : new Set([...selectedTopics, topicId]))
-    refreshPreview(nextSel)
+
   }
 
   const updateNote = (topicId: number, note: string) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     setChangeNotes((current) => ({ ...current, [String(topicId)]: note }))
     setErrorMessage(null)
   }
 
   const toggleReason = (topicId: number, reasonKey: string, checked: boolean) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     setChangeReasons((current) => {
       const topicKey = String(topicId)
       const currentReasons = current[topicKey] ?? []
@@ -288,18 +457,14 @@ export function FinalTopicsSelection() {
   }
 
   const applyAssistantResult = (topicId: number, answer: any) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     // store guided answer (will feed dimensions + guided_answers on save)
     setGuidedDrafts((d) => ({ ...d, [String(topicId)]: answer }))
-    // also toggle selection on if not (conservative for obs/material suggestions)
-    setSelectedTopics((cur) => {
-      const n = new Set(cur)
-      if (answer?.final_result === "material" || answer?.suggested_result === "material") n.add(topicId)
-      return n
-    })
+    setSelectedTopics((current) => selectedTopicIdsForGuidedAnswer(current, topicId, answer))
     setInlineAssistantFor(null)
     setErrorMessage(null)
-    // trigger preview with current selection
-    refreshPreview(Array.from(selectedTopics))
+
   }
 
   // --- guided mode ---
@@ -315,62 +480,67 @@ export function FinalTopicsSelection() {
   }, [p6GuidedTopics, guidedDrafts])
 
   const applyGuidedForTopic = (topicId: number, answer: any) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     setGuidedDrafts((d) => ({ ...d, [String(topicId)]: answer }))
-    // auto select for material suggestions in guided
-    if (answer?.final_result === "material") {
-      setSelectedTopics((cur) => new Set([...cur, topicId]))
-    }
-    refreshPreview(Array.from(selectedTopics))
+    setSelectedTopics((current) => selectedTopicIdsForGuidedAnswer(current, topicId, answer))
   }
 
   // "Hay algún otro tema" add from catalog (exposicion default normal for new)
   const [guidedAddOpen, setGuidedAddOpen] = useState(false)
   const [guidedAddQuery, setGuidedAddQuery] = useState("")
   const addTopicFromGuided = (topicId: number) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     setSelectedTopics((cur) => new Set([...cur, topicId]))
     // seed a normal exposicion default for added
-    // The guided review remains available from the shared review surface.
+    // (the assistant will be offered on the shared review or via direct affordance)
     setGuidedAddOpen(false)
     setGuidedAddQuery("")
-    refreshPreview(Array.from(new Set([...selectedTopics, topicId])))
+
   }
 
   // --- shared review surface groups ---
-  const materialIds = useMemo(() => Array.from(selectedTopics).filter((id) => {
-    const g = guidedDrafts[String(id)] || confirmation?.confirmation?.guided_answers?.[String(id)]
-    return !g || g.final_result === "material"
-  }), [selectedTopics, guidedDrafts, confirmation])
-  const noMaterialIds = useMemo(() => Array.from(selectedTopics).filter((id) => {
-    const g = guidedDrafts[String(id)] || confirmation?.confirmation?.guided_answers?.[String(id)]
-    return g && g.final_result === "no_material"
-  }), [selectedTopics, guidedDrafts, confirmation])
-  const obsIds = useMemo(() => Array.from(selectedTopics).filter((id) => {
-    const g = guidedDrafts[String(id)] || confirmation?.confirmation?.guided_answers?.[String(id)]
-    return g && g.suggested_result === "en_observacion"
-  }), [selectedTopics, guidedDrafts, confirmation])
+  const { materialIds, noMaterialIds, observationIds: obsIds } = useMemo(
+    () => guidedReviewTopicIds({ selectedTopicIds: selectedTopics, guidedAnswers: guidedDrafts }),
+    [selectedTopics, guidedDrafts],
+  )
 
   const toggleObsToNo = (id: number) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
     // one-tap override: keep revisar true, final no_material
     const prev = guidedDrafts[String(id)] || {}
     const overridden = { ...prev, final_result: "no_material", revisar: true }
     setGuidedDrafts((d) => ({ ...d, [String(id)]: overridden }))
-    // still in selected (binary confirmed), but marked
+    setSelectedTopics((current) => selectedTopicIdsForGuidedAnswer(current, id, overridden))
   }
 
   // --- save (extended payload) ---
   const handleSave = async () => {
-    if (!confirmation) return
+    if (!confirmation || saveInFlight.current) return
 
     if (removesE1 && e1Explanation.trim() === "") {
       setErrorMessage("La plataforma exige una explicación si E1 deja de ser material.")
       return
     }
 
+    const requestId = ++saveRequestId.current
+    const mutationVersionAtDispatch = draftMutationVersion.current
+    activeSaveRequestId.current = requestId
+    const submittedDraftRaw = serializeCurrentDraft(confirmation.confirmation.revision, requestId)
+    latestDraftRaw.current = submittedDraftRaw
+    if (submittedDraftRaw) {
+      try { recoveryStorage.setItem(getDraftKey(confirmation.characterization_id), submittedDraftRaw) } catch {}
+    }
+
+    saveInFlight.current = true
     setSaving(true)
     setErrorMessage(null)
 
     try {
-      const payload = buildMaterialityConfirmationPayload({
+      const payload = {
+        ...buildMaterialityConfirmationPayload({
         selectedTopicIds: selectedTopics,
         p6TopicIds: confirmation.p6_topic_ids,
         changeReasons,
@@ -378,12 +548,26 @@ export function FinalTopicsSelection() {
         e1Explanation,
         dimensions,
         guidedAnswers: guidedDrafts,
-      })
+        }),
+        expected_revision: confirmation.confirmation.revision,
+      }
 
-      await updateLaravelMaterialityConfirmation(payload, { csrfToken })
+      const response = await updateLaravelMaterialityConfirmation(payload, { csrfToken })
+
+      if (draftMutationVersion.current !== mutationVersionAtDispatch) {
+        setConfirmation(response.data)
+        draftDirty.current = true
+        setErrorMessage("Se guardó la revisión enviada, pero conservamos cambios posteriores para que puedas revisarlos y guardar de nuevo.")
+        return
+      }
 
       // clear guided draft storage on successful confirm
-      try { window.localStorage.removeItem(getDraftKey(confirmation.characterization_id)) } catch {}
+      draftDirty.current = false
+      latestDraftRaw.current = null
+      try {
+        recoveryStorage.removeItem(getDraftKey(confirmation.characterization_id))
+        recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id))
+      } catch {}
 
       router.push("/wizard/step-5")
       router.refresh()
@@ -392,16 +576,30 @@ export function FinalTopicsSelection() {
         router.replace("/login")
         return
       }
+      if (error instanceof LaravelApiError && error.status === 409) {
+        try {
+          const draftKey = getDraftKey(confirmation.characterization_id)
+          const draftRaw = latestDraftRaw.current ?? submittedDraftRaw
+          if (draftRaw) {
+            recoveryStorage.setItem(conflictDraftKey(confirmation.characterization_id), draftRaw)
+            recoveryStorage.removeItem(draftKey)
+            setConflictedDraftRaw(draftRaw)
+          }
+        } catch {}
+        draftDirty.current = false
+        latestDraftRaw.current = null
+        draftReadyFor.current = null
+        setErrorMessage("La selección final ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar.")
+        reload()
+        return
+      }
       setErrorMessage("La plataforma no ha podido guardar la selección final.")
     } finally {
+      saveInFlight.current = false
+      activeSaveRequestId.current = 0
       setSaving(false)
     }
   }
-
-  // initial preview seed
-  useEffect(() => {
-    if (confirmation?.preview && !previewEstimate) setPreviewEstimate(confirmation.preview)
-  }, [confirmation?.preview, previewEstimate])
 
   // refresh preview when selection changes (debounced inside)
   useEffect(() => {
@@ -409,7 +607,7 @@ export function FinalTopicsSelection() {
       refreshPreview(Array.from(selectedTopics))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTopics.size]) // coarse trigger; refreshPreview is debounced
+  }, [selectedTopicKey])
 
   const filteredTopics = useMemo(() => {
     return catalogTopics.filter((topic) => {
@@ -418,7 +616,7 @@ export function FinalTopicsSelection() {
     })
   }, [catalogTopics, searchQuery, selectedTopics, showOnlySelected])
 
-  const currentPreview = previewEstimate || confirmation?.preview
+  const currentPreview = previewSelectionKey === selectedTopicKey ? previewEstimate : null
 
   // group catalog for "Añadir tema" (Ambiente/Social/Gobernanza by first letter of esrs_code)
   const groupedCatalog = useMemo(() => {
@@ -445,7 +643,7 @@ export function FinalTopicsSelection() {
           <h1 className="text-2xl font-semibold text-foreground">Selección final de temas relevantes</h1>
           <p className="mt-2 text-muted-foreground">
             Confirma los temas finales tras tu análisis de doble <Term k="materialidad">materialidad</Term> y revisa
-            cómo cambia tu lista de indicadores/datos ESRS del paso 5.
+            cómo cambia tu lista de datos normativos del paso 5.
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowInfoModal(true)} className="text-muted-foreground">
@@ -455,8 +653,18 @@ export function FinalTopicsSelection() {
       </div>
 
       {errorMessage ? (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {errorMessage}
+        </div>
+      ) : null}
+
+      {conflictedDraftRaw && confirmation ? (
+        <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p>Hay un borrador de otra revisión. Compáralo con el estado actualizado antes de aplicarlo.</p>
+          <div className="mt-2 flex gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={recoverConflictedDraft}>Recuperar borrador</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={discardConflictedDraft}>Descartar borrador</Button>
+          </div>
         </div>
       ) : null}
 
@@ -474,32 +682,37 @@ export function FinalTopicsSelection() {
       ) : confirmation.p6_topic_ids.length === 0 ? (
         <StatePanel
           icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-          title="El paso 2 no tiene asuntos propuestos"
+          title="El paso 2 no tiene temas propuestos"
           description="La plataforma necesita una propuesta del paso 2 completada y no vacía antes de guardar la selección final."
           action={<Button type="button" variant="outline" onClick={reload}><RefreshCw className="h-4 w-4" /> Actualizar</Button>}
         />
       ) : (
         <>
+          <fieldset disabled={saving} className="contents">
           {/* 1. Mode chooser (skippable later via tabs) */}
           {showModeChooser ? (
             <div className="grid gap-3 md:grid-cols-2">
-              <Card className={`cursor-pointer border ${mode === "direct" ? "border-primary" : ""}`} onClick={() => { setMode("direct"); setHasUserChosenMode(true) }}>
-                <CardContent className="pt-6">
-                  <div className="font-semibold">Ya tengo mis conclusiones</div>
-                  <p className="text-sm text-muted-foreground mt-1">Directo: confirma o ajusta la lista tras tu ADM (o sin acta registrada).</p>
-                </CardContent>
-              </Card>
-              <Card className={`cursor-pointer border ${mode === "guided" ? "border-primary" : ""}`} onClick={() => { setMode("guided"); setHasUserChosenMode(true) }}>
-                <CardContent className="pt-6">
-                  <div className="font-semibold">Ayúdame a decidir asunto por asunto</div>
-                  <p className="text-sm text-muted-foreground mt-1">Guiado: 4 señales por tema (impacto, financiero, confianza, exposición). Sugerencias solo informan.</p>
-                </CardContent>
-              </Card>
+              <button type="button" aria-pressed={mode === "direct"} className="block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => chooseMode("direct")}>
+                <Card className={`h-full cursor-pointer border ${mode === "direct" ? "border-primary" : ""}`}>
+                  <CardContent className="pt-6">
+                    <div className="font-semibold">Ya tengo mis conclusiones</div>
+                    <p className="text-sm text-muted-foreground mt-1">Directo: confirma o ajusta la lista tras tu ADM (o sin acta registrada).</p>
+                  </CardContent>
+                </Card>
+              </button>
+              <button type="button" aria-pressed={mode === "guided"} className="block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => chooseMode("guided")}>
+                <Card className={`h-full cursor-pointer border ${mode === "guided" ? "border-primary" : ""}`}>
+                  <CardContent className="pt-6">
+                    <div className="font-semibold">Ayúdame a decidir tema por tema</div>
+                    <p className="text-sm text-muted-foreground mt-1">Guiado: 4 señales por tema (impacto, financiero, confianza, exposición). Sugerencias solo informan.</p>
+                  </CardContent>
+                </Card>
+              </button>
             </div>
           ) : (
             <div className="flex gap-2">
-              <Button variant={mode === "direct" ? "default" : "outline"} size="sm" onClick={() => setMode("direct")}>Directo</Button>
-              <Button variant={mode === "guided" ? "default" : "outline"} size="sm" onClick={() => setMode("guided")}>Guiado</Button>
+              <Button type="button" aria-pressed={mode === "direct"} variant={mode === "direct" ? "default" : "outline"} size="sm" onClick={() => chooseMode("direct")}>Directo</Button>
+              <Button type="button" aria-pressed={mode === "guided"} variant={mode === "guided" ? "default" : "outline"} size="sm" onClick={() => chooseMode("guided")}>Guiado</Button>
             </div>
           )}
 
@@ -525,9 +738,9 @@ export function FinalTopicsSelection() {
               <CardContent className="py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>{addedCount} añadidos · {removedCount} retirados · {unchangedCount} sin cambios</span>
                 <span className="text-muted-foreground">
-                  Estimación paso 5: {previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} elementos
+                  Estimación paso 5: {previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} datos normativos
                 </span>
-                <Button variant="outline" size="sm" onClick={() => setMode(mode === "direct" ? "guided" : "direct")}>Cambiar modo</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => chooseMode(mode === "direct" ? "guided" : "direct")}>Cambiar modo</Button>
               </CardContent>
             </Card>
           </div>
@@ -546,7 +759,7 @@ export function FinalTopicsSelection() {
                     const hist = p6History[String(pid)]
                     return (
                       <div key={pid} className="rounded border p-3 mb-2 flex gap-3 items-start">
-                        <Checkbox checked={selected} onCheckedChange={() => toggleTopic(pid)} className="mt-1" />
+                        <Checkbox aria-label={`${selected ? "Retirar" : "Añadir"} ${topicTitle(topic)}`} checked={selected} onCheckedChange={() => toggleTopic(pid)} className="mt-1" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{topic.esrs_code}</Badge>
@@ -564,7 +777,7 @@ export function FinalTopicsSelection() {
                               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {CHANGE_REASON_OPTIONS.map((r) => (
                                   <label key={r.key} className="flex items-center gap-2 text-xs border rounded px-2 py-1">
-                                    <Checkbox checked={(changeReasons[String(pid)] || []).includes(r.key)} onCheckedChange={(c) => toggleReason(pid, r.key, !!c)} />
+                                    <Checkbox aria-label={`Motivo: ${r.label}`} checked={(changeReasons[String(pid)] || []).includes(r.key)} onCheckedChange={(c) => toggleReason(pid, r.key, !!c)} />
                                     {r.label}
                                   </label>
                                 ))}
@@ -586,7 +799,7 @@ export function FinalTopicsSelection() {
                     if (!topic) return null
                     return (
                       <div key={pid} className="rounded border p-3 mb-2 flex gap-3">
-                        <Checkbox checked={false} onCheckedChange={() => toggleTopic(pid)} />
+                        <Checkbox aria-label={`Añadir ${topicTitle(topic)}`} checked={false} onCheckedChange={() => toggleTopic(pid)} />
                         <div>
                           <Badge variant="destructive">Retirado</Badge> {topicTitle(topic)}
                           <div className="mt-1"><Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>Ayúdame a decidir</Button></div>
@@ -616,7 +829,7 @@ export function FinalTopicsSelection() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Buscar y añadir tema del catálogo..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                  <Input aria-label="Buscar tema ESRS" placeholder="Buscar y añadir tema del catálogo..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                 </div>
                 <Button variant="outline" onClick={() => { /* open simple add from filtered */ if (filteredTopics[0]) toggleTopic(filteredTopics[0].id) }}>Añadir primero filtrado</Button>
               </div>
@@ -645,7 +858,7 @@ export function FinalTopicsSelection() {
                 <CardContent className="pt-6 space-y-2">
                   <div className="font-medium">¿Hay algún otro tema que te preocupe?</div>
                   <div className="flex gap-2">
-                    <Input placeholder="Buscar en catálogo (exposición = normal para añadidos)" value={guidedAddQuery} onChange={(e) => setGuidedAddQuery(e.target.value)} />
+                    <Input aria-label="Buscar tema adicional en el catálogo" placeholder="Buscar en catálogo (exposición = normal para añadidos)" value={guidedAddQuery} onChange={(e) => setGuidedAddQuery(e.target.value)} />
                     <Button variant="outline" onClick={() => setGuidedAddOpen(!guidedAddOpen)}>Buscar</Button>
                   </div>
                   {guidedAddOpen && (
@@ -654,7 +867,7 @@ export function FinalTopicsSelection() {
                         <div key={g} className="mb-2">
                           <div className="text-xs uppercase text-muted-foreground">{g}</div>
                           {list.filter((t) => topicMatches(t, guidedAddQuery)).slice(0, 8).map((t) => (
-                            <button key={t.id} className="block w-full text-left px-2 py-0.5 hover:bg-muted" onClick={() => addTopicFromGuided(t.id)}>{t.esrs_code} {topicTitle(t)}</button>
+                            <button type="button" key={t.id} className="block w-full text-left px-2 py-0.5 hover:bg-muted" onClick={() => addTopicFromGuided(t.id)}>{t.esrs_code} {topicTitle(t)}</button>
                           ))}
                         </div>
                       ))}
@@ -706,8 +919,9 @@ export function FinalTopicsSelection() {
           {removesE1 ? (
             <Card className="border-amber-300">
               <CardContent className="space-y-2 pt-6">
-                <div className="text-sm font-medium text-amber-800">Si decides que el cambio climático no es material, registra una explicación detallada de tu evaluación.</div>
-                <Textarea id="e1Explanation" value={e1Explanation} onChange={(e) => setE1Explanation(e.target.value)} maxLength={2000} placeholder="Explicación detallada (hasta 2000 caracteres)" />
+                <div className="text-sm font-medium text-amber-800">La normativa exige una explicación detallada si el cambio climático no es material. La mayoría de empresas lo mantienen como material.</div>
+                <label htmlFor="e1Explanation" className="sr-only">Explicación de por qué E1 no es material</label>
+                <Textarea id="e1Explanation" value={e1Explanation} onChange={(e) => { if (!saveInFlight.current) { markDraftChanged(); setE1Explanation(e.target.value) } }} maxLength={2000} placeholder="Explicación detallada (hasta 2000 caracteres)" />
               </CardContent>
             </Card>
           ) : null}
@@ -725,6 +939,7 @@ export function FinalTopicsSelection() {
               {saving ? "Guardando..." : "Confirmar y continuar"}
             </Button>
           </div>
+          </fieldset>
         </>
       )}
 
@@ -737,7 +952,7 @@ export function FinalTopicsSelection() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de indicadores/datos ESRS del paso 5.</p>
+            <p>Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de datos normativos del paso 5.</p>
             <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /><span>Guardar confirma la selección final en la plataforma.</span></div>
           </div>
         </DialogContent>

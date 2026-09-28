@@ -16,6 +16,7 @@ const SECTION_LABELS = {
   materiality_confirmation: "Confirmación de materialidad final",
   esrs_datapoints: "Lista de información ESRS",
   datapoint_responses: "Respuestas registradas",
+  report_content: "Contenido factual revisado",
   final_report_generation: "Resumen de resultados",
 }
 
@@ -49,7 +50,7 @@ export function downloadLabel(key) {
 }
 
 export function limitationMessage(limitation) {
-  return LIMITATION_MESSAGES[limitation?.key] ?? limitation?.message ?? ""
+  return LIMITATION_MESSAGES[limitation?.key] ?? limitation?.message ?? "Esta versión tiene una limitación adicional."
 }
 
 export function statusLabel(status) {
@@ -68,7 +69,6 @@ export function statusLabel(status) {
     not_started: "Sin empezar",
     ready: "Listo",
     scoping_only: "Modo alcance",
-    verified: "Verificado",
   }
 
   return labels[status] ?? humanizeKey(status)
@@ -98,6 +98,26 @@ export function formatPercent(value) {
   return `${Math.round(value * 100)}%`
 }
 
+export function materialThemeGroups(topics = []) {
+  const groups = new Map()
+
+  for (const topic of topics) {
+    const esrsCode = typeof topic?.esrs_code === "string" ? topic.esrs_code.trim() : ""
+    if (!esrsCode || groups.has(esrsCode)) {
+      continue
+    }
+
+    const themeEs = typeof topic?.theme?.es === "string" ? topic.theme.es.trim() : ""
+    const themeEn = typeof topic?.theme?.en === "string" ? topic.theme.en.trim() : ""
+    groups.set(esrsCode, {
+      esrs_code: esrsCode,
+      label: themeEs || themeEn || esrsCode,
+    })
+  }
+
+  return Array.from(groups.values())
+}
+
 export function endpointHref(endpoint, apiUrl) {
   if (endpoint.startsWith("/api/")) {
     return apiUrl(endpoint.slice(4))
@@ -111,7 +131,12 @@ export function endpointHref(endpoint, apiUrl) {
 }
 
 export function actionTarget(endpoint) {
-  if (endpoint === "/api/report/draft" || endpoint.includes("report/draft") || endpoint.includes("report/package")) {
+  if (
+    endpoint === "/api/report/facts" ||
+    endpoint === "/api/report/draft" ||
+    endpoint.includes("report/draft") ||
+    endpoint.includes("report/package")
+  ) {
     return "/wizard/step-6"
   }
 
@@ -155,16 +180,15 @@ export function actionLabel(endpoint) {
     return "Revisar el resumen (paso 6)"
   }
 
+  if (endpoint === "/api/report/facts") {
+    return "Completar y revisar los hechos del informe (paso 6)"
+  }
+
   if (endpoint === "/api/report/package") {
     return "Abrir el paquete HTML (paso 6)"
   }
 
-  return humanizeKey(
-    String(endpoint ?? "")
-      .replace(/^\/api\//, "")
-      .replace(/^\/characterization\//, "characterization_")
-      .replace(/[/?=&.-]+/g, "_"),
-  )
+  return humanizeKey(endpoint?.replace(/^\/api\//, "") ?? "")
 }
 
 export function isScopingOnly(readiness, draft) {
@@ -240,4 +264,37 @@ export function reportDownloadRows(readiness, draft) {
   }
 
   return Array.from(rows.entries())
+}
+
+export function latestReportSnapshot(snapshots) {
+  const rows = Array.isArray(snapshots) ? snapshots : []
+
+  return [...rows].sort((left, right) => {
+    const leftTime = Date.parse(left?.created_at ?? "")
+    const rightTime = Date.parse(right?.created_at ?? "")
+    const safeLeftTime = Number.isNaN(leftTime) ? 0 : leftTime
+    const safeRightTime = Number.isNaN(rightTime) ? 0 : rightTime
+
+    if (safeLeftTime !== safeRightTime) {
+      return safeRightTime - safeLeftTime
+    }
+
+    return (right?.id ?? 0) - (left?.id ?? 0)
+  })[0] ?? null
+}
+
+export function snapshotDownloadBlockers(snapshot) {
+  if (!snapshot) {
+    return ["Prepara una versión factual."]
+  }
+
+  if (snapshot.stale_state !== "fresh") {
+    return ["Prepara una versión actualizada."]
+  }
+
+  if (!snapshot.is_approved) {
+    return ["Aprueba la versión factual."]
+  }
+
+  return []
 }

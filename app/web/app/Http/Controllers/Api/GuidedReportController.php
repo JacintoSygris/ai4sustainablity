@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Characterization;
 use App\Models\ReportSnapshot;
+use App\Services\CharacterizationStateTransaction;
 use App\Services\EsrsDatapointCorpusBuilder;
 use App\Services\Report\ArelleXhtmlIxbrlValidator;
 use App\Services\Report\DocxRenderer;
@@ -34,6 +35,7 @@ class GuidedReportController extends Controller
         private readonly ExternalTaxonomyManifestRepository $externalTaxonomyManifest,
         private readonly XhtmlIxbrlCandidateRenderer $xhtmlIxbrl,
         private readonly ArelleXhtmlIxbrlValidator $arelle,
+        private readonly CharacterizationStateTransaction $stateTransactions,
     ) {}
 
     public function docx(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -54,7 +56,20 @@ class GuidedReportController extends Controller
             return $this->blocked('approved_snapshot_invalid');
         }
 
-        return response($this->docx->render($ir), 200)
+        if (($ir['claims'] ?? []) === []) {
+            return $this->blocked('no_claimable_report_content');
+        }
+
+        if (! ($ir['content_readiness']['ready'] ?? false)) {
+            return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
+        }
+
+        $bytes = $this->docx->render($ir);
+        if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
+            return $block;
+        }
+
+        return response($bytes, 200)
             ->header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             ->header('Content-Disposition', 'attachment; filename="informe-esrs-borrador.docx"');
     }
@@ -77,7 +92,20 @@ class GuidedReportController extends Controller
             return $this->blocked('approved_snapshot_invalid');
         }
 
-        return response()->json(['data' => $this->evidence->build($ir)]);
+        if (($ir['claims'] ?? []) === []) {
+            return $this->blocked('no_claimable_report_content');
+        }
+
+        if (! ($ir['content_readiness']['ready'] ?? false)) {
+            return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
+        }
+
+        $bundle = $this->evidence->build($ir);
+        if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
+            return $block;
+        }
+
+        return response()->json(['data' => $bundle]);
     }
 
     public function html(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -98,7 +126,20 @@ class GuidedReportController extends Controller
             return $this->blocked('approved_snapshot_invalid');
         }
 
-        return response($this->html->render($ir), 200)
+        if (($ir['claims'] ?? []) === []) {
+            return $this->blocked('no_claimable_report_content');
+        }
+
+        if (! ($ir['content_readiness']['ready'] ?? false)) {
+            return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
+        }
+
+        $html = $this->html->render($ir);
+        if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
+            return $block;
+        }
+
+        return response($html, 200)
             ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="informe-esrs-borrador.html"');
     }
@@ -133,12 +174,22 @@ class GuidedReportController extends Controller
 
         try {
             $ir = $this->irBuilder->buildFromApprovedSnapshot($snapshot);
+            if (! ($ir['content_readiness']['ready'] ?? false)) {
+                return $this->blocked(
+                    $ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing',
+                    'xhtml_ixbrl_candidate_blocked',
+                );
+            }
             $xhtml = $this->xhtmlIxbrl->render($ir, $profile, $manifest);
             $this->arelle->validate($xhtml, $profile, $manifest);
         } catch (DomainException) {
             return $this->blocked('approved_snapshot_invalid', 'xhtml_ixbrl_candidate_blocked');
         } catch (XhtmlIxbrlCandidateException $e) {
             return $this->blocked($this->allowedXhtmlIxbrlReason($e->getMessage()), 'xhtml_ixbrl_candidate_blocked');
+        }
+
+        if ($block = $this->finalPublicationSnapshotBlock($snapshot, 'xhtml_ixbrl_candidate_blocked')) {
+            return $block;
         }
 
         return response($xhtml, 200)
@@ -156,7 +207,7 @@ class GuidedReportController extends Controller
     {
         $readiness = $this->reportController->show($request, $datapoints)->getData(true)['data'] ?? null;
 
-        if ($readiness === null || ($readiness['status'] ?? null) !== 'ready') {
+        if ($readiness === null || ! ($readiness['workflow_complete'] ?? false)) {
             return [null, response()->json([
                 'data' => ['type' => $blockedType, 'status' => $readiness['status'] ?? 'incomplete'],
             ], 409)];
@@ -200,10 +251,39 @@ class GuidedReportController extends Controller
         ], 409);
     }
 
+    private function finalPublicationSnapshotBlock(
+        ReportSnapshot $snapshot,
+        string $blockedType = 'guided_report_blocked',
+    ): mixed {
+        return $this->stateTransactions->run(
+            $snapshot->characterization_id,
+            function (Characterization $locked) use ($snapshot, $blockedType): mixed {
+                $current = ReportSnapshot::query()
+                    ->whereKey($snapshot->id)
+                    ->where('characterization_id', $locked->id)
+                    ->where('user_id', $snapshot->user_id)
+                    ->whereHas('approval')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $current) {
+                    return $this->blocked('approved_snapshot_missing', $blockedType);
+                }
+
+                $result = $this->staleness->refreshState($current);
+
+                return $result['is_stale']
+                    ? $this->blocked('approved_snapshot_stale', $blockedType)
+                    : null;
+            },
+        );
+    }
+
     private function allowedXhtmlIxbrlReason(string $reasonCode): string
     {
         $allowed = [
             'xhtml_ixbrl_arelle_unavailable',
+            'xhtml_ixbrl_arelle_busy',
             'xhtml_ixbrl_arelle_validation_failed',
             'xhtml_ixbrl_concept_unavailable',
             'xhtml_ixbrl_context_missing',

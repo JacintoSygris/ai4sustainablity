@@ -41,18 +41,24 @@ Alpine.store('characterization', {
     },
 });
 
+let subscribedEcho = null;
 const registerCharacterizationChannel = () => {
+    if (subscribedEcho === window.Echo) return;
+    if (subscribedEcho && window.App?.userId) subscribedEcho.leave(`characterizations.${window.App.userId}`);
+    subscribedEcho = window.Echo;
     if (!window.Echo || !window.App?.userId) {
         return;
     }
 
-    window.Echo.private(`characterizations.${window.App.userId}`)
+    const connection = window.Echo;
+    connection.private(`characterizations.${window.App.userId}`)
         .listen('CharacterizationStatusUpdated', (event) => {
-            Alpine.store('characterization').update(event);
+            if (window.Echo === connection) Alpine.store('characterization').update(event);
         });
 };
 
 registerCharacterizationChannel();
+window.addEventListener('airis:echo-changed', registerCharacterizationChannel);
 
 const debounce = (callback, delay = 300) => {
     let timeout;
