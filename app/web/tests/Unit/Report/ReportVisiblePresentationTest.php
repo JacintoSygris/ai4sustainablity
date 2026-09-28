@@ -335,6 +335,7 @@ it('renders every persisted service-profile dimension pair through an explicit a
         ['Contrato y género', 'Temporal - no binario', 'Contrato temporal; Personas no binarias'],
         ['País', 'Estados Unidos', 'Estados Unidos'],
         ['País', 'Alemania', 'Alemania'],
+        ['País', 'Brasil', 'Brasil'],
         ['País', 'Bulgaria', 'Bulgaria'],
         ['País', 'España', 'España'],
         ['País', 'Irlanda', 'Irlanda'],
@@ -364,6 +365,16 @@ it('fails closed when an allowlisted member is paired with the wrong axis', func
         'unit' => 'personas',
         'dimensions' => [
             ['axis' => 'País', 'member' => 'Hombres'],
+        ],
+    ]))->toThrow(RuntimeException::class, 'Unsupported factual dimension label.');
+
+    expect(fn () => ReportVisiblePresentation::claimValue([
+        'value_type' => 'integer',
+        'value' => 1,
+        'decimals' => 0,
+        'unit' => 'personas',
+        'dimensions' => [
+            ['axis' => 'País', 'member' => 'Hombres '],
         ],
     ]))->toThrow(RuntimeException::class, 'Unsupported factual dimension label.');
 });

@@ -382,8 +382,16 @@ final class ReportVisiblePresentation
             return self::countryCodeLabel($matches[1]);
         }
 
-        if ($axis === 'País' && in_array($member, self::supportedCountryNames(), true)) {
-            return $member;
+        if ($axis === 'País') {
+            $countryMember = trim($member);
+            if (in_array($countryMember, self::supportedCountryNames(), true)) {
+                return $countryMember;
+            }
+
+            if (! array_key_exists($countryMember, self::DIMENSION_MEMBERS_ES)
+                && self::isSafeCountryName($countryMember)) {
+                return $countryMember;
+            }
         }
 
         if (! array_key_exists($member, self::DIMENSION_MEMBERS_ES)
@@ -401,6 +409,15 @@ final class ReportVisiblePresentation
         return $countries[$countryCode] ?? 'País '.$countryCode;
     }
 
+    private static function isSafeCountryName(string $member): bool
+    {
+        $trimmed = trim($member);
+
+        return $trimmed !== ''
+            && mb_strlen($trimmed) <= 80
+            && preg_match('/^[\p{L}\p{M} .\'’\-()]+$/u', $trimmed) === 1;
+    }
+
     /** @return list<string> */
     private static function supportedCountryNames(): array
     {
@@ -413,6 +430,7 @@ final class ReportVisiblePresentation
         return [
             'AT' => 'Austria',
             'BE' => 'Bélgica',
+            'BR' => 'Brasil',
             'BG' => 'Bulgaria',
             'CY' => 'Chipre',
             'CZ' => 'Chequia',
