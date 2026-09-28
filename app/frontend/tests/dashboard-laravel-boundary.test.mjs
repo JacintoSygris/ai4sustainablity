@@ -107,6 +107,11 @@ test("server Laravel calls never derive their credentialed destination from requ
     { origin: "http://laravel:8080", host: "app.example.test", forwardedProto: "https" },
   )
   assert.deepEqual(
+    resolveLaravelApiTarget(undefined, "production", "http://laravel:8080", "https://app.example.test"),
+    { origin: "http://laravel:8080", host: "app.example.test", forwardedProto: "https" },
+    "separate Jenkins deployments may configure the explicit internal/canonical pair without the legacy alias",
+  )
+  assert.deepEqual(
     resolveLaravelApiTarget("http://127.0.0.1:8080/", "production", undefined, "https://app.example.test"),
     { origin: "http://127.0.0.1:8080", host: "app.example.test", forwardedProto: "https" },
   )

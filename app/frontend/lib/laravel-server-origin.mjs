@@ -41,7 +41,13 @@ function absoluteOrigin(value, name) {
  * @returns {{origin: string, host: string, forwardedProto: string}}
  */
 export function resolveLaravelApiTarget(configuredOrigin, nodeEnv, configuredInternalOrigin, configuredCanonicalOrigin) {
-  const url = absoluteOrigin(configuredOrigin, "LARAVEL_API_ORIGIN")
+  const legacyOrigin = configuredOrigin?.trim()
+  const internalOrigin = configuredInternalOrigin?.trim()
+  if (!legacyOrigin && !internalOrigin) {
+    throw new Error("LARAVEL_API_ORIGIN or LARAVEL_INTERNAL_API_ORIGIN is required for authenticated server-side Laravel requests")
+  }
+
+  const url = absoluteOrigin(legacyOrigin || internalOrigin, legacyOrigin ? "LARAVEL_API_ORIGIN" : "LARAVEL_INTERNAL_API_ORIGIN")
   const production = nodeEnv === "production"
 
   if (production && url.protocol !== "https:" && !isLoopback(url.hostname)) {

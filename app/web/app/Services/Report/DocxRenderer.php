@@ -18,9 +18,8 @@ use ZipArchive;
  * word/_rels/document.xml.rels so the file is a genuinely valid, openable package
  * (not just a zip entry the test happens to find).
  *
- * Non-authoritative guidance (guidance.authoritative === false) is always rendered
- * with a visible "[orientación general] " prefix -- generic guidance must never be
- * presented as if it were authoritative.
+ * Guidance is rendered only when it contains text. Empty guidance metadata must
+ * never create a visible technical marker in the factual report.
  */
 class DocxRenderer
 {
@@ -29,41 +28,89 @@ class DocxRenderer
     public function render(array $ir): string
     {
         $doc = new PhpWord();
-        $section = $doc->addSection();
+        $this->configureStyles($doc);
+        $section = $doc->addSection([
+            'marginTop' => 1134,
+            'marginBottom' => 1134,
+            'marginLeft' => 1276,
+            'marginRight' => 1276,
+        ]);
         $section->addTitle(($ir['company']['name'] ?? 'Informe').' — Ejercicio '.($ir['company']['reporting_year'] ?? '-'), 1);
         $claimsById = $this->claimsById($ir);
+        $isFactual = ($ir['schema_version'] ?? null) === 'report_ir_v1';
 
-        foreach ($ir['disclaimers'] ?? [] as $disclaimer) {
-            $section->addText($disclaimer, ['italic' => true]);
+        if ($isFactual) {
+            $section->addText(
+                'Borrador factual basado en una versión aprobada',
+                ['bold' => true, 'size' => 12, 'color' => '1F4E78'],
+                ['spaceBefore' => 360, 'spaceAfter' => 240],
+            );
         }
 
-        $this->renderOmissionSection($section, $ir['omission_section'] ?? null);
+        $disclaimers = $ir['disclaimers'] ?? [];
+        if ($isFactual && $disclaimers === []) {
+            $disclaimers = ['No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.'];
+        }
+
+        foreach (array_values(array_unique($disclaimers)) as $disclaimer) {
+            $visibleDisclaimer = $isFactual
+                ? ReportVisiblePresentation::controlledNarrative($disclaimer)
+                : $disclaimer;
+            $section->addText($visibleDisclaimer, ['italic' => true]);
+        }
+
+        if ($isFactual) {
+            $section->addPageBreak();
+        } else {
+            $this->renderOmissionSection($section, $ir['omission_section'] ?? null, false);
+        }
 
         $slotMap = [];
-        foreach ($ir['chapters'] ?? [] as $chapter) {
-            $section->addTitle($chapter['title'], 2);
+        foreach (array_values($ir['chapters'] ?? []) as $chapter) {
+            $chapterTitle = $isFactual
+                ? ReportVisiblePresentation::chapterTitle($chapter['block_key'] ?? null)
+                : $chapter['title'];
+            $section->addTitle($chapterTitle, 2);
 
-            if (filled($chapter['floor_prose'] ?? null)) {
+            if (! $isFactual && filled($chapter['floor_prose'] ?? null)) {
                 $section->addText($chapter['floor_prose']);
             }
 
             foreach ($chapter['sections'] ?? [] as $sec) {
-                $section->addTitle($sec['dr_key'], 3);
+                $sectionTitle = $isFactual
+                    ? ReportVisiblePresentation::sectionTitle($sec['dr_key'] ?? null)
+                    : $sec['dr_key'];
+                $section->addTitle($sectionTitle, 3);
 
-                foreach ($sec['cross_ref_sentences'] ?? [] as $sentence) {
-                    $section->addText($sentence, ['italic' => true]);
+                if (! $isFactual) {
+                    foreach ($sec['cross_ref_sentences'] ?? [] as $sentence) {
+                        $section->addText($sentence, ['italic' => true]);
+                    }
                 }
 
                 foreach ($sec['blocks'] ?? [] as $block) {
-                    $section->addText($block['name'].' — '.($block['assertions'][0] ?? ''));
+                    if ($isFactual) {
+                        $section->addText(
+                            ReportVisiblePresentation::claimLabel(
+                            $block['datapoint_id'] ?? null,
+                            $this->firstClaimForBlock($block, $claimsById),
+                            ),
+                            ['bold' => true],
+                            ['keepNext' => true],
+                        );
+                    } else {
+                        $section->addText($block['name'].' — '.($block['assertions'][0] ?? ''));
+                    }
 
                     $guidance = $block['guidance'] ?? [];
-                    $isAuthoritative = $guidance['authoritative'] ?? false;
-                    $prefix = $isAuthoritative ? '' : '[orientación general] ';
-                    $section->addText($prefix.($guidance['text'] ?? ''), ['size' => 9]);
+                    if (! $isFactual) {
+                        $isAuthoritative = $guidance['authoritative'] ?? false;
+                        $prefix = $isAuthoritative ? '' : '[orientación general] ';
+                        $section->addText($prefix.($guidance['text'] ?? ''), ['size' => 9]);
+                    }
 
                     $citations = $guidance['citations'] ?? [];
-                    if ($citations !== []) {
+                    if (! $isFactual && $citations !== []) {
                         $section->addText('Fuentes: '.implode('; ', $citations), ['size' => 9]);
                     }
 
@@ -79,20 +126,25 @@ class DocxRenderer
                         // (and only that run) with a w:sdt, instead of splicing markup into
                         // the middle of an existing <w:t> text node.
                         $textrun = $section->addTextRun();
-                        $textrun->addText(($slot['label'] ?? $nodeId).': ');
+                        $textrun->addText($isFactual ? 'Valor reportado: ' : (($slot['label'] ?? 'Información reportada').': '));
                         $textrun->addText($this->slotToken($nodeId));
-                        $factValue = $this->factValueForSlot($slot, $claimsById);
-                        $textrun->addText($factValue === null ? ' ____________' : ' '.$factValue);
+                        $factValue = $this->factValueForSlot($slot, $claimsById, $isFactual);
 
                         $slotMap[$nodeId] = [
                             'datapoint_id' => $block['datapoint_id'],
                             'xbrl_concept' => $slot['xbrl_concept'],
                             'claim_id' => $slot['claim_id'] ?? null,
                             'fact_id' => $slot['fact_id'] ?? null,
+                            'display_value' => $factValue ?? '____________',
                         ];
                     }
                 }
             }
+        }
+
+        if ($isFactual && $this->hasOmissionContent($ir['omission_section'] ?? null)) {
+            $section->addPageBreak();
+            $this->renderOmissionSection($section, $ir['omission_section'], true);
         }
 
         $tmp = tempnam(sys_get_temp_dir(), 'p10docx');
@@ -115,42 +167,80 @@ class DocxRenderer
         }
     }
 
+    private function configureStyles(PhpWord $doc): void
+    {
+        $doc->setDefaultFontName('Aptos');
+        $doc->setDefaultFontSize(10.5);
+        $doc->addTitleStyle(1, ['name' => 'Aptos Display', 'size' => 24, 'bold' => true, 'color' => '1F4E78'], ['spaceAfter' => 240]);
+        $doc->addTitleStyle(2, ['name' => 'Aptos Display', 'size' => 18, 'bold' => true, 'color' => '1F4E78'], ['spaceBefore' => 180, 'spaceAfter' => 120, 'keepNext' => true]);
+        $doc->addTitleStyle(3, ['name' => 'Aptos', 'size' => 14, 'bold' => true, 'color' => '2F5597'], ['spaceBefore' => 160, 'spaceAfter' => 80, 'keepNext' => true]);
+    }
+
     /**
-     * The consolidated omission section sits above the chapters: when a whole ESRS
-     * standard is not material it has no chapter to be declared in. It is skipped
-     * entirely when there is nothing to say — never printed empty, which would read
-     * as "nothing was ever rejected".
+     * The consolidated omission section sits above legacy chapters and in a final
+     * appendix for factual reports. It is skipped entirely when there is nothing to
+     * say — never printed empty, which would read as "nothing was ever rejected".
      *
      * @param  array<string, mixed>|null  $omission
      */
-    private function renderOmissionSection(\PhpOffice\PhpWord\Element\Section $section, ?array $omission): void
+    private function renderOmissionSection(\PhpOffice\PhpWord\Element\Section $section, ?array $omission, bool $isFactual): void
     {
-        if ($omission === null) {
+        if (! $this->hasOmissionContent($omission)) {
             return;
         }
 
-        $hasContent = ($omission['statements'] ?? []) !== []
-            || filled($omission['declaration'] ?? null)
-            || filled($omission['limitation'] ?? null);
+        $title = $isFactual
+            ? ReportVisiblePresentation::controlledNarrative($omission['title'])
+            : $omission['title'];
 
-        if (! $hasContent) {
-            return;
-        }
-
-        $section->addTitle($omission['title'], 2);
+        $section->addTitle(
+            $isFactual ? 'Anexo: '.$title : $title,
+            2,
+        );
 
         if (filled($omission['declaration'] ?? null)) {
-            $section->addText($omission['declaration'], ['italic' => true]);
+            $declaration = $isFactual
+                ? ReportVisiblePresentation::controlledNarrative($omission['declaration'])
+                : $omission['declaration'];
+            $section->addText($declaration, ['italic' => true]);
         }
 
         // Same fallback as the hasContent check above: an IR without the key must not crash rendering.
         foreach ($omission['statements'] ?? [] as $statement) {
-            $section->addText($statement);
+            $section->addText($isFactual ? ReportVisiblePresentation::controlledNarrative($statement) : $statement);
         }
 
         if (filled($omission['limitation'] ?? null)) {
-            $section->addText($omission['limitation'], ['italic' => true]);
+            $limitation = $isFactual
+                ? ReportVisiblePresentation::controlledNarrative($omission['limitation'])
+                : $omission['limitation'];
+            $section->addText($limitation, ['italic' => true]);
         }
+    }
+
+    /** @param array<string, mixed>|null $omission */
+    private function hasOmissionContent(?array $omission): bool
+    {
+        return $omission !== null
+            && (($omission['statements'] ?? []) !== []
+                || filled($omission['declaration'] ?? null)
+                || filled($omission['limitation'] ?? null));
+    }
+
+    /**
+     * @param array<string, mixed> $block
+     * @param array<string, array<string, mixed>> $claimsById
+     * @return array<string, mixed>|null
+     */
+    private function firstClaimForBlock(array $block, array $claimsById): ?array
+    {
+        foreach ($block['claims'] ?? [] as $claimId) {
+            if (is_string($claimId) && isset($claimsById[$claimId])) {
+                return $claimsById[$claimId];
+            }
+        }
+
+        return null;
     }
 
     /** The placeholder token PhpWord writes for a slot before post-processing wraps it in a w:sdt. */
@@ -182,7 +272,7 @@ class DocxRenderer
      * @param  array<string, mixed>  $slot
      * @param  array<string, array<string, mixed>>  $claimsById
      */
-    private function factValueForSlot(array $slot, array $claimsById): ?string
+    private function factValueForSlot(array $slot, array $claimsById, bool $isFactual): ?string
     {
         $claimId = $slot['claim_id'] ?? null;
         if (! is_string($claimId) || $claimId === '') {
@@ -192,6 +282,10 @@ class DocxRenderer
         $claim = $claimsById[$claimId] ?? null;
         if (! is_array($claim)) {
             throw new RuntimeException("Factual slot references missing claim_id={$claimId}.");
+        }
+
+        if ($isFactual) {
+            return ReportVisiblePresentation::claimValue($claim);
         }
 
         if (($claim['nil'] ?? false) === true) {
@@ -223,7 +317,7 @@ class DocxRenderer
      * tagged with its node_id, and add a Custom XML part mapping every node_id to its
      * {datapoint_id, xbrl_concept}.
      *
-     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed,claim_id:mixed,fact_id:mixed}>  $slotMap
+     * @param  array<string,array{datapoint_id:mixed,xbrl_concept:mixed,claim_id:mixed,fact_id:mixed,display_value:mixed}>  $slotMap
      */
     private function injectSdtAndCustomXml(string $path, array $slotMap): void
     {
@@ -239,7 +333,7 @@ class DocxRenderer
             }
 
             foreach ($slotMap as $nodeId => $meta) {
-                $document = $this->wrapSlotRunInSdt($document, $nodeId);
+                $document = $this->wrapSlotRunInSdt($document, $nodeId, (string) $meta['display_value']);
             }
 
             $zip->deleteName('word/document.xml');
@@ -257,7 +351,7 @@ class DocxRenderer
      * inside the paragraph, which is valid OOXML for an inline/run-level content control)
      * so node_id appears as a real structural w:tag@w:val, not text buried inside a run.
      */
-    private function wrapSlotRunInSdt(string $document, string $nodeId): string
+    private function wrapSlotRunInSdt(string $document, string $nodeId, string $displayValue): string
     {
         $token = preg_quote($this->slotToken($nodeId), '/');
         $pattern = '/<w:r>(?:(?!<\/w:r>).)*?<w:t[^>]*>'.$token.'<\/w:t><\/w:r>/s';
@@ -265,10 +359,10 @@ class DocxRenderer
         $sdt = '<w:sdt>'
             .'<w:sdtPr><w:tag w:val="'.htmlspecialchars($nodeId, ENT_QUOTES | ENT_XML1).'"/>'
             .'<w:id w:val="'.abs(crc32($nodeId)).'"/></w:sdtPr>'
-            .'<w:sdtContent><w:r><w:t xml:space="preserve">'.htmlspecialchars($nodeId, ENT_QUOTES | ENT_XML1).'</w:t></w:r></w:sdtContent>'
+            .'<w:sdtContent><w:r><w:t xml:space="preserve">'.htmlspecialchars($displayValue, ENT_QUOTES | ENT_XML1).'</w:t></w:r></w:sdtContent>'
             .'</w:sdt>';
 
-        $replaced = preg_replace($pattern, $sdt, $document, 1, $count);
+        $replaced = preg_replace_callback($pattern, static fn (): string => $sdt, $document, 1, $count);
 
         if ($replaced === null || $count !== 1) {
             throw new RuntimeException("Unable to locate the placeholder run for slot node_id={$nodeId} in document.xml.");

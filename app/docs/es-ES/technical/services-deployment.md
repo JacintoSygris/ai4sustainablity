@@ -26,7 +26,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
-      LARAVEL_API_ORIGIN: http://web:8000
+      LARAVEL_INTERNAL_API_ORIGIN: http://web:8000
+      LARAVEL_CANONICAL_ORIGIN: https://app.example.org
       NEXT_PUBLIC_LARAVEL_API_BASE_URL: /api
       NEXT_PUBLIC_APP_URL: https://app.example.org
       NEXT_TELEMETRY_DISABLED: "1"

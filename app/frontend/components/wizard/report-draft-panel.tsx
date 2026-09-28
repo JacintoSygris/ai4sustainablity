@@ -919,8 +919,23 @@ function buildFactPayload(form: FactFormState): LaravelReportingFactInput | stri
     value = { text: form.value.trim() }
     finalNilReason = null
   } else if (["number", "monetary", "integer"].includes(form.valueType)) {
-    const numberValue = Number(form.value)
-    const decimalValue = Number(form.decimals)
+    const rawValue = form.value.trim()
+    const rawDecimals = form.decimals.trim()
+
+    if (rawValue === "") {
+      return "El valor numérico no es válido."
+    }
+
+    if (form.valueType === "integer" && !/^[+-]?\d+$/.test(rawValue)) {
+      return "El valor entero no admite decimales."
+    }
+
+    if (form.valueType !== "integer" && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(rawValue)) {
+      return "El valor numérico no es válido."
+    }
+
+    const numberValue = Number(rawValue)
+    const decimalValue = Number(rawDecimals)
 
     if (!Number.isFinite(numberValue)) {
       return "El valor numérico no es válido."
@@ -930,11 +945,11 @@ function buildFactPayload(form: FactFormState): LaravelReportingFactInput | stri
       return "Los datos numéricos necesitan una unidad."
     }
 
-    if (!Number.isInteger(decimalValue) || decimalValue < 0 || decimalValue > 12) {
+    if (!/^\d+$/.test(rawDecimals) || !Number.isInteger(decimalValue) || decimalValue < 0 || decimalValue > 12) {
       return "Los decimales deben ser un entero entre 0 y 12."
     }
 
-    value = form.valueType === "integer" ? Math.trunc(numberValue) : numberValue
+    value = form.valueType === "integer" ? Number.parseInt(rawValue, 10) : numberValue
     decimals = decimalValue
     finalLanguage = null
     finalNilReason = null

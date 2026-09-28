@@ -288,6 +288,43 @@ it('renders approved factual claim values without leaking evidence and maps fact
     expect($bytes)->not->toContain('Evidence sentinel must never render');
 });
 
+it('preserves dollar and backslash literals in DOCX factual slot text', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('f', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2026],
+        'disclaimers' => [],
+        'claims' => [[
+            'claim_id' => 'claim_bp1_literal',
+            'fact_id' => 'fact_literal',
+            'datapoint_id' => 'BP-1_01',
+            'value_type' => 'text',
+            'value' => ['text' => 'Importe $100 y ruta \\servidor\\carpeta'],
+            'dimensions' => [['axis' => 'esrs:CountryAxis', 'member' => 'esrs:ES']],
+        ]],
+        'chapters' => [[
+            'block_key' => 'always_required',
+            'sections' => [[
+                'dr_key' => 'BP-1',
+                'blocks' => [[
+                    'datapoint_id' => 'BP-1_01',
+                    'claims' => ['claim_bp1_literal'],
+                    'slots' => [[
+                        'node_id' => 'slot_literal',
+                        'claim_id' => 'claim_bp1_literal',
+                        'fact_id' => 'fact_literal',
+                        'xbrl_concept' => 'esrs:BasisForPreparation',
+                    ]],
+                ]],
+            ]],
+        ]],
+    ];
+
+    $text = docxVisibleText((new DocxRenderer())->render($ir));
+
+    expect($text)->toContain('Importe $100 y ruta \\servidor\\carpeta — España');
+});
+
 it('fails closed when factual omission prose contains a technical disclosure identifier', function () {
     $ir = [
         'schema_version' => 'report_ir_v1',

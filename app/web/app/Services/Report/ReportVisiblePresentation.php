@@ -116,6 +116,8 @@ final class ReportVisiblePresentation
         'permanent' => 'Contrato indefinido',
         'temporary' => 'Contrato temporal',
         'Germany' => 'Alemania',
+        'esrs:ES' => 'España',
+        'esrs:FR' => 'Francia',
         'Residuos electrónicos' => 'Residuos electrónicos',
         'Otros residuos reciclables' => 'Otros residuos reciclables',
         'Residuos residuales' => 'Residuos residuales',
@@ -129,8 +131,17 @@ final class ReportVisiblePresentation
         'Temporal - mujeres' => 'Contrato temporal; Mujeres',
         'Temporal - no binario' => 'Contrato temporal; Personas no binarias',
         'Estados Unidos' => 'Estados Unidos',
+        'Alemania' => 'Alemania',
+        'Austria' => 'Austria',
+        'Bélgica' => 'Bélgica',
+        'Dinamarca' => 'Dinamarca',
         'España' => 'España',
+        'Francia' => 'Francia',
         'Irlanda' => 'Irlanda',
+        'Italia' => 'Italia',
+        'Países Bajos' => 'Países Bajos',
+        'Polonia' => 'Polonia',
+        'Portugal' => 'Portugal',
         'Norteamérica' => 'Norteamérica',
         'Unión Europea' => 'Unión Europea',
     ];
@@ -143,6 +154,7 @@ final class ReportVisiblePresentation
         'gender' => 10,
         'contract_type' => 11,
         'country' => 12,
+        'esrs:CountryAxis' => 13,
         'tipo de residuo' => 20,
         'Género' => 21,
         'Género en dirección' => 22,
@@ -172,6 +184,7 @@ final class ReportVisiblePresentation
         'gender' => ['men', 'women', 'non_binary', 'total'],
         'contract_type' => ['permanent', 'temporary'],
         'country' => ['Germany'],
+        'esrs:CountryAxis' => ['esrs:ES', 'esrs:FR'],
         'tipo de residuo' => [
             'Residuos electrónicos',
             'Otros residuos reciclables',
@@ -187,7 +200,20 @@ final class ReportVisiblePresentation
             'Temporal - mujeres',
             'Temporal - no binario',
         ],
-        'País' => ['Estados Unidos', 'España', 'Irlanda'],
+        'País' => [
+            'Estados Unidos',
+            'Alemania',
+            'Austria',
+            'Bélgica',
+            'Dinamarca',
+            'España',
+            'Francia',
+            'Irlanda',
+            'Italia',
+            'Países Bajos',
+            'Polonia',
+            'Portugal',
+        ],
         'Región' => ['Norteamérica', 'Unión Europea'],
     ];
 
@@ -335,15 +361,85 @@ final class ReportVisiblePresentation
 
             $axis = (string) ($dimension['axis'] ?? '');
             $member = (string) ($dimension['member'] ?? '');
-            if (! array_key_exists($axis, self::DIMENSION_AXIS_ORDER)
-                || ! array_key_exists($member, self::DIMENSION_MEMBERS_ES)
-                || ! in_array($member, self::DIMENSION_AXIS_MEMBERS[$axis] ?? [], true)) {
+            $label = self::dimensionMemberLabel($axis, $member);
+            if ($label === null) {
                 throw new RuntimeException('Unsupported factual dimension label.');
             }
 
-            $labels[] = self::DIMENSION_MEMBERS_ES[$member];
+            $labels[] = $label;
         }
 
         return $value.' — '.implode('; ', $labels);
+    }
+
+    private static function dimensionMemberLabel(string $axis, string $member): ?string
+    {
+        if (! array_key_exists($axis, self::DIMENSION_AXIS_ORDER)) {
+            return null;
+        }
+
+        if ($axis === 'esrs:CountryAxis' && preg_match('/^esrs:([A-Z]{2})$/', $member, $matches) === 1) {
+            return self::countryCodeLabel($matches[1]);
+        }
+
+        if ($axis === 'País' && in_array($member, self::supportedCountryNames(), true)) {
+            return $member;
+        }
+
+        if (! array_key_exists($member, self::DIMENSION_MEMBERS_ES)
+            || ! in_array($member, self::DIMENSION_AXIS_MEMBERS[$axis] ?? [], true)) {
+            return null;
+        }
+
+        return self::DIMENSION_MEMBERS_ES[$member];
+    }
+
+    private static function countryCodeLabel(string $countryCode): string
+    {
+        $countries = self::countryLabelsByCode();
+
+        return $countries[$countryCode] ?? 'País '.$countryCode;
+    }
+
+    /** @return list<string> */
+    private static function supportedCountryNames(): array
+    {
+        return array_values(self::countryLabelsByCode());
+    }
+
+    /** @return array<string, string> */
+    private static function countryLabelsByCode(): array
+    {
+        return [
+            'AT' => 'Austria',
+            'BE' => 'Bélgica',
+            'BG' => 'Bulgaria',
+            'CY' => 'Chipre',
+            'CZ' => 'Chequia',
+            'DE' => 'Alemania',
+            'DK' => 'Dinamarca',
+            'EE' => 'Estonia',
+            'EL' => 'Grecia',
+            'ES' => 'España',
+            'FI' => 'Finlandia',
+            'FR' => 'Francia',
+            'HR' => 'Croacia',
+            'HU' => 'Hungría',
+            'IE' => 'Irlanda',
+            'IT' => 'Italia',
+            'LT' => 'Lituania',
+            'LU' => 'Luxemburgo',
+            'LV' => 'Letonia',
+            'MT' => 'Malta',
+            'NL' => 'Países Bajos',
+            'PL' => 'Polonia',
+            'PT' => 'Portugal',
+            'RO' => 'Rumanía',
+            'SE' => 'Suecia',
+            'SI' => 'Eslovenia',
+            'SK' => 'Eslovaquia',
+            'UK' => 'Reino Unido',
+            'US' => 'Estados Unidos',
+        ];
     }
 }

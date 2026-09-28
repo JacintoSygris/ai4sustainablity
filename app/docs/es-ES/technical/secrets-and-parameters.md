@@ -105,7 +105,9 @@ Comprobacion: revisar logs de autenticacion del proveedor y errores de Laravel/F
 | `P6_DOCUMENT_UPLOAD_ENABLED` | Laravel | Si | `false` | Debe seguir `false` hasta existir `/extract-document`. |
 | `P6_DOCUMENT_EXTRACT_TIMEOUT` | Laravel | Futuro | `240` | No arregla endpoint ausente. |
 | `P6_DOCUMENT_EXTRACT_JOB_TIMEOUT` | Laravel | Futuro | `300` | No arregla endpoint ausente. |
-| `LARAVEL_API_ORIGIN` | Next.js | Si | `http://web:8000` | Rewrites funcionan. |
+| `LARAVEL_INTERNAL_API_ORIGIN` | Next.js | Si | `http://web:8000` | Origen privado de Laravel para SSR y rewrites; no se expone al navegador. |
+| `LARAVEL_CANONICAL_ORIGIN` | Next.js | Si | `https://app.example.org` | Origen HTTPS visible por el navegador que se reenvia a Laravel para enlaces y cookies. |
+| `LARAVEL_API_ORIGIN` | Next.js | Compatibilidad | vacio | Alias legado opcional; si se define debe coincidir con `LARAVEL_INTERNAL_API_ORIGIN`. |
 | `NEXT_PUBLIC_LARAVEL_API_BASE_URL` | Next.js | Si | `/api` | Navegador usa origen publico. |
 | `NEXT_PUBLIC_APP_URL` | Next.js | Si | `https://app.example.org` | Enlaces de frontend correctos. |
 | `NEXT_TELEMETRY_DISABLED` | Next.js | Recomendado | `1` | Sin telemetria de framework. |

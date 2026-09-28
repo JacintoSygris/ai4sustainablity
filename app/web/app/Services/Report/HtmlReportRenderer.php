@@ -14,6 +14,7 @@ class HtmlReportRenderer
         }
 
         $claimsById = $this->claimsById($ir);
+        $isFactual = ($ir['schema_version'] ?? null) === 'report_ir_v1';
         $title = $this->text(($ir['company']['name'] ?? 'Informe ESRS').' - Ejercicio '.($ir['company']['reporting_year'] ?? '-'));
 
         $html = [];
@@ -27,13 +28,15 @@ class HtmlReportRenderer
         $html[] = '</head>';
         $html[] = '<body>';
         $html[] = '<header>';
-        $html[] = '<p><strong>Borrador factual basado en snapshot aprobado</strong></p>';
+        $html[] = '<p><strong>Borrador factual basado en una versión aprobada</strong></p>';
         $html[] = '<h1>'.$title.'</h1>';
         $html[] = '<div class="notice">';
-        $html[] = '<p>No es una presentación oficial, aseguramiento ni filing.</p>';
-        $html[] = '<p>No constituye un documento iXBRL ni una Taxonomía UE presentada.</p>';
+        $disclaimers = $ir['disclaimers'] ?? [];
+        if ($disclaimers === []) {
+            $disclaimers = ['No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.'];
+        }
 
-        foreach ($ir['disclaimers'] ?? [] as $disclaimer) {
+        foreach (array_values(array_unique($disclaimers)) as $disclaimer) {
             if ($this->hasText($disclaimer)) {
                 $html[] = '<p>'.$this->text($disclaimer).'</p>';
             }
@@ -41,7 +44,6 @@ class HtmlReportRenderer
 
         $html[] = '</div>';
         $html[] = '</header>';
-        $html[] = $this->renderOmissionSection($ir['omission_section'] ?? null);
 
         foreach ($ir['chapters'] ?? [] as $chapter) {
             if (! is_array($chapter)) {
@@ -49,9 +51,12 @@ class HtmlReportRenderer
             }
 
             $html[] = '<section>';
-            $html[] = '<h2>'.$this->text($chapter['title'] ?? 'Capitulo').'</h2>';
+            $chapterTitle = $isFactual
+                ? ReportVisiblePresentation::chapterTitle($chapter['block_key'] ?? null)
+                : ($chapter['title'] ?? 'Capítulo');
+            $html[] = '<h2>'.$this->text($chapterTitle).'</h2>';
 
-            if ($this->hasText($chapter['floor_prose'] ?? null)) {
+            if (! $isFactual && $this->hasText($chapter['floor_prose'] ?? null)) {
                 $html[] = '<p>'.$this->text($chapter['floor_prose']).'</p>';
             }
 
@@ -61,17 +66,22 @@ class HtmlReportRenderer
                 }
 
                 $html[] = '<section>';
-                $html[] = '<h3>'.$this->text($section['dr_key'] ?? 'Disclosure Requirement').'</h3>';
+                $sectionTitle = $isFactual
+                    ? ReportVisiblePresentation::sectionTitle($section['dr_key'] ?? null)
+                    : ($section['dr_key'] ?? 'Sección');
+                $html[] = '<h3>'.$this->text($sectionTitle).'</h3>';
 
-                foreach ($section['cross_ref_sentences'] ?? [] as $sentence) {
-                    if ($this->hasText($sentence)) {
-                        $html[] = '<p class="muted"><em>'.$this->text($sentence).'</em></p>';
+                if (! $isFactual) {
+                    foreach ($section['cross_ref_sentences'] ?? [] as $sentence) {
+                        if ($this->hasText($sentence)) {
+                            $html[] = '<p class="muted"><em>'.$this->text($sentence).'</em></p>';
+                        }
                     }
                 }
 
                 foreach ($section['blocks'] ?? [] as $block) {
                     if (is_array($block)) {
-                        $html[] = $this->renderBlock($block, $claimsById);
+                        $html[] = $this->renderBlock($block, $claimsById, $isFactual);
                     }
                 }
 
@@ -80,6 +90,8 @@ class HtmlReportRenderer
 
             $html[] = '</section>';
         }
+
+        $html[] = $this->renderOmissionSection($ir['omission_section'] ?? null);
 
         $html[] = '</body>';
         $html[] = '</html>';
@@ -106,21 +118,22 @@ class HtmlReportRenderer
         }
 
         $html = [];
-        $html[] = '<section>';
-        $html[] = '<h2>'.$this->text($omission['title'] ?? 'Omisiones').'</h2>';
+        $html[] = '<section class="appendix">';
+        $title = ReportVisiblePresentation::controlledNarrative($omission['title'] ?? 'Omisiones');
+        $html[] = '<h2>'.$this->text('Anexo: '.$title).'</h2>';
 
         if ($this->hasText($omission['declaration'] ?? null)) {
-            $html[] = '<p><em>'.$this->text($omission['declaration']).'</em></p>';
+            $html[] = '<p><em>'.$this->text(ReportVisiblePresentation::controlledNarrative($omission['declaration'])).'</em></p>';
         }
 
         foreach ($statements as $statement) {
             if ($this->hasText($statement)) {
-                $html[] = '<p>'.$this->text($statement).'</p>';
+                $html[] = '<p>'.$this->text(ReportVisiblePresentation::controlledNarrative($statement)).'</p>';
             }
         }
 
         if ($this->hasText($omission['limitation'] ?? null)) {
-            $html[] = '<p><em>'.$this->text($omission['limitation']).'</em></p>';
+            $html[] = '<p><em>'.$this->text(ReportVisiblePresentation::controlledNarrative($omission['limitation'])).'</em></p>';
         }
 
         $html[] = '</section>';
@@ -132,20 +145,24 @@ class HtmlReportRenderer
      * @param  array<string, mixed>  $block
      * @param  array<string, array<string, mixed>>  $claimsById
      */
-    private function renderBlock(array $block, array $claimsById): string
+    private function renderBlock(array $block, array $claimsById, bool $isFactual): string
     {
         $html = [];
         $html[] = '<section>';
-        $html[] = '<h4>'.$this->text($block['name'] ?? $block['datapoint_id'] ?? 'Datapoint').'</h4>';
-
-        if ($this->hasText($block['datapoint_id'] ?? null)) {
-            $html[] = '<p class="muted">Datapoint: '.$this->text($block['datapoint_id']).'</p>';
-        }
+        $blockTitle = $isFactual
+            ? ReportVisiblePresentation::claimLabel(
+                $block['datapoint_id'] ?? null,
+                $this->firstClaimForBlock($block, $claimsById),
+            )
+            : ($block['name'] ?? 'Información reportada');
+        $html[] = '<h4>'.$this->text($blockTitle).'</h4>';
 
         $assertions = is_array($block['assertions'] ?? null) ? $block['assertions'] : [];
-        foreach ($assertions as $assertion) {
-            if ($this->hasText($assertion)) {
-                $html[] = '<p>'.$this->text($assertion).'</p>';
+        if (! $isFactual) {
+            foreach ($assertions as $assertion) {
+                if ($this->hasText($assertion)) {
+                    $html[] = '<p>'.$this->text($assertion).'</p>';
+                }
             }
         }
 
@@ -167,13 +184,13 @@ class HtmlReportRenderer
         }
 
         $guidance = is_array($block['guidance'] ?? null) ? $block['guidance'] : [];
-        if ($this->hasText($guidance['text'] ?? null)) {
+        if (! $isFactual && $this->hasText($guidance['text'] ?? null)) {
             $prefix = ($guidance['authoritative'] ?? false) ? '' : '[orientacion general] ';
             $html[] = '<p class="guidance">'.$this->text($prefix.$guidance['text']).'</p>';
         }
 
         $citations = is_array($guidance['citations'] ?? null) ? $guidance['citations'] : [];
-        if ($citations !== []) {
+        if (! $isFactual && $citations !== []) {
             $visibleCitations = [];
             foreach ($citations as $citation) {
                 if ($this->hasText($citation)) {
@@ -189,6 +206,22 @@ class HtmlReportRenderer
         $html[] = '</section>';
 
         return implode("\n", $html);
+    }
+
+    /**
+     * @param array<string, mixed> $block
+     * @param array<string, array<string, mixed>> $claimsById
+     * @return array<string, mixed>|null
+     */
+    private function firstClaimForBlock(array $block, array $claimsById): ?array
+    {
+        foreach ($block['claims'] ?? [] as $claimId) {
+            if (is_string($claimId) && isset($claimsById[$claimId])) {
+                return $claimsById[$claimId];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -215,28 +248,7 @@ class HtmlReportRenderer
      */
     private function claimValue(array $claim): ?string
     {
-        if (($claim['nil'] ?? false) === true) {
-            return null;
-        }
-
-        $value = $claim['value'] ?? null;
-        if ($value === null) {
-            return null;
-        }
-
-        if (is_array($value)) {
-            if (array_key_exists('text', $value) && is_scalar($value['text'])) {
-                return (string) $value['text'];
-            }
-
-            throw new RuntimeException('Unsupported factual value shape; expected value.text.');
-        }
-
-        if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
-            return is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
-        }
-
-        throw new RuntimeException('Unsupported factual value type.');
+        return ReportVisiblePresentation::claimValue($claim);
     }
 
     private function hasText(mixed $value): bool
