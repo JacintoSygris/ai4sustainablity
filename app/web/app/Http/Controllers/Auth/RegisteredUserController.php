@@ -76,11 +76,15 @@ class RegisteredUserController extends Controller
                 // Intentionally indistinguishable from a newly created account.
             }
 
-            SendRegistrationVerification::dispatch(
-                $user?->getKey() ?? 0,
-                $email,
-                (int) ($user?->auth_version ?? -1),
-            );
+            $userId = 0;
+            $authVersion = -1;
+            if ($user !== null) {
+                $user->refresh();
+                $userId = (int) $user->getKey();
+                $authVersion = (int) ($user->auth_version ?? 0);
+            }
+
+            SendRegistrationVerification::dispatch($userId, $email, $authVersion);
         }, 350_000);
         // NB: do NOT clear the limiter on success — the cap is accounts-per-IP
         // per window, so a bot that successfully creates accounts stays limited.

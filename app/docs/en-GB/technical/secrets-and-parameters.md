@@ -105,7 +105,9 @@ Check: review provider authentication logs and Laravel/FastAPI errors without ex
 | `P6_DOCUMENT_UPLOAD_ENABLED` | Laravel | Yes | `false` | Must remain `false` until `/extract-document` exists. |
 | `P6_DOCUMENT_EXTRACT_TIMEOUT` | Laravel | Future | `240` | Does not fix missing endpoint. |
 | `P6_DOCUMENT_EXTRACT_JOB_TIMEOUT` | Laravel | Future | `300` | Does not fix missing endpoint. |
-| `LARAVEL_API_ORIGIN` | Next.js | Yes | `http://web:8000` | Rewrites work. |
+| `LARAVEL_INTERNAL_API_ORIGIN` | Next.js | Yes | `http://web:8000` | Private Laravel origin for SSR and rewrites; not exposed to browsers. |
+| `LARAVEL_CANONICAL_ORIGIN` | Next.js | Yes | `https://app.example.org` | Browser-visible HTTPS origin forwarded to Laravel for links and cookies. |
+| `LARAVEL_API_ORIGIN` | Next.js | Compatibility | empty | Optional legacy alias; when set it must match `LARAVEL_INTERNAL_API_ORIGIN`. |
 | `NEXT_PUBLIC_LARAVEL_API_BASE_URL` | Next.js | Yes | `/api` | Browser uses public origin. |
 | `NEXT_PUBLIC_APP_URL` | Next.js | Yes | `https://app.example.org` | Frontend links correct. |
 | `NEXT_TELEMETRY_DISABLED` | Next.js | Recommended | `1` | Framework telemetry disabled. |

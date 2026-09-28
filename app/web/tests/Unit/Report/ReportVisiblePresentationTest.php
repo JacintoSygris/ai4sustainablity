@@ -212,6 +212,24 @@ it('renders workforce dimensions with business-readable Spanish context', functi
             ['axis' => 'country', 'member' => 'Germany'],
         ],
     ]))->toBe('150 personas — Alemania');
+
+    expect(ReportVisiblePresentation::claimValue([
+        'value_type' => 'text',
+        'value' => ['text' => 'Operaciones cubiertas'],
+        'dimensions' => [
+            ['axis' => 'esrs:CountryAxis', 'member' => 'esrs:ES'],
+        ],
+    ]))->toBe('Operaciones cubiertas — España');
+
+    expect(ReportVisiblePresentation::claimValue([
+        'value_type' => 'integer',
+        'value' => 42,
+        'decimals' => 0,
+        'unit' => 'personas',
+        'dimensions' => [
+            ['axis' => 'esrs:CountryAxis', 'member' => 'esrs:DE'],
+        ],
+    ]))->toBe('42 personas — Alemania');
 });
 
 it('renders the service profile waste dimensions with business-readable labels', function () {
@@ -316,8 +334,11 @@ it('renders every persisted service-profile dimension pair through an explicit a
         ['Contrato y género', 'Temporal - mujeres', 'Contrato temporal; Mujeres'],
         ['Contrato y género', 'Temporal - no binario', 'Contrato temporal; Personas no binarias'],
         ['País', 'Estados Unidos', 'Estados Unidos'],
+        ['País', 'Alemania', 'Alemania'],
+        ['País', 'Bulgaria', 'Bulgaria'],
         ['País', 'España', 'España'],
         ['País', 'Irlanda', 'Irlanda'],
+        ['País', 'Rumanía', 'Rumanía'],
         ['Región', 'Norteamérica', 'Norteamérica'],
         ['Región', 'Unión Europea', 'Unión Europea'],
     ];

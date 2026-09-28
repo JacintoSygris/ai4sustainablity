@@ -1,4 +1,4 @@
-const laravelApiOrigin = process.env.LARAVEL_API_ORIGIN?.replace(/\/$/, "")
+const laravelApiOrigin = (process.env.LARAVEL_API_ORIGIN?.trim() || process.env.LARAVEL_INTERNAL_API_ORIGIN?.trim() || "").replace(/\/$/, "")
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -68,6 +68,14 @@ const nextConfig = {
         {
           source: "/laravel/forgot-password",
           destination: `${laravelApiOrigin}/laravel/forgot-password`,
+        },
+        {
+          source: "/reset-password",
+          destination: `${laravelApiOrigin}/reset-password`,
+        },
+        {
+          source: "/verify-email/:id/:hash",
+          destination: `${laravelApiOrigin}/verify-email/:id/:hash`,
         },
         {
           source: "/laravel/email/verification-notification",

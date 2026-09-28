@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "https://example.com",
-      "description": "Private development VPS using Laravel auth"
+      "description": "Reference deployment using Laravel auth"
     }
   ],
   "tags": [
@@ -38,7 +38,7 @@
       "get": {
         "tags": ["Workflow"],
         "summary": "Get frontend workflow manifest",
-        "description": "Returns the P5-P10 workflow order, source-present/pending-integration frontend metadata, primary endpoints, supported backend capabilities, gate status, and explicit limitations for the separate original Airis frontend. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "description": "Returns the P5-P10 workflow order, frontend metadata, primary endpoints, supported backend capabilities, gate status, and explicit limitations. The route requires a Laravel-authenticated session.",
         "security": [
           {
             "laravelSession": []
@@ -68,7 +68,7 @@
       "get": {
         "tags": ["Catalogs"],
         "summary": "List NACE codes",
-        "description": "Returns a paginated list of NACE codes. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "description": "Returns a paginated list of NACE codes. The route requires a Laravel-authenticated session.",
         "security": [
           {
             "laravelSession": []
@@ -137,7 +137,7 @@
       "get": {
         "tags": ["Catalogs"],
         "summary": "List ESRS topics",
-        "description": "Returns a paginated list of AR16/ESRS topic candidates. The route requires Laravel auth; in private-dev mode Laravel can auto-authenticate the configured technical user.",
+        "description": "Returns a paginated list of AR16/ESRS topic candidates. The route requires a Laravel-authenticated session.",
         "security": [
           {
             "laravelSession": []
@@ -995,7 +995,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "laravel_session",
-        "description": "Laravel authenticated user. In private-dev mode, PRIVATE_DEV_AUTO_LOGIN can satisfy this for private dev verification without showing a Laravel login screen."
+        "description": "Laravel authenticated user session."
       }
     },
     "responses": {
@@ -1596,11 +1596,11 @@
             "properties": {
               "framework": {
                 "type": "string",
-                "enum": ["Next 16.1.4"]
+                "enum": ["Next 16.3.5"]
               },
               "auth": {
                 "type": "string",
-                "enum": ["Laravel web session with private-dev auto-login"]
+                "enum": ["Laravel web session"]
               },
               "database": {
                 "type": "string",
@@ -1627,7 +1627,7 @@
               },
               "deployment_secret_delivery": {
                 "type": "string",
-                "enum": ["private_operator_handoff"]
+                "enum": ["deployer_supplied_environment"]
               },
               "required_private_values": {
                 "type": "array",
