@@ -18,7 +18,7 @@ return new class extends Migration {
             $t->longText('annotation_text'); $t->char('annotation_digest', 64);
             $t->unsignedBigInteger('curator_authorization_generation');
             $t->char('curator_authorization_digest', 64);
-            $t->unique(['learning_case_id','annotation_revision']);
+            $t->unique(['learning_case_id','annotation_revision'], 'learning_annotations_case_revision_unique');
             $t->unique(['learning_case_id','command_id']);
         });
     }

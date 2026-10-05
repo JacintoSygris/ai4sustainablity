@@ -24,7 +24,7 @@ return new class extends Migration
         });
         Schema::create('learning_authorization_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('learning_authorization_state_id')->constrained('learning_authorization_states')->restrictOnDelete();
+            $table->foreignId('learning_authorization_state_id')->constrained('learning_authorization_states', indexName: 'learning_auth_records_state_fk')->restrictOnDelete();
             $table->char('command_id', 64)->unique();
             $table->char('intent_digest', 64);
             $table->unsignedBigInteger('previous_generation');
