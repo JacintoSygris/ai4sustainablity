@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\DenyLearningAuthorizationAuthority;
+use App\Services\LearningAuthorizationAuthority;
 use App\Support\CanonicalPublicUrl;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -19,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(LearningAuthorizationAuthority::class, DenyLearningAuthorizationAuthority::class);
     }
 
     /**

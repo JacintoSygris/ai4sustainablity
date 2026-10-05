@@ -7,6 +7,7 @@ use App\Models\Characterization;
 use App\Models\CharacterizationDocument;
 use App\Models\User;
 use App\Services\CharacterizationDocumentPurgeService;
+use App\Services\LearningAuthorizationLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,7 @@ class ProfileController extends Controller
 {
     public function __construct(
         private readonly CharacterizationDocumentPurgeService $documentPurges,
+        private readonly LearningAuthorizationLedger $learningLedger,
     ) {}
 
     /**
@@ -116,6 +118,8 @@ class ProfileController extends Controller
                 ->pluck('id')
                 ->map(fn ($id): int => (int) $id)
                 ->all() ?? [];
+
+            $this->learningLedger->tombstoneForAccount($lockedUser->id);
 
             $characterization?->delete();
             DB::table('password_reset_tokens')->where('email', $lockedUser->email)->delete();

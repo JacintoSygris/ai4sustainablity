@@ -1,2 +1,20 @@
 # EFRAG taxonomy packages are operator-provisioned external dependencies.
 # Do not add ZIP, XSD or extracted taxonomy bytes to this repository.
+
+# Keep consent stylesheets byte-identical across frontend and web copies.
+app/frontend/public/consent/consent.css text eol=lf
+app/web/public/consent/consent.css text eol=lf
+
+app/frontend/public/consent/*.js text eol=lf
+app/frontend/public/consent/*.css text eol=lf
+app/web/public/consent/*.js text eol=lf
+app/web/public/consent/*.css text eol=lf
+
+app/frontend/public/consent/core.mjs text eol=lf
+app/frontend/public/consent/realtime.mjs text eol=lf
+app/frontend/public/consent/security.mjs text eol=lf
+app/frontend/public/consent/ui.mjs text eol=lf
+app/web/public/consent/core.mjs text eol=lf
+app/web/public/consent/realtime.mjs text eol=lf
+app/web/public/consent/security.mjs text eol=lf
+app/web/public/consent/ui.mjs text eol=lf

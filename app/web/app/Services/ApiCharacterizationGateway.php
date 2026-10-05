@@ -5,16 +5,17 @@ namespace App\Services;
 use App\Exceptions\CharacterizationCapacityException;
 use App\Models\Characterization;
 use App\Models\NaceCode;
-use App\Services\Contracts\CharacterizationGateway;
+use App\Services\Contracts\PreparedCharacterizationGateway;
 use App\Support\CharacterizationOptions;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use JsonException;
 use RuntimeException;
 
-class ApiCharacterizationGateway implements CharacterizationGateway
+class ApiCharacterizationGateway implements PreparedCharacterizationGateway
 {
     private const PYTHON_SECTOR_LABELS_BY_NACE_SECTION = [
         'A' => ['Agriculture'],
@@ -63,6 +64,10 @@ class ApiCharacterizationGateway implements CharacterizationGateway
 
     public function submit(Characterization $characterization): array
     {
+        if (LearningP6InterpretationContext::requested()) {
+            LearningP6InterpretationContext::guard();
+            throw new \DomainException('learning_p6_interpretation.prepared_required');
+        }
         $baseUrl = rtrim(config('services.characterization.api.base_url'), '/');
         $token = config('services.characterization.api.token');
 
@@ -72,6 +77,51 @@ class ApiCharacterizationGateway implements CharacterizationGateway
 
         $payload = $this->predictionPayload($characterization);
 
+        return $this->sendPayload($payload, $baseUrl, $token);
+    }
+
+    public function prepare(Characterization $characterization): LearningP6PreparedRequest
+    {
+        if (LearningP6InterpretationContext::requested()) { LearningP6InterpretationContext::guard(); }
+        $this->assertPreparedRequestEnabled($characterization);
+
+        $context = LearningP6InterpretationContext::requested() ? LearningP6InterpretationContext::capture() : null;
+        return new LearningP6PreparedRequest($this->predictionPayload($characterization), $context);
+    }
+
+    public function submitPrepared(LearningP6PreparedRequest $request): array
+    {
+        if (LearningP6InterpretationContext::requested() || $request->interpretation() !== null) {
+            LearningP6InterpretationContext::guard();
+            if ($request->interpretation() === null) { throw new \DomainException('learning_p6_interpretation.missing'); }
+        }
+        $this->assertPreparedRequestEnabled();
+        $baseUrl = rtrim(config('services.characterization.api.base_url'), '/');
+        $token = config('services.characterization.api.token');
+        if (blank($baseUrl)) {
+            throw new RuntimeException('Characterization API base URL is not configured.');
+        }
+
+        $request->interpretation()?->assertCurrent();
+        return $this->sendPayload($request->payload(), $baseUrl, $token, $request->interpretation()?->mapper());
+    }
+
+    private function assertPreparedRequestEnabled(?Characterization $characterization = null): void
+    {
+        if (config('services.learning_p6_prepared_request.enabled') !== true || ! app()->environment('testing')) {
+            throw new RuntimeException('Prepared characterization requests require explicit isolated testing opt-in.');
+        }
+        $connection = DB::connection();
+        $connections = [$connection];
+        if ($characterization !== null) { $connections[] = $characterization->getConnection(); }
+        if (! CharacterizationStateTransaction::admitsIsolatedConnections($connections)) {
+            throw new RuntimeException('Prepared characterization requests require SQLite :memory:.');
+        }
+    }
+
+    private function sendPayload(array $payload, string $baseUrl, mixed $token, ?CharacterizationPredictionMapper $capturedMapper = null): array
+    {
+        $mapper = $capturedMapper ?? $this->mapper;
         $client = Http::timeout(config('services.characterization.api.timeout', 30));
 
         if (filled($token)) {
@@ -103,13 +153,13 @@ class ApiCharacterizationGateway implements CharacterizationGateway
         $predictionEnvelope = $this->predictionEnvelope($response);
         $rawPrediction = $predictionEnvelope['esrs'];
         $pythonMappingMetadata = $this->arrayOrEmpty($predictionEnvelope['mapping_metadata'] ?? null);
-        $candidateTopics = $this->mapper->candidateTopics($rawPrediction);
+        $candidateTopics = $mapper->candidateTopics($rawPrediction);
         $candidateTopics = $this->withIndustryBasis(
             $candidateTopics,
             $this->arrayOrEmpty($pythonMappingMetadata['industry_basis_by_key'] ?? null)
         );
-        $reviewRequiredKeys = $this->mapper->reviewRequiredKeys($rawPrediction);
-        $laravelMappingMetadata = $this->mapper->mappingMetadata();
+        $reviewRequiredKeys = $mapper->reviewRequiredKeys($rawPrediction);
+        $laravelMappingMetadata = $mapper->mappingMetadata();
         $summary = 'AI proposed '.$this->counted(count($candidateTopics), 'candidate ESRS topic').'.';
 
         if ($reviewRequiredKeys !== []) {

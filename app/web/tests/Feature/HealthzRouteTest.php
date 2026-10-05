@@ -16,6 +16,7 @@ test('healthz returns the documented shape and healthy states in test env', func
 
     $response->assertJsonStructure([
         'status',
+        'app_release',
         'db',
         'queue_recent',
         'time',
@@ -26,6 +27,7 @@ test('healthz returns the documented shape and healthy states in test env', func
     expect($json['status'])->toBe('ok');
     expect($json['db'])->toBe('ok');
     expect($json['queue_recent'])->toBeIn(['ok', 'unknown']);
+    expect($json['app_release'])->toBeString()->not->toBe('');
     expect($json['time'])->toBeString()->not->toBe('');
 });
 
@@ -47,8 +49,8 @@ test('healthz does not leak framework name or secret-like values', function () {
     // No backend framework name in the public probe body.
     expect(strtolower($body))->not->toContain('laravel');
 
-    // Only the four documented keys are present (no accidental config leakage).
+    // Only the five documented keys are present (no accidental config leakage).
     $keys = array_keys($this->getJson('/healthz')->json());
     sort($keys);
-    expect($keys)->toBe(['db', 'queue_recent', 'status', 'time']);
+    expect($keys)->toBe(['app_release', 'db', 'queue_recent', 'status', 'time']);
 });

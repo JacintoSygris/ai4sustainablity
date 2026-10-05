@@ -19,12 +19,31 @@ it('rate limits synchronous XHTML and iXBRL candidate validation separately', fu
 });
 
 beforeEach(function () {
+    $this->guidedReportApiFixturePaths = [];
+    $this->guidedReportApiPreviousEnvironment = [];
+    foreach (['I4S_GUIDED_ARELLE_CAPTURE', 'I4S_GUIDED_ARELLE_OUTPUT', 'I4S_GUIDED_ARELLE_EXIT'] as $name) {
+        $this->guidedReportApiPreviousEnvironment[$name] = getenv($name);
+    }
     config(['services.private_dev.auto_login' => false]);
     config(['services.report.external_taxonomy_manifest_path' => null]);
     config(['services.report.arelle_command' => null]);
     $this->seed(\Database\Seeders\EsrsTopicSeeder::class);
     $this->user = User::factory()->create();
     $this->e2 = EsrsTopic::where('esrs_code', 'E2')->firstOrFail();
+});
+
+afterEach(function () {
+    foreach ($this->guidedReportApiPreviousEnvironment as $name => $value) {
+        putenv($value === false ? $name : $name.'='.$value);
+    }
+    foreach ($this->guidedReportApiFixturePaths as $path) {
+        if (in_array(dirname($path), [
+            sys_get_temp_dir().'/i4s-guided-report-api-external-taxonomy',
+            sys_get_temp_dir().'/i4s-guided-report-api-arelle',
+        ], true) && is_file($path)) {
+            unlink($path);
+        }
+    }
 });
 
 it('requires authentication for the guided docx', function () {
@@ -149,7 +168,7 @@ it('returns a validated xhtml ixbrl candidate attachment from a fresh approved s
     [$arelle, $capturePath] = guidedReportApiArelleFixture(0, 'info: validation successful');
     config([
         'services.report.external_taxonomy_manifest_path' => $manifestPath,
-        'services.report.arelle_command' => $arelle,
+        'services.report.arelle_command' => [PHP_BINARY, '-n', $arelle],
     ]);
 
     $response = $this->actingAs($this->user)->get('/api/report/xhtml-ixbrl-candidate')->assertOk();
@@ -387,7 +406,7 @@ it('blocks stale xhtml ixbrl candidate without leaking Arelle paths or output', 
     [$arelle] = guidedReportApiArelleFixture(0, 'fatal: '.$packagePath.' must not leak');
     config([
         'services.report.external_taxonomy_manifest_path' => $manifestPath,
-        'services.report.arelle_command' => $arelle,
+        'services.report.arelle_command' => [PHP_BINARY, '-n', $arelle],
     ]);
 
     $fact->update(['value' => ['value' => '999.99']]);
@@ -445,7 +464,7 @@ it('returns Arelle validation failure without leaking paths, command or output',
     [$arelle] = guidedReportApiArelleFixture(0, 'error: secret '.$packagePath);
     config([
         'services.report.external_taxonomy_manifest_path' => $manifestPath,
-        'services.report.arelle_command' => $arelle,
+        'services.report.arelle_command' => [PHP_BINARY, '-n', $arelle],
     ]);
 
     $response = $this->actingAs($this->user)->getJson('/api/report/xhtml-ixbrl-candidate')
@@ -473,7 +492,7 @@ it('uses only snapshot claims for xhtml ixbrl output even when live facts are la
     [$arelle] = guidedReportApiArelleFixture(0, 'info: validation successful');
     config([
         'services.report.external_taxonomy_manifest_path' => $manifestPath,
-        'services.report.arelle_command' => $arelle,
+        'services.report.arelle_command' => [PHP_BINARY, '-n', $arelle],
     ]);
 
     $fact->update(['value' => ['value' => '999.99']]);
@@ -563,6 +582,7 @@ function guidedReportApiExternalTaxonomyManifestFixture(): array
 
     $packagePath = $dir.'/'.uniqid('', true).'-esrs-taxonomy-package.zip';
     file_put_contents($packagePath, 'external taxonomy package bytes');
+    test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $packagePath];
     $checksum = hash_file('sha256', $packagePath);
 
     $manifestPath = $dir.'/'.uniqid('', true).'-manifest.json';
@@ -574,6 +594,8 @@ function guidedReportApiExternalTaxonomyManifestFixture(): array
         'taxonomy_package_checksum' => $checksum,
         'external_taxonomy_package_confirmed' => true,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $manifestPath];
 
     return [$manifestPath, $packagePath];
 }
@@ -603,6 +625,8 @@ file_put_contents(getenv('I4S_GUIDED_ARELLE_CAPTURE'), json_encode([
 fwrite(STDOUT, getenv('I4S_GUIDED_ARELLE_OUTPUT'));
 exit((int) getenv('I4S_GUIDED_ARELLE_EXIT'));
 PHP);
+    test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $binary];
+    test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $capturePath];
     chmod($binary, 0700);
     putenv('I4S_GUIDED_ARELLE_CAPTURE='.$capturePath);
     putenv('I4S_GUIDED_ARELLE_OUTPUT='.$output);

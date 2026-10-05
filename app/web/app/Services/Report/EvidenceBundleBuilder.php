@@ -48,15 +48,26 @@ class EvidenceBundleBuilder
             }
         }
 
-        return [
+        $bundle = [
             'type' => 'report_evidence_bundle',
             'version' => 'v1',
             'ir_version_hash' => $ir['version_hash'] ?? null,
             'asset_versions' => $ir['asset_versions'] ?? [],
             'unmapped_concepts' => array_values(array_unique($unmapped)),
             'guidance_provenance' => $provenance,
-            'materiality_trace' => $materialityTrace,
+            'materiality_trace' => $materialityTrace !== []
+                ? $materialityTrace
+                : ($ir['materiality_trace'] ?? []),
         ];
+
+        if (($ir['schema_version'] ?? null) === 'report_ir_v1') {
+            $bundle['approved_snapshot'] = $ir['source'] ?? [];
+            $bundle['claims'] = $ir['claims'] ?? [];
+            $bundle['fact_decisions'] = $ir['fact_decisions'] ?? [];
+            $bundle['claim_evidence_index'] = $this->claimEvidenceIndex($bundle['claims']);
+        }
+
+        return $bundle;
     }
 
     private function leastAuthoritative(string $a, string $b): string
@@ -70,5 +81,29 @@ class EvidenceBundleBuilder
         $rankB = $rankB === false ? -1 : $rankB;
 
         return $rankA <= $rankB ? $a : $b;
+    }
+
+    /**
+     * @param  mixed  $claims
+     * @return array<string, mixed>
+     */
+    private function claimEvidenceIndex(mixed $claims): array
+    {
+        if (! is_array($claims)) {
+            return [];
+        }
+
+        $index = [];
+        foreach ($claims as $claim) {
+            if (! is_array($claim) || ! isset($claim['claim_id'])) {
+                continue;
+            }
+
+            $index[(string) $claim['claim_id']] = $claim['evidence_refs'] ?? [];
+        }
+
+        ksort($index);
+
+        return $index;
     }
 }

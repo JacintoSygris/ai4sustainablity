@@ -22,3 +22,5 @@ Before starting the local profile, remember that the included SQLite database is
 | Proposal service | `http://localhost:8001` |
 
 These URLs are for local evaluation. Port publication, HTTPS, proxy, secrets, persistence, mail, queues and data policies are the responsibility of the operator of an own environment.
+
+- [Optional learning engine](docs/en-GB/learning-engine.md): default disabled; local synthetic technical checks documented, without activation, quality or deployment proof.

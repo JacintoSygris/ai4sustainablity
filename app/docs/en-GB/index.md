@@ -19,3 +19,5 @@ IA4Sustainability helps manage end-to-end ESG work (environmental, social and go
 ## Languages
 
 The primary source is Spanish from Spain. This folder is the equivalent English version. API identifiers, routes, variables and official names are left untranslated where appropriate.
+
+- [Optional learning engine](learning-engine.md): default disabled; local synthetic technical checks documented, without activation, quality or deployment proof.

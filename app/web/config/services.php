@@ -123,6 +123,7 @@ return [
     ],
 
     'report' => [
+        'generic_xbrl_root' => env('XBRL_GENERIC_TAXONOMY_ROOT'),
         'external_taxonomy_manifest_path' => env('ESRS_EXTERNAL_TAXONOMY_MANIFEST_PATH'),
         'arelle_command' => env('ESRS_ARELLE_COMMAND'),
     ],

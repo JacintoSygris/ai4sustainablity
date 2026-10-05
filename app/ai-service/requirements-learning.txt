@@ -1,0 +1,10 @@
+# Optional offline learning environment; install separately from serving requirements.
+# Pinned source inputs; separate installation and licence verification are operator-owned.
+mlflow==3.16.1
+pandera[pandas]==0.33.1
+scikit-learn==1.7.0
+numpy==2.2.6
+pandas==2.3.3
+optuna==5.0.0
+jsonschema==4.26.0
+pydantic==2.13.5

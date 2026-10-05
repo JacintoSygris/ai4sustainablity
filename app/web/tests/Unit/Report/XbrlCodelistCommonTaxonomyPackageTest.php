@@ -4,15 +4,28 @@ use App\Services\Report\XbrlCodelistCommonTaxonomyPackage;
 
 uses(Tests\TestCase::class);
 
+require_once dirname(__DIR__, 2).'/Support/generic-xbrl-package-fixture.php';
+
+beforeEach(function () {
+    $this->genericXbrlFixture = genericXbrlPackageFixture();
+});
+
+afterEach(function () {
+    if (isset($this->genericXbrlFixture)) {
+        genericXbrlPackageFixtureAssertSource($this->genericXbrlFixture);
+    }
+});
+
 function codelistCommon2024Path(string $path): string
 {
-    return dirname(__DIR__, 3).'/data/xbrl/taxonomies/'.$path;
+    return test()->genericXbrlFixture['root'].'/data/xbrl/taxonomies/'.$path;
 }
 
 it('verifies the active XBRL code list common 2024 snapshot package and manifest', function () {
     $package = app(XbrlCodelistCommonTaxonomyPackage::class);
 
     expect($package->verifiedPath())->toEndWith('data/xbrl/taxonomies/xbrl-codelist-common-2024-snapshot.zip')
+        ->toBe(codelistCommon2024Path('xbrl-codelist-common-2024-snapshot.zip'))
         ->and($package->metadata())->toMatchArray([
             'version' => 'xbrl-codelist-common-2024-snapshot',
             'source_base_url' => 'https://www.xbrl.org/taxonomy/int/codelist-common/2024/',

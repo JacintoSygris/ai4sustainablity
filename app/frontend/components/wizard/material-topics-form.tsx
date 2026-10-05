@@ -4,11 +4,12 @@ import type React from "react"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, AlertTriangle, CheckCircle2, Clock, HelpCircle, Info, RefreshCw, Search, XCircle } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, HelpCircle, Loader2, Info, RefreshCw, Search, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -63,6 +64,8 @@ const actionDescriptions: Record<LaravelTopicAction, string> = {
   unsure: "Revisar en doble materialidad",
 }
 
+const PREDICTION_REFRESH_SECONDS = 10
+
 const reasonLabels: Record<string, string> = {
   sector_fit: "Encaje sectorial",
   not_relevant: "No relevante",
@@ -76,13 +79,13 @@ function p6StatusLabel(status: string): string {
   return (
     {
       draft: "Borrador de la encuesta inicial",
-      submitted: "Enviado a predicción",
-      processing: "Procesando predicción",
+      submitted: "Preparando propuesta de temas",
+      processing: "Generando propuesta de temas",
       waiting: "Esperando reintento",
-      failed: "Predicción fallida",
+      failed: "No se pudo generar la propuesta",
       timed_out: "Tiempo agotado",
       completed: "Propuesta completada",
-    }[status] ?? status
+    }[status] ?? "Estado pendiente de revisión"
   )
 }
 
@@ -163,6 +166,7 @@ export function MaterialTopicsForm() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false)
+  const [expandedTopics, setExpandedTopics] = useState<number[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [csrfToken, setCsrfToken] = useState<string>()
   const [characterization, setCharacterization] = useState<LaravelCharacterization | null>(null)
@@ -237,6 +241,15 @@ export function MaterialTopicsForm() {
   // Feature detection: the platform only sends the document_evidence block when
   // document extraction is enabled. When absent, render nothing document-related.
   const documentEvidence: LaravelDocumentEvidence | null = documentEvidenceFromProposal(proposal)
+
+  const predictionPending = characterization != null && ["submitted", "processing", "waiting"].includes(characterization.status)
+
+  // Poll only while waiting, before any review can be edited. Clean up on navigation.
+  useEffect(() => {
+    if (!predictionPending || loadingInitial) return
+    const timer = setTimeout(() => setReloadCounter((current) => current + 1), PREDICTION_REFRESH_SECONDS * 1000)
+    return () => clearTimeout(timer)
+  }, [predictionPending, loadingInitial])
 
   const reload = () => setReloadCounter((current) => current + 1)
 
@@ -388,7 +401,7 @@ export function MaterialTopicsForm() {
 
   return (
     <TooltipProvider>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-start justify-between">
           <h1 className="text-2xl font-semibold text-foreground">Revisión de temas materiales</h1>
           <button
@@ -435,13 +448,16 @@ export function MaterialTopicsForm() {
           />
         ) : characterization.status !== "completed" ? (
           <StatePanel
-            icon={<Clock className="h-5 w-5 text-primary" />}
+            icon={predictionPending ? <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none text-primary" aria-hidden="true" /> : <AlertCircle className="h-5 w-5 text-primary" />}
             title={p6StatusLabel(characterization.status)}
             description={
               characterization.status === "draft"
                 ? "La encuesta inicial está guardada, pero todavía no se ha enviado a predicción."
-                : "La propuesta del paso 2 todavía no está completada en la plataforma."
+                : predictionPending
+                  ? `Estamos preparando la propuesta de temas materiales. Puede tardar unos minutos. Comprobamos el estado automáticamente cada ${PREDICTION_REFRESH_SECONDS} segundos; también puedes pulsar Actualizar.`
+                  : "La propuesta no se ha completado. Puedes volver a generar la propuesta."
             }
+            progress={predictionPending ? <PredictionProgressIndicator /> : null}
             action={
               <div className="flex flex-wrap gap-2">
                 {characterization.status === "draft" || characterization.status === "failed" || characterization.status === "timed_out" ? (
@@ -505,7 +521,7 @@ export function MaterialTopicsForm() {
                     {reviewedCount}/{totalTopics} temas con acción
                   </span>
                 </div>
-                {proposal.ai.summary ? <p className="text-sm text-muted-foreground">{proposal.ai.summary}</p> : null}
+                <p className="text-sm text-muted-foreground">{proposal.source === "ai_prediction" ? `La IA ha propuesto ${totalTopics} temas ESRS candidatos.` : `${totalTopics} temas ESRS para revisar.`}</p>
               </div>
               <Button type="button" variant="outline" onClick={reload}>
                 <RefreshCw className="h-4 w-4" />
@@ -513,7 +529,7 @@ export function MaterialTopicsForm() {
               </Button>
             </div>
 
-            <div className="mb-6 flex items-center gap-4">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -524,6 +540,10 @@ export function MaterialTopicsForm() {
                   className="pl-9"
                 />
               </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setExpandedTopics(proposal.proposal_topics.map((topic) => topic.id))}>Expandir todo</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedTopics([])}>Colapsar todo</Button>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -531,6 +551,8 @@ export function MaterialTopicsForm() {
                 <TopicReviewCard
                   key={topic.id}
                   topic={topic}
+                  expanded={expandedTopics.includes(topic.id)}
+                  onExpandedChange={(open) => setExpandedTopics((current) => open ? [...current, topic.id] : current.filter((id) => id !== topic.id))}
                   documentEvidence={documentEvidence}
                   action={topicActions[String(topic.id)]}
                   reasons={actionReasons[String(topic.id)] ?? []}
@@ -639,25 +661,41 @@ function StatePanel({
   icon,
   title,
   description,
+  progress,
   action,
 }: {
   icon: React.ReactNode
   title: string
   description: string
+  progress?: React.ReactNode
   action: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-border p-6">
+    <div role="status" aria-live="polite" className="rounded-lg border border-border p-6">
       <div className="flex items-start gap-3">
         {icon}
-        <div className="flex-1 space-y-4">
+        <div className="min-w-0 flex-1 space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">{title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           </div>
+          {progress}
           {action}
         </div>
       </div>
+    </div>
+  )
+}
+
+function PredictionProgressIndicator() {
+  return (
+    <div className="space-y-2" aria-label="Seguimiento de la generación de la propuesta de temas">
+      <div className="h-2 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-label="Generando propuesta de temas materiales">
+        <div className="h-full w-1/2 rounded-full bg-primary motion-safe:animate-pulse" />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        La página se actualiza automáticamente; no hace falta repetir la acción mientras la barra siga activa.
+      </p>
     </div>
   )
 }
@@ -674,6 +712,8 @@ type TopicDocumentEvidenceItem = {
 
 function TopicReviewCard({
   topic,
+  expanded,
+  onExpandedChange,
   documentEvidence,
   action,
   reasons,
@@ -684,6 +724,8 @@ function TopicReviewCard({
   onNoteChange,
 }: {
   topic: LaravelMaterialityTopic
+  expanded: boolean
+  onExpandedChange: (open: boolean) => void
   documentEvidence: LaravelDocumentEvidence | null
   action?: LaravelTopicAction
   reasons: string[]
@@ -705,53 +747,18 @@ function TopicReviewCard({
   const hasNegativeEvidence = provenance != null && topicHasNegativeDocumentEvidence(provenance.entries)
 
   return (
-    <div className="rounded-lg border border-border p-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{topic.esrs_code}</Badge>
-            {!action ? <Badge variant="secondary">Sin revisar</Badge> : null}
-            {provenance ? <Badge variant="secondary">Perfil de empresa</Badge> : null}
-            {provenance?.document ? <Badge variant="secondary">Documento subido</Badge> : null}
-            {needsDocumentReview ? (
-              <Badge variant="outline" className="border-amber-400 text-amber-900">
-                Revisar en el documento
-              </Badge>
-            ) : null}
-            <h3 className="text-base font-medium text-foreground">{topicTitle(topic)}</h3>
+    <Collapsible open={expanded} onOpenChange={onExpandedChange} className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex min-w-0 flex-col gap-3 border-l-4 border-primary bg-primary/5 p-3 xl:flex-row xl:items-center xl:justify-between">
+        <CollapsibleTrigger className="group flex min-w-0 flex-1 items-start gap-3 text-left">
+          <Badge variant="outline" className="mt-0.5 shrink-0 bg-background">{topic.esrs_code}</Badge>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-primary [overflow-wrap:anywhere]">{topicTitle(topic)}</h3>
+            <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{topicSubtitle(topic)}</p>
           </div>
-          <p className="text-sm text-muted-foreground">{topicSubtitle(topic)}</p>
-          {hasNegativeEvidence ? (
-            <p className="text-sm text-muted-foreground">
-              El documento indica que podría no ser material. Tenlo en cuenta al revisar; la decisión sigue siendo
-              tuya.
-            </p>
-          ) : null}
-          {evidenceItems.length > 0 ? (
-            <details className="rounded-md border border-border px-3 py-2">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">
-                Evidencias del documento ({evidenceItems.length})
-              </summary>
-              <ul className="mt-2 space-y-2">
-                {evidenceItems.map((item, index) => (
-                  <li key={index} className="text-sm text-muted-foreground">
-                    {item.documentDeleted ? (
-                      <span className="text-amber-700">Documento eliminado — revisar</span>
-                    ) : (
-                      <>
-                        &laquo;{item.snippet}&raquo;
-                        {item.page != null ? ` (página ${item.page})` : ""}
-                        {item.confidence != null ? ` · confianza ${Math.round(item.confidence * 100)} %` : ""}
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-primary transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+          <span className="sr-only">{expanded ? "Colapsar" : "Expandir"} detalles del tema</span>
+        </CollapsibleTrigger>
+        <div role="group" aria-label={`Revisar ${topicTitle(topic)}`} className="flex shrink-0 flex-nowrap items-center gap-1 self-start">
           {(["accepted", "unsure", "rejected"] as LaravelTopicAction[]).map((candidateAction) => (
             <Tooltip key={candidateAction}>
               <TooltipTrigger asChild>
@@ -759,15 +766,17 @@ function TopicReviewCard({
                   type="button"
                   size="sm"
                   variant={action === candidateAction ? "default" : "outline"}
+                  className="shrink-0 whitespace-nowrap px-2 sm:px-3"
+                  aria-pressed={action === candidateAction}
                   disabled={disabled}
                   onClick={() => onActionChange(candidateAction)}
                 >
                   {candidateAction === "accepted" ? (
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="hidden h-4 w-4 sm:block" />
                   ) : candidateAction === "unsure" ? (
-                    <HelpCircle className="h-4 w-4" />
+                    <HelpCircle className="hidden h-4 w-4 sm:block" />
                   ) : (
-                    <XCircle className="h-4 w-4" />
+                    <XCircle className="hidden h-4 w-4 sm:block" />
                   )}
                   {actionLabels[candidateAction]}
                 </Button>
@@ -780,30 +789,66 @@ function TopicReviewCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {REVIEW_REASON_KEYS.map((reasonKey: string) => (
-          <label
-            key={reasonKey}
-            className="flex min-h-9 items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-          >
-            <Checkbox
-              checked={reasons.includes(reasonKey)}
-              disabled={disabled}
-              onCheckedChange={(checked) => onReasonChange(reasonKey, checked === true)}
-            />
-            <span>{reasonLabels[reasonKey] ?? reasonKey}</span>
-          </label>
-        ))}
-      </div>
+      <CollapsibleContent className="p-4">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {!action ? <Badge variant="secondary">Sin revisar</Badge> : null}
+          {provenance ? <Badge variant="secondary">Perfil de empresa</Badge> : null}
+          {provenance?.document ? <Badge variant="secondary">Documento subido</Badge> : null}
+          {needsDocumentReview ? <Badge variant="outline" className="border-amber-400 text-amber-900">Revisar en el documento</Badge> : null}
+        </div>
+        {hasNegativeEvidence ? (
+          <p className="text-sm text-muted-foreground">
+            El documento indica que podría no ser material. Tenlo en cuenta al revisar; la decisión sigue siendo
+            tuya.
+          </p>
+        ) : null}
+        {evidenceItems.length > 0 ? (
+          <details className="rounded-md border border-border px-3 py-2">
+            <summary className="cursor-pointer text-sm font-medium text-foreground">
+              Evidencias del documento ({evidenceItems.length})
+            </summary>
+            <ul className="mt-2 space-y-2">
+              {evidenceItems.map((item, index) => (
+                <li key={index} className="text-sm text-muted-foreground">
+                  {item.documentDeleted ? (
+                    <span className="text-amber-700">Documento eliminado — revisar</span>
+                  ) : (
+                    <>
+                      &laquo;{item.snippet}&raquo;
+                      {item.page != null ? ` (página ${item.page})` : ""}
+                      {item.confidence != null ? ` · confianza ${Math.round(item.confidence * 100)} %` : ""}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {REVIEW_REASON_KEYS.map((reasonKey: string) => (
+            <label
+              key={reasonKey}
+              className="flex min-h-9 items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+            >
+              <Checkbox
+                checked={reasons.includes(reasonKey)}
+                disabled={disabled}
+                onCheckedChange={(checked) => onReasonChange(reasonKey, checked === true)}
+              />
+              <span>{reasonLabels[reasonKey] ?? reasonKey}</span>
+            </label>
+          ))}
+        </div>
 
-      <div className="mt-4">
-        <Textarea
-          placeholder="Nota de revisión opcional"
-          value={note}
-          disabled={disabled}
-          onChange={(event) => onNoteChange(event.target.value)}
-        />
-      </div>
-    </div>
+        <div className="mt-4">
+          <Textarea
+            placeholder="Nota de revisión opcional"
+            value={note}
+            disabled={disabled}
+            onChange={(event) => onNoteChange(event.target.value)}
+          />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }

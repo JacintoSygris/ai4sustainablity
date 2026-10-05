@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, ChevronDown, ChevronUp, Download, RefreshCw } from "lucide-react"
+import { AlertCircle, ChevronDown, Download, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -15,7 +15,6 @@ import {
   laravelApiUrl,
   updateLaravelDoubleMaterialityGuideState,
   type LaravelDoubleMaterialityGuide as LaravelDoubleMaterialityGuideData,
-  type LaravelDoubleMaterialityGuideStep,
   type LaravelDoubleMaterialityProcessState,
 } from "@/lib/laravel-api"
 import {
@@ -23,7 +22,9 @@ import {
   TEMPLATE_LOCALES,
   actaRegistered,
   canContinueFromGuideState,
-  checklistComplete,
+  checklistFlags,
+  guideTitle,
+  guideChecks,
   firstOpenStepKey,
   guideProgressLabel,
   localized,
@@ -60,7 +61,7 @@ export function DoubleMaterialityGuide() {
       ])
       setCsrfToken(sessionResponse.data.csrf_token)
       setGuide(guideResponse.data)
-      setOpenSteps(firstOpenStepKey(guideResponse.data))
+      setOpenSteps(firstOpenStepKey())
       const st = stateResponse.data
       setProcessState(st)
       // seed acta draft from server if present
@@ -89,9 +90,9 @@ export function DoubleMaterialityGuide() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const toggleStep = (step: LaravelDoubleMaterialityGuideStep) => {
+  const toggleStep = (stepKey: string) => {
     setOpenSteps((current) =>
-      current.includes(step.key) ? current.filter((stepKey) => stepKey !== step.key) : [...current, step.key],
+      current.includes(stepKey) ? current.filter((key) => key !== stepKey) : [...current, stepKey],
     )
   }
 
@@ -165,7 +166,7 @@ export function DoubleMaterialityGuide() {
   ] as const
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="min-w-0 flex-1 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Doble materialidad</h1>
         <p className="mt-2 text-muted-foreground">
@@ -193,116 +194,60 @@ export function DoubleMaterialityGuide() {
                 <AlertCircle className="mt-0.5 h-5 w-5 text-amber-500" />
                 <div>
                   <p className="font-medium text-foreground">{localized(guide.warning)}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{localized(guide.next_step?.note ?? guide.handoff.note)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{localized(guide.handoff.note)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
-            {guide.sections.map((section) => {
-              const isWorked = section.key === "worked_example"
-              const SectionCard = isWorked ? (
-                <Card key={section.key} className="border-amber-300 bg-amber-50/60">
-                  <CardContent className="space-y-3 pt-6">
-                    <h2 className="text-lg font-semibold text-amber-900">{localized(section.title)}</h2>
-                    <div className="space-y-3">
-                      {section.steps.map((step) => (
-                        <div key={step.key} className="rounded border border-amber-200 bg-white p-3 text-sm">
-                          {step.body ? <p className="mb-2 text-foreground">{localized(step.body)}</p> : null}
-                          {step.checks.length > 0 ? (
-                            <ul className="space-y-1 text-muted-foreground">
-                              {step.checks.map((check, index) => (
-                                <li key={`${step.key}-${index}`} className="flex gap-2">
-                                  <span className="shrink-0">-</span>
-                                  <span>{check}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card key={section.key}>
-                  <CardContent className="space-y-3 pt-6">
-                    <h2 className="text-lg font-semibold text-primary">{localized(section.title)}</h2>
-                    <div className="space-y-3">
-                      {section.steps.map((step) => {
-                        const isOpen = openSteps.includes(step.key)
-                        return (
-                          <Collapsible key={step.key} open={isOpen} onOpenChange={() => toggleStep(step)}>
-                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent/50">
-                              <span className="font-medium text-foreground">{localized(step.title)}</span>
-                              {isOpen ? (
-                                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="px-4 pb-2 pt-4 space-y-2">
-                              {step.body ? (
-                                <p className="text-sm text-foreground">{localized(step.body)}</p>
-                              ) : null}
-                              <ul className="space-y-2 text-sm text-muted-foreground">
-                                {step.checks.map((check, index) => (
-                                  <li key={`${step.key}-${index}`} className="flex gap-2">
-                                    <span className="shrink-0">-</span>
-                                    <span>{check}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-              return SectionCard
-            })}
+          <div className="space-y-2" aria-label="Instrucciones para el análisis">
+            {guide.sections.map((section, index) => (
+              <Collapsible key={section.key} open={openSteps.includes(section.key)} onOpenChange={() => toggleStep(section.key)} className="rounded-lg border border-border bg-card">
+                <CollapsibleTrigger className="group flex w-full items-center gap-3 p-4 text-left hover:bg-accent/50">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{index + 1}</span>
+                  <h2 className="min-w-0 flex-1 font-semibold text-foreground">{guideTitle(section)}</h2>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 border-t border-border px-4 py-3">
+                  {section.steps.map((step) => (
+                    <section key={step.key} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-primary">{guideTitle(step)}</h3>
+                      {step.body ? <p className="text-sm text-foreground">{localized(step.body)}</p> : null}
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                        {guideChecks(step).map((check: string, checkIndex: number) => <li key={checkIndex}>{check}</li>)}
+                      </ul>
+                    </section>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
           </div>
 
           {guide.templates && guide.templates.length > 0 ? (
-            <Card>
-              <CardContent className="space-y-4 pt-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-primary">Plantillas para tu análisis</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Hojas de cálculo vacías con las columnas recomendadas por la guía. Descárgalas en el idioma en el
-                    que vayas a trabajar.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {guide.templates.map((template) => (
-                    <div
-                      key={template.key}
-                      className="flex flex-col gap-3 rounded-lg border border-border px-4 py-3 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{localized(template.title)}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{template.columns.length} columnas</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(TEMPLATE_LOCALES as string[]).map((locale) => (
-                          <Button key={`${template.key}-${locale}`} type="button" variant="outline" size="sm" asChild>
-                            <a href={laravelApiUrl(templateDownloadPath(template.key, locale))}>
-                              <Download className="h-4 w-4" />
-                              {(TEMPLATE_DOWNLOAD_LABELS as Record<string, string>)[locale] ?? locale}
-                            </a>
-                          </Button>
-                        ))}
-                      </div>
+            <details className="rounded-lg border border-border bg-card px-4 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-primary">Plantillas para tu análisis</summary>
+              <p className="mt-2 text-xs text-muted-foreground">Descarga hojas de cálculo vacías para documentar el análisis.</p>
+              <div className="mt-3 divide-y divide-border">
+                {guide.templates.map((template) => (
+                  <div key={template.key} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <p className="text-sm text-foreground">{localized(template.title)}</p>
+                    <div className="flex shrink-0 gap-1">
+                      {(TEMPLATE_LOCALES as string[]).map((locale) => (
+                        <Button key={locale} type="button" variant="ghost" size="sm" asChild>
+                          <a href={laravelApiUrl(templateDownloadPath(template.key, locale))} aria-label={`${(TEMPLATE_DOWNLOAD_LABELS as Record<string, string>)[locale]}: ${localized(template.title)}`}>
+                            <Download className="h-3 w-3" />
+                            {locale === "es" ? "Español" : "Inglés"}
+                          </a>
+                        </Button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                ))}
+              </div>
+            </details>
           ) : null}
 
+          <h2 className="text-lg font-semibold text-foreground">Registra tu avance</h2>
           {/* Persisted checklist — saves on toggle per plan F2 */}
           <Card>
             <CardContent className="space-y-3 pt-6">
@@ -312,7 +257,7 @@ export function DoubleMaterialityGuide() {
               </div>
               <div className="space-y-2">
                 {checklistKeys.map((key) => {
-                  const checked = Boolean(processState?.checklist?.[key])
+                  const checked = checklistFlags(processState)[key]
                   return (
                     <label key={key} className="flex items-center gap-2 rounded border border-border px-3 py-2 text-sm">
                       <input
@@ -331,7 +276,7 @@ export function DoubleMaterialityGuide() {
             </CardContent>
           </Card>
 
-          {/* Acta del análisis: explicit save button; 3 expected fields. */}
+          {/* Acta del análisis — explicit save button; 3 fields per frozen contract */}
           <Card>
             <CardContent className="space-y-4 pt-6">
               <h2 className="text-lg font-semibold text-primary">Acta del análisis</h2>
@@ -402,7 +347,7 @@ export function DoubleMaterialityGuide() {
           className="bg-primary hover:bg-primary/90"
           disabled={!canContinue}
         >
-          Continuar
+          Volver a la selección final de temas
         </Button>
       </div>
     </div>

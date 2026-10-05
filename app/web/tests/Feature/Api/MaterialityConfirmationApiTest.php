@@ -365,7 +365,7 @@ it('marks a confirmed materiality selection stale when the P6 proposal changes a
         ->assertJsonPath('data.p6_snapshot.topic_ids', [$this->e2Topic->id, $this->s1Topic->id]);
 });
 
-it('does not mark legacy confirmations without a P6 snapshot as stale', function () {
+it('fails closed for learning authority when a legacy confirmation has no P6 snapshot', function () {
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -373,6 +373,13 @@ it('does not mark legacy confirmations without a P6 snapshot as stale', function
         'form_data' => [
             'materiality_confirmation' => [
                 'confirmed_topic_ids' => [$this->e2Topic->id],
+                'reviewed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id],
+                'universe_attestation' => [
+                    'version' => 1,
+                    'reviewed_universe' => true,
+                    'mode' => 'direct',
+                ],
+                'change_reason_notes' => [(string) $this->s1Topic->id => 'Legacy evidence remains visible.'],
                 'confirmed_at' => now()->toJSON(),
             ],
         ],
@@ -383,7 +390,11 @@ it('does not mark legacy confirmations without a P6 snapshot as stale', function
         ->assertOk()
         ->assertJsonPath('data.is_confirmed', true)
         ->assertJsonPath('data.is_stale', false)
-        ->assertJsonPath('data.p6_snapshot', null);
+        ->assertJsonPath('data.p6_snapshot', null)
+        ->assertJsonPath('data.confirmation.reviewed_topic_ids', [$this->e2Topic->id, $this->s1Topic->id])
+        ->assertJsonPath('data.confirmation.universe_attestation', null)
+        ->assertJsonPath('data.learning_topic_labels', null)
+        ->assertJsonPath('data.confirmation.change_reason_notes.'.$this->s1Topic->id, 'Legacy evidence remains visible.');
 });
 
 it('previews candidate materiality without mutating the stored confirmation', function () {
@@ -640,7 +651,7 @@ it('rejects non-canonical or stale reason topic keys', function () {
         ->assertJsonValidationErrors(['change_reason_notes']);
 });
 
-it('filters stale stored reason keys from the confirmation state', function () {
+it('salvages canonical stored evidence keys while filtering invalid legacy keys', function () {
     $unrelatedTopic = EsrsTopic::whereKeyNot([
         $this->e1Topic->id,
         $this->e2Topic->id,
@@ -671,15 +682,21 @@ it('filters stale stored reason keys from the confirmation state', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/materiality-confirmation')
         ->assertOk()
+        ->assertJsonPath('data.confirmation.reviewed_topic_ids', [
+            $this->e2Topic->id,
+            $this->s1Topic->id,
+            $unrelatedTopic->id,
+        ])
+        ->assertJsonPath('data.confirmation.universe_attestation', null)
+        ->assertJsonPath('data.learning_topic_labels', null)
         ->assertJsonPath('data.confirmation.change_reasons.'.$this->e2Topic->id, ['threshold'])
         ->assertJsonPath('data.confirmation.change_reasons.'.$this->s1Topic->id, ['stakeholders'])
-        ->assertJsonPath('data.confirmation.change_reason_notes.'.$this->s1Topic->id, 'Stakeholder review added this topic.');
+        ->assertJsonPath('data.confirmation.change_reasons.'.$unrelatedTopic->id, ['other'])
+        ->assertJsonPath('data.confirmation.change_reason_notes.'.$this->s1Topic->id, 'Stakeholder review added this topic.')
+        ->assertJsonPath('data.confirmation.change_reason_notes.'.$unrelatedTopic->id, 'Stale note.');
 
     expect($response->json('data.confirmation.change_reasons'))
-        ->not->toHaveKey((string) $unrelatedTopic->id)
         ->not->toHaveKey('0');
-    expect($response->json('data.confirmation.change_reason_notes'))
-        ->not->toHaveKey((string) $unrelatedTopic->id);
 });
 
 it('marks an unconfirmed decision sheet as preview-only instead of final ADM evidence', function () {

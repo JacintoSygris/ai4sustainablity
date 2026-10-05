@@ -55,7 +55,7 @@ export function flattenCorpus(corpus) {
   return Object.values(corpus.blocks ?? {}).flatMap((block) =>
     (block.datapoints ?? []).map((datapoint) => ({
       blockKey: block.key ?? "",
-      blockTitle: block.title ?? block.key ?? "Bloque P9",
+      blockTitle: block.title ?? block.key ?? "Datos normativos",
       datapoint,
     })),
   )
@@ -81,6 +81,7 @@ export function compactDrafts(drafts) {
         note: trimOptional(draft?.note),
         status: draft?.status ?? "draft",
         value: trimOptional(draft?.value),
+        ...(draft?.learning_review ? { learning_review: draft.learning_review } : {}),
       }
       if (facts.length > 0) {
         base.facts = facts
@@ -98,7 +99,7 @@ export function compactDrafts(drafts) {
         Boolean(draft.note) ||
         (Array.isArray(draft?.facts) && draft.facts.length > 0)
       const hasTriageOnly = draft.triage && !hasContent && draft.status === "draft"
-      return hasContent || hasTriageOnly
+      return hasContent || hasTriageOnly || Boolean(draft.learning_review)
     })
 }
 
@@ -212,13 +213,18 @@ export function p9MappingSummary(corpus) {
   }
 }
 
-export function phaseInSummary(corpus) {
+export function phaseInSummary(corpus, locale = "en") {
   const assessment = objectValue(corpus?.phase_in_assessment)
   const counts = objectValue(assessment.counts)
   const employeeCount = objectValue(assessment.employee_count)
 
   return {
     status: stringValue(assessment.status),
+    statusLabel: locale === "es" ? ({
+      eligible_less_than_750: "Empresa con menos de 750 empleados",
+      not_eligible_750_or_more: "Empresa con 750 empleados o más: sin reducción por tamaño",
+      unknown_employee_count: "Número de empleados pendiente de confirmar",
+    })[assessment.status] ?? "Aplicación gradual pendiente de confirmar" : stringValue(assessment.status_label),
     source: stringValue(employeeCount.source),
     estimate: employeeCount.estimate ?? null,
     lessThan750: employeeCount.less_than_750,
@@ -229,28 +235,40 @@ export function phaseInSummary(corpus) {
   }
 }
 
-export function completionPlanItems(corpus) {
+export function completionPlanItems(corpus, locale = "en") {
   const phases = arrayValue(objectValue(corpus?.completion_plan).phases)
 
   return phases.map((phase) => ({
     key: stringValue(phase?.key),
-    title: stringValue(phase?.title),
+    title: locale === "es" ? (({
+      always_required: "Completa primero la información general de ESRS 2",
+      topical: "Completa los datos de los temas materiales vinculados a requisitos de divulgación",
+      minimum_disclosure_requirements: "Revisa los requisitos mínimos de información (MDR) de ESRS 2 para los temas materiales",
+      e1_not_material_explanation: "Completa la explicación de E1 no material cuando sea necesaria",
+    })[phase?.key] ?? stringValue(phase?.title)) : stringValue(phase?.title),
     status: stringValue(phase?.status),
     statusLabel: labelFor(COMPLETION_STATUS_LABELS, phase?.status),
     datapointCount: numberValue(phase?.datapoint_count),
   }))
 }
 
-export function datapointApplicabilitySummary(datapoint) {
+export function datapointApplicabilitySummary(datapoint, locale = "en") {
   const applicability = objectValue(datapoint?.applicability)
   const phaseIn = objectValue(datapoint?.phase_in)
 
   return {
-    reason: stringValue(applicability.reason),
+    reason: locale === "es" ? (({
+      always_required_esrs_2: "La información general de ESRS 2 constituye la base del estado de sostenibilidad.",
+      material_esrs_standard: applicability.mapping_basis === "mapped_disclosure_requirements"
+        ? "Este dato pertenece a un requisito de divulgación vinculado al tema material confirmado."
+        : "Este dato necesita un requisito de divulgación vinculado al tema material confirmado.",
+      conditional_esrs_2_mdr: "Los requisitos mínimos de información de ESRS 2 se revisan de forma condicional para los temas materiales confirmados.",
+      selected_datapoint: "Este dato está incluido en el listado normativo actual.",
+    })[applicability.reason_code] ?? stringValue(applicability.reason)) : stringValue(applicability.reason),
     reasonCode: stringValue(applicability.reason_code),
     mappingBasis: stringValue(applicability.mapping_basis),
     mappingBasisLabel: labelFor(APPLICABILITY_MAPPING_BASIS_LABELS, applicability.mapping_basis),
-    limitations: arrayValue(applicability.limitations).filter((limitation) => typeof limitation === "string" && limitation.trim()),
+    limitations: locale === "es" ? localizeLimitations(arrayValue(applicability.limitations)) : arrayValue(applicability.limitations),
     phaseInLessThan750: stringValue(phaseIn.less_than_750),
     phaseInAllUndertakings: stringValue(phaseIn.all_undertakings),
   }
@@ -284,7 +302,7 @@ function labelFor(labels, value) {
 
 function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) {
   if (coverageStatus !== "topical_mapping_required") {
-    return limitations
+    return localizeLimitations(limitations)
   }
 
   if (mappingStatus === "partial") {
@@ -460,7 +478,7 @@ export function obligationBadge(datapoint) {
     return { kind: "voluntary", label: "Voluntario (opcional)" }
   }
   if (deferred) {
-    return { kind: "deferred", label: "Aplazable (phase-in)" }
+    return { kind: "deferred", label: "Aplazable temporalmente" }
   }
   if (cond) {
     return { kind: "conditional", label: "Condicional" }
@@ -535,13 +553,123 @@ export function phaseInBadgeLabel(datapoint, lessThan750) {
 export function sectionProgressLabel(group) {
   const std = (group && group.standard) || ""
   const total = (group && group.counts && typeof group.counts.total === "number") ? group.counts.total : 0
-  // progress uses decided if present else total for "X de Y" where Y often global-ish but per group total
+  // No recorded decisions means zero progress, even when rows exist.
   const decided = (group && group.counts && typeof group.counts.decided === "number") ? group.counts.decided : 0
-  const shown = decided > 0 ? decided : total
-  return `${std} — ${shown} de ${total}`
+  return `${std} — ${decided} de ${total}`
 }
 
 export function localStorageDraftKey(characterizationId) {
   const id = characterizationId != null ? characterizationId : "unknown"
   return `p9_drafts_${id}`
+}
+
+function localizeLimitations(limitations) {
+  const labels = {
+    "ESRS remains authoritative if it conflicts with EFRAG IG 3 implementation guidance.": "Los ESRS prevalecen en caso de conflicto con la guía de aplicación EFRAG IG 3.",
+    "Topical datapoints require a fully covering approved AR16 matter to Disclosure Requirement map.": "Los datos temáticos requieren un mapa aprobado que vincule todos los temas AR16 con sus requisitos de divulgación.",
+  }
+  return limitations.filter((value) => typeof value === "string" && value.trim()).map((value) => labels[value] ?? value)
+}
+
+/** Group within a standard; unassigned requirements retain their corpus block. */
+export function groupRowsByDisclosureRequirement(rows) {
+  const groups = new Map()
+  for (const row of rows) {
+    const key = row.datapoint.dr?.trim() || row.blockKey || "other"
+    if (!groups.has(key)) groups.set(key, { key, label: row.datapoint.dr?.trim() || "Otros datos del bloque", rows: [] })
+    groups.get(key).rows.push(row)
+  }
+  return [...groups.values()]
+}
+
+/** Patch atomically so a group edit follows the same revision/debounce as one row. */
+export function patchDatapointDrafts(drafts, datapointIds, patch) {
+  const next = { ...drafts }
+  for (const id of new Set(datapointIds)) {
+    next[id] = { ...emptyDraft(), ...drafts[id], ...patch }
+  }
+  return next
+}
+
+/** Explicit choices only: a half-answered review remains an unobserved local draft. */
+export function datapointFeedbackPacket(drafts, authorityDigest) {
+  const decisions = Object.entries(drafts ?? {}).flatMap(([datapoint_id, draft]) => {
+    const review = draft?.learning_review
+    if (typeof review?.relevant !== "boolean" || typeof review?.selected_to_answer !== "boolean") return []
+    return [{ datapoint_id, relevant: review.relevant, selected_to_answer: review.selected_to_answer,
+      reason_codes: review.reason_codes ?? [], note: review.note ?? null }]
+  })
+  return { schema_version: /** @type {"datapoint-feedback-v1"} */ ("datapoint-feedback-v1"), authority_digest: authorityDigest,
+    reviewed_datapoint_ids: decisions.map((decision) => decision.datapoint_id), decisions }
+}
+
+export function hydrateDatapointDrafts(responses, feedback) {
+  const drafts = Object.fromEntries(Object.entries(responses ?? {}).map(([id, response]) => [id, { ...emptyDraft(), ...response }]))
+  for (const { datapoint_id, ...review } of feedback?.decisions ?? []) {
+    drafts[datapoint_id] = { ...emptyDraft(), ...drafts[datapoint_id], learning_review: review }
+  }
+  return drafts
+}
+
+/** Recovery rebases known rows only. Old authority keeps explanation, requires both choices anew. */
+export function mergeDatapointRecovery(serverDrafts, localDrafts, allowedIds, savedAuthority, currentAuthority) {
+  const next = { ...serverDrafts }
+  for (const id of allowedIds) {
+    if (!localDrafts?.[id]) continue
+    const local = { ...localDrafts[id] }
+    if (local.learning_review && savedAuthority !== currentAuthority) {
+      local.learning_review = { reason_codes: local.learning_review.reason_codes, note: local.learning_review.note }
+    }
+    next[id] = { ...emptyDraft(), ...next[id], ...local }
+  }
+  return next
+}
+
+export function hasUnansweredDatapointReview(drafts) {
+  return Object.values(drafts ?? {}).some((draft) => draft?.learning_review &&
+    (typeof draft.learning_review.relevant !== "boolean" || typeof draft.learning_review.selected_to_answer !== "boolean"))
+}
+
+/** Validate the complete server publication before installing any editable state. */
+export function validateDatapointWorkspace(snapshot) {
+  const corpus = snapshot?.data
+  const state = snapshot?.response_state
+  const fail = () => { throw new Error("A coherent datapoint snapshot is required") }
+  const digest = (v) => typeof v === "string" && /^[a-f0-9]{64}$/.test(v) && v.length === 64
+  const record = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
+  if (snapshot?.snapshot_version !== "p9-workspace-v1" || !record(corpus) || !record(state)
+    || !Number.isInteger(corpus.characterization_id) || corpus.characterization_id <= 0
+    || state.characterization_id !== corpus.characterization_id
+    || !Number.isInteger(state.revision) || state.revision < 0
+    || !digest(corpus.mapping_snapshot_digest) || !digest(corpus.learning_authority_digest)
+    || state.learning_authority_digest !== corpus.learning_authority_digest || !digest(state.source_digest)
+    || !record(corpus.blocks) || !(record(state.responses) || (Array.isArray(state.responses) && state.responses.length === 0))) fail()
+  const ids = new Set()
+  for (const block of Object.values(corpus.blocks)) {
+    if (!record(block) || (block.datapoints !== undefined && !Array.isArray(block.datapoints))) fail()
+    for (const dp of block.datapoints ?? []) {
+      if (!record(dp) || typeof dp.id !== "string" || !dp.id.trim() || ids.has(dp.id)) fail()
+      ids.add(dp.id)
+    }
+  }
+  for (const [id, response] of Object.entries(state.responses)) {
+    if (!ids.has(id) || !record(response) || !["draft", "completed", "not_applicable"].includes(response.status)) fail()
+  }
+  const feedback = state.learning_feedback
+  if (!record(feedback) || feedback.schema_version !== "datapoint-feedback-v1"
+    || feedback.authority_digest !== corpus.learning_authority_digest
+    || !Array.isArray(feedback.reviewed_datapoint_ids) || !Array.isArray(feedback.decisions)) fail()
+  const reviewed = feedback.reviewed_datapoint_ids
+  if (new Set(reviewed).size !== reviewed.length || reviewed.some(id => !ids.has(id))
+    || feedback.decisions.length !== reviewed.length) fail()
+  const seen = new Set()
+  for (const decision of feedback.decisions) {
+    if (!record(decision) || !reviewed.includes(decision.datapoint_id) || seen.has(decision.datapoint_id)
+      || typeof decision.relevant !== "boolean" || typeof decision.selected_to_answer !== "boolean"
+      || !Array.isArray(decision.reason_codes) || decision.reason_codes.some(v => typeof v !== "string" || !v.trim() || v.length > 100)
+      || new Set(decision.reason_codes).size !== decision.reason_codes.length
+      || !(decision.note === null || (typeof decision.note === "string" && decision.note.length <= 2000))) fail()
+    seen.add(decision.datapoint_id)
+  }
+  return snapshot
 }

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ia4s:contract:learning-eligibility-v1",
+  "title": "learning-eligibility-v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generation",
+    "issued_at",
+    "valid_until",
+    "cases",
+    "eligible_case_ids",
+    "tombstones",
+    "rights_snapshot_digest",
+    "eligibility_policy_digest",
+    "canonical_digest"
+  ],
+  "properties": {
+    "schema_version": { "const": "learning-eligibility-v1" },
+    "generation": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,6})?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,6})?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CaseEntry" }
+    },
+    "eligible_case_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/NonEmptyString" }
+    },
+    "tombstones": {
+      "type": "object",
+      "required": ["revoked", "deleted"],
+      "properties": {
+        "revoked": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Tombstone" }
+        },
+        "deleted": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Tombstone" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "rights_snapshot_digest": { "$ref": "#/$defs/Sha256" },
+    "eligibility_policy_digest": { "$ref": "#/$defs/Sha256" },
+    "canonical_digest": { "$ref": "#/$defs/Sha256" }
+  },
+  "$defs": {
+    "NonEmptyString": { "type": "string", "minLength": 1 },
+    "Sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "Revision": {
+      "type": "object",
+      "required": ["generation", "revision", "digest"],
+      "properties": {
+        "generation": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "SourceRevisionTuple": {
+      "type": "object",
+      "required": ["p5", "p6", "p8", "p9"],
+      "properties": {
+        "p5": { "$ref": "#/$defs/Revision" },
+        "p6": { "$ref": "#/$defs/Revision" },
+        "p8": { "$ref": "#/$defs/Revision" },
+        "p9": { "$ref": "#/$defs/Revision" }
+      },
+      "additionalProperties": false
+    },
+    "CaseEntry": {
+      "type": "object",
+      "required": ["case_id", "case_hash", "source_revisions", "rights_digest", "policy_digest"],
+      "properties": {
+        "case_id": { "$ref": "#/$defs/NonEmptyString" },
+        "case_hash": { "$ref": "#/$defs/Sha256" },
+        "source_revisions": { "$ref": "#/$defs/SourceRevisionTuple" },
+        "rights_digest": { "$ref": "#/$defs/Sha256" },
+        "policy_digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "Tombstone": {
+      "type": "object",
+      "required": ["case_id", "case_hash", "at"],
+      "properties": {
+        "case_id": { "$ref": "#/$defs/NonEmptyString" },
+        "case_hash": { "$ref": "#/$defs/Sha256" },
+        "at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,6})?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

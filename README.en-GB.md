@@ -32,3 +32,5 @@ The installation guide is in [app/docs/en-GB/technical/installation-local.md](ap
 - [English documentation](app/docs/en-GB/index.md)
 - [Technical manual](app/docs/en-GB/technical/index.md)
 - [Integrations](app/docs/en-GB/integrations/authentication.md)
+
+- [Optional learning engine](app/docs/en-GB/learning-engine.md): default disabled; local synthetic technical checks documented, without activation, quality or deployment proof.

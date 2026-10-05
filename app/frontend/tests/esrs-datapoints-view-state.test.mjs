@@ -101,7 +101,7 @@ test("phaseInBadgeLabel returns copy only when phase_in.less_than_750 present AN
 })
 
 test("sectionProgressLabel formats ESRS 2 — X de Y from group", () => {
-  assert.equal(sectionProgressLabel({ standard: "ESRS 2", counts: { total: 146 } }), "ESRS 2 — 146 de 146")
+  assert.equal(sectionProgressLabel({ standard: "ESRS 2", counts: { total: 146 } }), "ESRS 2 — 0 de 146")
   assert.equal(sectionProgressLabel({ standard: "ESRS E1", counts: { total: 30, decided: 12 } }), "ESRS E1 — 12 de 30")
 })
 
@@ -163,7 +163,7 @@ test("obligationBadge prefers backend selection state over may_disclose", () => 
       may_disclose: false,
       selection: { default_selected: false, reason_codes: ["phase_in_less_than_750"] },
     }),
-    { kind: "deferred", label: "Aplazable (phase-in)" },
+    { kind: "deferred", label: "Aplazable temporalmente" },
   )
   assert.equal(
     obligationBadge({

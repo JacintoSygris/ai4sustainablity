@@ -19,7 +19,7 @@ class EsrsDatapointController extends Controller
 {
     private const RESPONSE_SCHEMA_VERSION = 'v0';
 
-    public function index(Request $request, EsrsDatapointCorpusBuilder $builder)
+    public function index(Request $request, EsrsDatapointCorpusBuilder $builder, EsrsDatapointResponseState $responseState, CharacterizationStateTransaction $stateTransactions)
     {
         $characterization = Characterization::forUser($request->user()->id)->first();
 
@@ -27,7 +27,13 @@ class EsrsDatapointController extends Controller
             return response()->json(['data' => null]);
         }
 
-        return response()->json(['data' => $builder->build($characterization)]);
+        return $stateTransactions->run($characterization->id, function (Characterization $locked) use ($builder, $responseState) {
+            $corpus = $builder->build($locked);
+            $state = $responseState->state($locked, $corpus);
+            $corpus['learning_authority_digest'] = $state['learning_authority_digest'];
+
+            return response()->json(['snapshot_version' => 'p9-workspace-v1', 'data' => $corpus, 'response_state' => $state]);
+        });
     }
 
     public function exportCsv(
@@ -148,6 +154,30 @@ class EsrsDatapointController extends Controller
                 ]);
             }
 
+            if ($request->exists('learning_feedback')) {
+                $rawFeedback = json_decode($request->getContent())->learning_feedback ?? null;
+                if (!$rawFeedback instanceof \stdClass
+                    || !is_array($rawFeedback->reviewed_datapoint_ids ?? null)
+                    || !is_array($rawFeedback->decisions ?? null)) {
+                    throw ValidationException::withMessages(['learning_feedback' => 'Review universes and decisions must be JSON lists.']);
+                }
+                foreach ($rawFeedback->decisions as $rawDecision) {
+                    if (!$rawDecision instanceof \stdClass || !is_array($rawDecision->reason_codes ?? null)) {
+                        throw ValidationException::withMessages(['learning_feedback' => 'Review decisions must be objects with reason-code lists.']);
+                    }
+                }
+            }
+
+            $feedback = $request->exists('learning_feedback')
+                ? $responseState->validateLearningFeedback($request->input('learning_feedback'), $corpus)
+                : Arr::get($lockedCharacterization->form_data ?? [], 'esrs_datapoint_responses.learning_feedback');
+            // P9 legacy has no operational selected_to_answer field. Reject its ambiguous use.
+            foreach ($request->input('responses', []) as $submitted) {
+                if (is_array($submitted) && array_key_exists('selected_to_answer', $submitted)) {
+                    throw ValidationException::withMessages(['responses' => 'Use explicit versioned learning_feedback for review selection.']);
+                }
+            }
+
             $formData = $lockedCharacterization->form_data ?? [];
             $storedResponses = Arr::get($formData, 'esrs_datapoint_responses.responses', []);
             $storedResponses = is_array($storedResponses) ? $storedResponses : [];
@@ -160,6 +190,7 @@ class EsrsDatapointController extends Controller
                 'revision' => $nextRevision,
                 'updated_at' => now()->toJSON(),
                 'responses' => array_replace($orphanedResponses, $normalizedResponses),
+                ...($feedback === null ? [] : ['learning_feedback' => $feedback]),
             ]);
             $lockedCharacterization->forceFill(['form_data' => $formData])->save();
 

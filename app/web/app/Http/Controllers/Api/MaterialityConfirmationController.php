@@ -66,6 +66,23 @@ class MaterialityConfirmationController extends Controller
         'no_material',
     ];
 
+    private const UNIVERSE_ATTESTATION_VERSION = 1;
+
+    private const REVIEW_MODES = [
+        'direct',
+        'guided',
+    ];
+
+    private const MAX_JSON_NESTING = 64;
+
+    private const MAX_P8_REQUEST_BYTES = 1_048_576;
+
+    private const MAX_TOPIC_COUNT = 89;
+
+    private const MAX_REASON_COUNT = 6;
+
+    private const MAX_JAVASCRIPT_SAFE_INTEGER = 9_007_199_254_740_991;
+
     public function show(Request $request, EsrsDatapointCorpusBuilder $datapoints)
     {
         $characterization = Characterization::forUser($request->user()->id)->first();
@@ -81,31 +98,77 @@ class MaterialityConfirmationController extends Controller
         Request $request,
         EsrsDatapointCorpusBuilder $datapoints,
         CharacterizationStateTransaction $stateTransactions,
-    )
-    {
+    ) {
+        $rawContent = $request->getContent();
+        if (strlen($rawContent) > self::MAX_P8_REQUEST_BYTES) {
+            return response()->json([
+                'message' => 'The P8 materiality confirmation request exceeds the 1048576-byte limit.',
+                'code' => 'materiality_confirmation_request_too_large',
+            ], 413);
+        }
+
+        $this->rejectDuplicateJsonMembers($rawContent);
+
         $validated = $request->validate([
-            'expected_revision' => ['required', 'integer', 'min:0'],
-            'confirmed_topic_ids' => ['present', 'array'],
-            'confirmed_topic_ids.*' => ['integer', 'distinct', 'exists:esrs_topics,id'],
-            'change_reasons' => ['sometimes', 'array'],
-            'change_reasons.*' => ['array'],
-            'change_reasons.*.*' => ['string', Rule::in(self::REASON_KEYS)],
-            'change_reason_notes' => ['sometimes', 'array'],
+            'expected_revision' => ['required', 'integer:strict', 'min:0', 'max:'.self::MAX_JAVASCRIPT_SAFE_INTEGER],
+            'confirmed_topic_ids' => ['present', 'array', 'list', 'max:'.self::MAX_TOPIC_COUNT],
+            'confirmed_topic_ids.*' => ['integer:strict', 'min:1', 'distinct:strict', 'exists:esrs_topics,id'],
+            'reviewed_topic_ids' => ['sometimes', 'array', 'list', 'max:'.self::MAX_TOPIC_COUNT],
+            'reviewed_topic_ids.*' => ['integer:strict', 'min:1', 'distinct:strict', 'exists:esrs_topics,id'],
+            'universe_attestation' => ['sometimes', 'array:version,reviewed_universe,mode'],
+            'universe_attestation.version' => ['required_with:universe_attestation', 'integer:strict', Rule::in([self::UNIVERSE_ATTESTATION_VERSION])],
+            'universe_attestation.reviewed_universe' => ['required_with:universe_attestation', 'boolean:strict'],
+            'universe_attestation.mode' => ['required_with:universe_attestation', 'string', Rule::in(self::REVIEW_MODES)],
+            'change_reasons' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
+            'change_reasons.*' => ['array', 'list', 'max:'.self::MAX_REASON_COUNT],
+            'change_reasons.*.*' => ['string', 'distinct:strict', Rule::in(self::REASON_KEYS)],
+            'change_reason_notes' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
             'change_reason_notes.*' => ['nullable', 'string', 'max:300'],
-            'dimensions' => ['sometimes', 'array'],
+            'dimensions' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
             'dimensions.*' => ['string', Rule::in(self::DIMENSION_VALUES)],
-            'guided_answers' => ['sometimes', 'array'],
-            'guided_answers.*' => ['array'],
+            'guided_answers' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
+            'guided_answers.*' => ['array:impacto,financiero,confianza,exposicion,suggested_result,final_result,revisar,note'],
             'guided_answers.*.impacto' => ['required', 'string', Rule::in(self::IMPACT_LEVELS)],
             'guided_answers.*.financiero' => ['required', 'string', Rule::in(self::IMPACT_LEVELS)],
             'guided_answers.*.confianza' => ['required', 'string', Rule::in(self::CONFIDENCE_LEVELS)],
             'guided_answers.*.exposicion' => ['required', 'string', Rule::in(self::EXPOSURE_LEVELS)],
             'guided_answers.*.suggested_result' => ['required', 'string', Rule::in(self::SUGGESTED_RESULTS)],
             'guided_answers.*.final_result' => ['required', 'string', Rule::in(self::FINAL_RESULTS)],
-            'guided_answers.*.revisar' => ['required', 'boolean'],
+            'guided_answers.*.revisar' => ['required', 'boolean:strict'],
             'guided_answers.*.note' => ['sometimes', 'nullable', 'string', 'max:300'],
             'e1_not_material_explanation' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'confirmed_topic_ids.max' => 'The confirmed_topic_ids field may not contain more than 89 topics.',
+            'reviewed_topic_ids.max' => 'The reviewed_topic_ids field may not contain more than 89 topics.',
+            'change_reasons.max' => 'The change_reasons field may not contain more than 89 topics.',
+            'change_reasons.*.max' => 'A topic may not contain more than 6 change reasons.',
+            'change_reason_notes.max' => 'The change_reason_notes field may not contain more than 89 topics.',
+            'dimensions.max' => 'The dimensions field may not contain more than 89 topics.',
+            'guided_answers.max' => 'The guided_answers field may not contain more than 89 topics.',
         ]);
+
+        $this->validateStrictTopicIdList($request->input('confirmed_topic_ids'), 'confirmed_topic_ids');
+        if ($request->has('reviewed_topic_ids')) {
+            $this->validateStrictTopicIdList($request->input('reviewed_topic_ids'), 'reviewed_topic_ids');
+        }
+        if ($request->has('universe_attestation') !== $request->has('reviewed_topic_ids')) {
+            throw ValidationException::withMessages([
+                'reviewed_topic_ids' => 'The reviewed topic universe and its attestation must be submitted together.',
+            ]);
+        }
+        if ($request->has('universe_attestation')) {
+            $attestation = $request->input('universe_attestation');
+            if (! is_int($attestation['version'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'universe_attestation.version' => 'The attestation version must be a JSON integer without coercion.',
+                ]);
+            }
+            if (! is_bool($attestation['reviewed_universe'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'universe_attestation.reviewed_universe' => 'The reviewed universe flag must be a JSON boolean without coercion.',
+                ]);
+            }
+        }
 
         $characterizationId = Characterization::forUser($request->user()->id)->firstOrFail()->id;
         $outcome = $stateTransactions->run($characterizationId, function (Characterization $characterization) use ($validated): array {
@@ -123,13 +186,48 @@ class MaterialityConfirmationController extends Controller
             }
 
             $confirmedTopicIds = $this->topicIds($validated['confirmed_topic_ids']);
-            $validReasonTopicIds = array_values(array_unique([...$p6TopicIds, ...$confirmedTopicIds]));
+            $storedConfirmation = Arr::get($characterization->form_data ?? [], 'materiality_confirmation', []);
+            $storedConfirmation = is_array($storedConfirmation) ? $storedConfirmation : [];
+            $storedEvidence = $this->validStoredEvidence($storedConfirmation);
+            $previousStoredConfirmedTopicIds = $this->strictStoredExistingTopicIds(
+                Arr::get($storedConfirmation, 'confirmed_topic_ids')
+            ) ?? [];
+            $previousReviewedTopicIds = $this->reviewedTopicState(
+                $storedConfirmation,
+                $p6TopicIds,
+                $previousStoredConfirmedTopicIds,
+                $this->topicMapIds(array_values($storedEvidence)),
+            )['topic_ids'];
+            $hasLearningPair = array_key_exists('reviewed_topic_ids', $validated);
+            $reviewedTopicIds = $hasLearningPair
+                ? $this->topicIds($validated['reviewed_topic_ids'])
+                : $this->mergeTopicIds(
+                    $previousReviewedTopicIds,
+                    $p6TopicIds,
+                    $confirmedTopicIds,
+                );
 
-            $this->validateReasonTopicKeys($validated['change_reasons'] ?? [], $validReasonTopicIds, 'change_reasons');
-            $this->validateReasonTopicKeys($validated['change_reason_notes'] ?? [], $validReasonTopicIds, 'change_reason_notes');
-            $this->validateExistingTopicKeys($validated['dimensions'] ?? [], 'dimensions');
-            $this->validateExistingTopicKeys($validated['guided_answers'] ?? [], 'guided_answers');
+            $this->validateReviewedUniverse(
+                $reviewedTopicIds,
+                $previousReviewedTopicIds,
+                $p6TopicIds,
+                $confirmedTopicIds,
+            );
+            $this->validateTopicMapKeys($validated['change_reasons'] ?? [], $reviewedTopicIds, 'change_reasons');
+            $this->validateTopicMapKeys($validated['change_reason_notes'] ?? [], $reviewedTopicIds, 'change_reason_notes');
+            $this->validateTopicMapKeys($validated['dimensions'] ?? [], $reviewedTopicIds, 'dimensions');
+            $this->validateTopicMapKeys($validated['guided_answers'] ?? [], $reviewedTopicIds, 'guided_answers');
             $this->validateGuidedAnswerConsistency($validated['guided_answers'] ?? [], $confirmedTopicIds);
+
+            $universeAttestation = $this->normalizeUniverseAttestation($validated['universe_attestation'] ?? null);
+            if (($universeAttestation['reviewed_universe'] ?? false) === true
+                && ($universeAttestation['mode'] ?? null) === 'guided') {
+                $this->validateCompleteGuidedUniverse(
+                    $validated['guided_answers'] ?? [],
+                    $reviewedTopicIds,
+                    $confirmedTopicIds,
+                );
+            }
 
             if ($this->removesE1($characterization, $confirmedTopicIds)
                 && blank($validated['e1_not_material_explanation'] ?? null)) {
@@ -139,7 +237,33 @@ class MaterialityConfirmationController extends Controller
             }
 
             $formData = $characterization->form_data ?? [];
+            $changeReasons = $this->normalizeKeyedArrays($validated['change_reasons'] ?? []);
+            $changeReasonNotes = $this->normalizeKeyedStrings($validated['change_reason_notes'] ?? []);
+            $dimensions = $this->normalizeKeyedStrings($validated['dimensions'] ?? []);
             $guidedAnswers = $this->normalizeGuidedAnswers($validated['guided_answers'] ?? []);
+            if (! $hasLearningPair) {
+                $legacyRepresentableTopicIds = $this->mergeTopicIds($p6TopicIds, $confirmedTopicIds);
+                $changeReasons = $this->mergeLegacyHistoricalEvidence(
+                    $storedEvidence['change_reasons'],
+                    $changeReasons,
+                    $legacyRepresentableTopicIds,
+                );
+                $changeReasonNotes = $this->mergeLegacyHistoricalEvidence(
+                    $storedEvidence['change_reason_notes'],
+                    $changeReasonNotes,
+                    $legacyRepresentableTopicIds,
+                );
+                $dimensions = $this->mergeLegacyHistoricalEvidence(
+                    $storedEvidence['dimensions'],
+                    $dimensions,
+                    $legacyRepresentableTopicIds,
+                );
+                $guidedAnswers = $this->mergeLegacyHistoricalEvidence(
+                    $storedEvidence['guided_answers'],
+                    $guidedAnswers,
+                    $legacyRepresentableTopicIds,
+                );
+            }
             $decisionBasis = $this->deriveDecisionBasis(
                 $guidedAnswers,
                 DoubleMaterialityProcessState::fromFormData($formData)
@@ -148,9 +272,11 @@ class MaterialityConfirmationController extends Controller
             Arr::set($formData, 'materiality_confirmation', [
                 'revision' => $currentRevision + 1,
                 'confirmed_topic_ids' => $confirmedTopicIds,
-                'change_reasons' => $this->normalizeKeyedArrays($validated['change_reasons'] ?? []),
-                'change_reason_notes' => $this->normalizeKeyedStrings($validated['change_reason_notes'] ?? []),
-                'dimensions' => $this->normalizeKeyedStrings($validated['dimensions'] ?? []),
+                'reviewed_topic_ids' => $reviewedTopicIds,
+                'universe_attestation' => $universeAttestation,
+                'change_reasons' => $changeReasons,
+                'change_reason_notes' => $changeReasonNotes,
+                'dimensions' => $dimensions,
                 'guided_answers' => $guidedAnswers,
                 'decision_basis' => $decisionBasis,
                 'p6_snapshot' => [
@@ -226,18 +352,35 @@ class MaterialityConfirmationController extends Controller
         $confirmation = Arr::get($characterization->form_data ?? [], 'materiality_confirmation', []);
         $confirmation = is_array($confirmation) ? $confirmation : [];
         $admState = DoubleMaterialityProcessState::fromFormData($characterization->form_data ?? []);
-        $isConfirmed = array_key_exists('confirmed_topic_ids', $confirmation);
-        $confirmedTopicIds = $this->topicIds(Arr::get($confirmation, 'confirmed_topic_ids', $p6TopicIds));
-        $currentTopicIds = array_values(array_unique([
-            ...$p6TopicIds,
-            ...$confirmedTopicIds,
-        ]));
+        $storedConfirmedTopicIds = array_key_exists('confirmed_topic_ids', $confirmation)
+            ? $this->strictStoredExistingTopicIds($confirmation['confirmed_topic_ids'])
+            : null;
+        $isConfirmed = $storedConfirmedTopicIds !== null;
+        $confirmedTopicIds = $storedConfirmedTopicIds ?? $p6TopicIds;
+        $storedEvidence = $this->validStoredEvidence($confirmation);
+        $reviewedTopicState = $this->reviewedTopicState(
+            $confirmation,
+            $p6TopicIds,
+            $storedConfirmedTopicIds ?? [],
+            $this->topicMapIds(array_values($storedEvidence)),
+        );
+        $reviewedTopicIds = $reviewedTopicState['topic_ids'];
+        $currentTopicIds = $reviewedTopicIds;
         $delta = $this->delta($p6TopicIds, $confirmedTopicIds);
         $preview = $this->datapointPreview($characterization, $datapoints);
-        $guidedAnswers = $this->filterKeyedMap(Arr::get($confirmation, 'guided_answers', []), $currentTopicIds);
+        $guidedAnswers = $this->filterKeyedMap($storedEvidence['guided_answers'], $currentTopicIds);
         $decisionBasis = $this->storedDecisionBasis($confirmation)
             ?? $this->deriveDecisionBasis($guidedAnswers, $admState);
         $p6Snapshot = $this->p6Snapshot(Arr::get($confirmation, 'p6_snapshot'));
+        $storedUniverseAttestation = $this->storedUniverseAttestation(Arr::get($confirmation, 'universe_attestation'));
+        $universeAttestation = $reviewedTopicState['authoritative'] ? $storedUniverseAttestation : null;
+        $learningTopicLabels = $this->learningTopicLabels(
+            $confirmation,
+            $reviewedTopicState['authoritative'],
+            $reviewedTopicIds,
+            $storedConfirmedTopicIds,
+            $universeAttestation,
+        );
 
         return [
             'characterization_id' => $characterization->id,
@@ -256,16 +399,16 @@ class MaterialityConfirmationController extends Controller
             'p6_anchor_date' => $characterization->submitted_at?->toJSON() ?? $characterization->updated_at?->toJSON(),
             'p6_topic_ids' => $p6TopicIds,
             'confirmed_topic_ids' => $confirmedTopicIds,
+            'learning_topic_labels' => $learningTopicLabels,
             'delta' => $delta,
-            'topics' => $this->topicSummaries(array_values(array_unique([
-                ...$p6TopicIds,
-                ...$confirmedTopicIds,
-            ]))),
+            'topics' => $this->topicSummaries($reviewedTopicIds),
             'confirmation' => [
                 'revision' => $this->confirmationRevision($characterization),
-                'change_reasons' => $this->filterKeyedMap(Arr::get($confirmation, 'change_reasons', []), $currentTopicIds),
-                'change_reason_notes' => $this->filterKeyedMap(Arr::get($confirmation, 'change_reason_notes', []), $currentTopicIds),
-                'dimensions' => $this->filterKeyedMap(Arr::get($confirmation, 'dimensions', []), $currentTopicIds),
+                'reviewed_topic_ids' => $reviewedTopicIds,
+                'universe_attestation' => $universeAttestation,
+                'change_reasons' => $this->filterKeyedMap($storedEvidence['change_reasons'], $currentTopicIds),
+                'change_reason_notes' => $this->filterKeyedMap($storedEvidence['change_reason_notes'], $currentTopicIds),
+                'dimensions' => $this->filterKeyedMap($storedEvidence['dimensions'], $currentTopicIds),
                 'guided_answers' => $guidedAnswers,
                 'e1_not_material_explanation' => Arr::get($confirmation, 'e1_not_material_explanation'),
                 'confirmed_at' => Arr::get($confirmation, 'confirmed_at'),
@@ -402,9 +545,245 @@ class MaterialityConfirmationController extends Controller
             }
 
             throw ValidationException::withMessages([
-                'guided_answers.'.$topicId.'.final_result' =>
-                    'The guided final result must match the final confirmed topic set.',
+                'guided_answers.'.$topicId.'.final_result' => 'The guided final result must match the final confirmed topic set.',
             ]);
+        }
+    }
+
+    private function validateStrictTopicIdList(mixed $values, string $field): void
+    {
+        if (! is_array($values)) {
+            return;
+        }
+
+        $seen = [];
+        foreach ($values as $value) {
+            if (! is_int($value) || $value <= 0 || isset($seen[$value])) {
+                throw ValidationException::withMessages([
+                    $field => 'Topic IDs must be unique positive JSON integers without coercion.',
+                ]);
+            }
+
+            $seen[$value] = true;
+        }
+    }
+
+    private function rejectDuplicateJsonMembers(string $json): void
+    {
+        if (trim($json) === '') {
+            return;
+        }
+
+        try {
+            $offset = 0;
+            $this->scanJsonValue($json, $offset, 0);
+            $this->skipJsonWhitespace($json, $offset);
+            if ($offset !== strlen($json)) {
+                throw new \InvalidArgumentException('Trailing JSON content.');
+            }
+        } catch (\InvalidArgumentException) {
+            throw ValidationException::withMessages([
+                'json' => 'The JSON request must not contain duplicate object member names.',
+            ]);
+        }
+    }
+
+    private function scanJsonValue(string $json, int &$offset, int $depth): void
+    {
+        if ($depth > self::MAX_JSON_NESTING) {
+            throw new \InvalidArgumentException('JSON nesting is too deep.');
+        }
+
+        $this->skipJsonWhitespace($json, $offset);
+        $token = $json[$offset] ?? '';
+        if ($token === '{') {
+            $this->scanJsonObject($json, $offset, $depth);
+
+            return;
+        }
+        if ($token === '[') {
+            $this->scanJsonArray($json, $offset, $depth);
+
+            return;
+        }
+        if ($token === '"') {
+            $this->scanJsonString($json, $offset);
+
+            return;
+        }
+
+        $start = $offset;
+        $length = strlen($json);
+        while ($offset < $length && ! str_contains(",]} \t\r\n", $json[$offset])) {
+            $offset++;
+        }
+        if ($offset === $start) {
+            throw new \InvalidArgumentException('Invalid JSON value.');
+        }
+    }
+
+    private function scanJsonObject(string $json, int &$offset, int $depth): void
+    {
+        $offset++;
+        $this->skipJsonWhitespace($json, $offset);
+        if (($json[$offset] ?? '') === '}') {
+            $offset++;
+
+            return;
+        }
+
+        $seen = [];
+        while (true) {
+            $key = $this->scanJsonString($json, $offset);
+            $identity = "\0".$key;
+            if (array_key_exists($identity, $seen)) {
+                throw new \InvalidArgumentException('Duplicate JSON member.');
+            }
+            $seen[$identity] = true;
+
+            $this->skipJsonWhitespace($json, $offset);
+            if (($json[$offset] ?? '') !== ':') {
+                throw new \InvalidArgumentException('Invalid JSON object.');
+            }
+            $offset++;
+            $this->scanJsonValue($json, $offset, $depth + 1);
+            $this->skipJsonWhitespace($json, $offset);
+            $separator = $json[$offset] ?? '';
+            if ($separator === '}') {
+                $offset++;
+
+                return;
+            }
+            if ($separator !== ',') {
+                throw new \InvalidArgumentException('Invalid JSON object separator.');
+            }
+            $offset++;
+            $this->skipJsonWhitespace($json, $offset);
+        }
+    }
+
+    private function scanJsonArray(string $json, int &$offset, int $depth): void
+    {
+        $offset++;
+        $this->skipJsonWhitespace($json, $offset);
+        if (($json[$offset] ?? '') === ']') {
+            $offset++;
+
+            return;
+        }
+
+        while (true) {
+            $this->scanJsonValue($json, $offset, $depth + 1);
+            $this->skipJsonWhitespace($json, $offset);
+            $separator = $json[$offset] ?? '';
+            if ($separator === ']') {
+                $offset++;
+
+                return;
+            }
+            if ($separator !== ',') {
+                throw new \InvalidArgumentException('Invalid JSON array separator.');
+            }
+            $offset++;
+        }
+    }
+
+    private function scanJsonString(string $json, int &$offset): string
+    {
+        $this->skipJsonWhitespace($json, $offset);
+        if (($json[$offset] ?? '') !== '"') {
+            throw new \InvalidArgumentException('Invalid JSON string.');
+        }
+
+        $start = $offset++;
+        $length = strlen($json);
+        while ($offset < $length) {
+            if ($json[$offset] === '\\') {
+                $offset += 2;
+
+                continue;
+            }
+            if ($json[$offset] === '"') {
+                $offset++;
+                try {
+                    $decoded = json_decode(
+                        substr($json, $start, $offset - $start),
+                        true,
+                        self::MAX_JSON_NESTING,
+                        JSON_THROW_ON_ERROR,
+                    );
+                } catch (\JsonException $exception) {
+                    throw new \InvalidArgumentException('Invalid JSON string.', previous: $exception);
+                }
+
+                if (! is_string($decoded)) {
+                    throw new \InvalidArgumentException('Invalid JSON object key.');
+                }
+
+                return $decoded;
+            }
+            $offset++;
+        }
+
+        throw new \InvalidArgumentException('Unterminated JSON string.');
+    }
+
+    private function skipJsonWhitespace(string $json, int &$offset): void
+    {
+        $length = strlen($json);
+        while ($offset < $length && str_contains(" \t\r\n", $json[$offset])) {
+            $offset++;
+        }
+    }
+
+    /**
+     * @param  array<int, int>  $reviewedTopicIds
+     * @param  array<int, int>  $previousReviewedTopicIds
+     * @param  array<int, int>  $p6TopicIds
+     * @param  array<int, int>  $confirmedTopicIds
+     */
+    private function validateReviewedUniverse(
+        array $reviewedTopicIds,
+        array $previousReviewedTopicIds,
+        array $p6TopicIds,
+        array $confirmedTopicIds,
+    ): void {
+        $requiredTopicIds = $this->mergeTopicIds($previousReviewedTopicIds, $p6TopicIds, $confirmedTopicIds);
+
+        if (array_diff($requiredTopicIds, $reviewedTopicIds) !== []) {
+            throw ValidationException::withMessages([
+                'reviewed_topic_ids' => 'The reviewed topic universe is monotonic and must contain every previously reviewed, presented, and confirmed topic.',
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string|int, mixed>  $guidedAnswers
+     * @param  array<int, int>  $reviewedTopicIds
+     * @param  array<int, int>  $confirmedTopicIds
+     */
+    private function validateCompleteGuidedUniverse(
+        array $guidedAnswers,
+        array $reviewedTopicIds,
+        array $confirmedTopicIds,
+    ): void {
+        foreach ($reviewedTopicIds as $topicId) {
+            $answer = $guidedAnswers[(string) $topicId] ?? $guidedAnswers[$topicId] ?? null;
+            if (! is_array($answer)
+                || in_array($answer['impacto'] ?? null, ['no_lo_se'], true)
+                || in_array($answer['financiero'] ?? null, ['no_lo_se'], true)
+                || ($answer['suggested_result'] ?? null) === 'en_observacion') {
+                throw ValidationException::withMessages([
+                    'universe_attestation.reviewed_universe' => 'A complete guided universe requires one terminal non-observational binary answer for every reviewed topic.',
+                ]);
+            }
+
+            $expectedResult = in_array($topicId, $confirmedTopicIds, true) ? 'material' : 'no_material';
+            if (($answer['final_result'] ?? null) !== $expectedResult) {
+                throw ValidationException::withMessages([
+                    'guided_answers.'.$topicId.'.final_result' => 'The guided final result must match the final confirmed topic set.',
+                ]);
+            }
         }
     }
 
@@ -462,7 +841,7 @@ class MaterialityConfirmationController extends Controller
      * @param  array<string|int, mixed>  $values
      * @param  array<int, int>  $validTopicIds
      */
-    private function validateReasonTopicKeys(array $values, array $validTopicIds, string $field): void
+    private function validateTopicMapKeys(array $values, array $validTopicIds, string $field): void
     {
         $validTopicKeys = array_map('strval', $validTopicIds);
 
@@ -472,41 +851,528 @@ class MaterialityConfirmationController extends Controller
             if (! preg_match('/^[1-9][0-9]*$/', $topicKey)
                 || ! in_array($topicKey, $validTopicKeys, true)) {
                 throw ValidationException::withMessages([
-                    $field => 'Reason keys must be canonical topic IDs from the current P6/P8 topic set.',
+                    $field => 'Keys must be canonical topic IDs inside the reviewed topic universe.',
                 ]);
             }
+        }
+
+        if ($this->existingTopicIds(array_map('intval', array_keys($values)))
+            !== array_values(array_map('intval', array_keys($values)))) {
+            throw ValidationException::withMessages([
+                $field => 'Keys must be canonical catalog topic IDs inside the reviewed topic universe.',
+            ]);
         }
     }
 
     /**
-     * @param  array<string|int, mixed>  $values
+     * @param  array<int, array<string|int, mixed>>  $maps
+     * @return array<int, int>
      */
-    private function validateExistingTopicKeys(array $values, string $field): void
+    private function topicMapIds(array $maps): array
     {
-        $topicKeys = array_map('strval', array_keys($values));
-
-        if ($topicKeys === []) {
-            return;
-        }
-
-        foreach ($topicKeys as $topicKey) {
-            if (! preg_match('/^[1-9][0-9]*$/', $topicKey)) {
-                throw ValidationException::withMessages([
-                    $field => 'Keys must be canonical topic IDs.',
-                ]);
+        $topicIds = [];
+        foreach ($maps as $map) {
+            foreach (array_keys($map) as $topicId) {
+                $topicKey = (string) $topicId;
+                if (preg_match('/^[1-9][0-9]*$/', $topicKey)) {
+                    $topicIds[] = (int) $topicKey;
+                }
             }
         }
 
-        $existingTopicKeys = EsrsTopic::whereIn('id', array_map('intval', $topicKeys))
-            ->pluck('id')
-            ->map(fn (int $id): string => (string) $id)
-            ->all();
+        return $this->mergeTopicIds($topicIds);
+    }
 
-        if (array_diff($topicKeys, $existingTopicKeys) !== []) {
-            throw ValidationException::withMessages([
-                $field => 'Keys must be canonical topic IDs.',
-            ]);
+    /**
+     * @param  array<int, int>  ...$topicIdGroups
+     * @return array<int, int>
+     */
+    private function mergeTopicIds(array ...$topicIdGroups): array
+    {
+        $merged = [];
+        foreach ($topicIdGroups as $topicIds) {
+            foreach ($topicIds as $topicId) {
+                if (! in_array($topicId, $merged, true)) {
+                    $merged[] = $topicId;
+                }
+            }
         }
+
+        return $merged;
+    }
+
+    /**
+     * @param  array<int, int>  $evidenceTopicIds
+     * @return array{topic_ids: array<int, int>, authoritative: bool}
+     */
+    private function reviewedTopicState(
+        array $confirmation,
+        array $p6TopicIds,
+        array $confirmedTopicIds,
+        array $evidenceTopicIds = [],
+    ): array {
+        $stored = Arr::get($confirmation, 'reviewed_topic_ids');
+        if ($this->isStrictStoredTopicIdList($stored)) {
+            $existing = $this->existingTopicIds($stored);
+            if ($existing === $stored) {
+                $merged = $this->mergeTopicIds($stored, $p6TopicIds, $confirmedTopicIds);
+
+                return [
+                    'topic_ids' => $merged,
+                    'authoritative' => $merged === $stored
+                        && $this->storedP6SnapshotMatches($confirmation, $p6TopicIds),
+                ];
+            }
+        }
+
+        $salvagedStoredTopicIds = [];
+        if (is_array($stored)) {
+            foreach ($stored as $topicId) {
+                if (is_int($topicId) && $topicId > 0) {
+                    $salvagedStoredTopicIds[] = $topicId;
+                }
+            }
+        }
+        $hasSalvagedStoredTopicIds = $salvagedStoredTopicIds !== [];
+        $salvagedStoredTopicIds = $this->existingTopicIds(
+            $this->mergeTopicIds($salvagedStoredTopicIds, $evidenceTopicIds)
+        );
+        $legacy = ! $hasSalvagedStoredTopicIds
+            ? $this->mergeTopicIds($p6TopicIds, $confirmedTopicIds, $evidenceTopicIds)
+            : $this->mergeTopicIds($salvagedStoredTopicIds, $p6TopicIds, $confirmedTopicIds);
+
+        return ['topic_ids' => $this->existingTopicIds($legacy), 'authoritative' => false];
+    }
+
+    private function isStrictStoredTopicIdList(mixed $values): bool
+    {
+        if (! is_array($values)) {
+            return false;
+        }
+
+        $seen = [];
+        foreach ($values as $value) {
+            if (! is_int($value) || $value <= 0 || isset($seen[$value])) {
+                return false;
+            }
+            $seen[$value] = true;
+        }
+
+        return true;
+    }
+
+    /** @return array<int, int>|null */
+    private function strictStoredExistingTopicIds(mixed $values): ?array
+    {
+        if (! $this->isStrictStoredTopicIdList($values)) {
+            return null;
+        }
+
+        return $this->existingTopicIds($values) === $values ? $values : null;
+    }
+
+    /** @param array<int, int> $p6TopicIds */
+    private function storedP6SnapshotMatches(array $confirmation, array $p6TopicIds): bool
+    {
+        $snapshotTopicIds = Arr::get($confirmation, 'p6_snapshot.topic_ids');
+        if ($snapshotTopicIds === null) {
+            return false;
+        }
+
+        $storedTopicIds = $this->strictStoredExistingTopicIds($snapshotTopicIds);
+
+        return $storedTopicIds !== null
+            && $this->sortedTopicIds($storedTopicIds) === $this->sortedTopicIds($p6TopicIds);
+    }
+
+    /**
+     * @param  array<int, int>  $topicIds
+     * @return array<int, int>
+     */
+    private function existingTopicIds(array $topicIds): array
+    {
+        if ($topicIds === []) {
+            return [];
+        }
+
+        $existing = array_flip(EsrsTopic::whereIn('id', $topicIds)->pluck('id')->all());
+
+        return array_values(array_filter($topicIds, fn (int $topicId): bool => isset($existing[$topicId])));
+    }
+
+    /**
+     * @return array{version: int, reviewed_universe: bool, mode: string}|null
+     */
+    private function normalizeUniverseAttestation(mixed $attestation): ?array
+    {
+        if (! is_array($attestation)) {
+            return null;
+        }
+
+        return [
+            'version' => self::UNIVERSE_ATTESTATION_VERSION,
+            'reviewed_universe' => $attestation['reviewed_universe'] === true,
+            'mode' => (string) $attestation['mode'],
+        ];
+    }
+
+    /**
+     * @return array{version: int, reviewed_universe: bool, mode: string}|null
+     */
+    private function storedUniverseAttestation(mixed $attestation): ?array
+    {
+        $expectedKeys = ['mode', 'reviewed_universe', 'version'];
+        $actualKeys = is_array($attestation) ? array_keys($attestation) : [];
+        sort($actualKeys);
+
+        if (! is_array($attestation)
+            || $actualKeys !== $expectedKeys
+            || ($attestation['version'] ?? null) !== self::UNIVERSE_ATTESTATION_VERSION
+            || ! is_bool($attestation['reviewed_universe'] ?? null)
+            || ! in_array($attestation['mode'] ?? null, self::REVIEW_MODES, true)) {
+            return null;
+        }
+
+        return [
+            'version' => self::UNIVERSE_ATTESTATION_VERSION,
+            'reviewed_universe' => $attestation['reviewed_universe'],
+            'mode' => $attestation['mode'],
+        ];
+    }
+
+    /**
+     * @param  array<int, int>  $reviewedTopicIds
+     * @param  array<int, int>|null  $confirmedTopicIds
+     * @param  array{version: int, reviewed_universe: bool, mode: string}|null  $attestation
+     * @return array<string, int>|null
+     */
+    private function learningTopicLabels(
+        array $confirmation,
+        bool $authoritativeUniverse,
+        array $reviewedTopicIds,
+        ?array $confirmedTopicIds,
+        ?array $attestation,
+    ): ?array {
+        if ($confirmedTopicIds === null
+            || ! $authoritativeUniverse
+            || ($attestation['reviewed_universe'] ?? false) !== true
+            || array_diff($confirmedTopicIds, $reviewedTopicIds) !== []) {
+            return null;
+        }
+
+        if (! $this->storedChangeReasonsAreValid(Arr::get($confirmation, 'change_reasons', []), $reviewedTopicIds)
+            || ! $this->storedNotesAreValid(Arr::get($confirmation, 'change_reason_notes', []), $reviewedTopicIds)
+            || ! $this->storedDimensionsAreValid(Arr::get($confirmation, 'dimensions', []), $reviewedTopicIds)
+            || ! $this->storedGuidedAnswersAreValid(
+                Arr::get($confirmation, 'guided_answers', []),
+                $reviewedTopicIds,
+                $confirmedTopicIds,
+            )) {
+            return null;
+        }
+
+        if ($attestation['mode'] === 'guided') {
+            $guidedAnswers = Arr::get($confirmation, 'guided_answers', []);
+            if (! is_array($guidedAnswers)
+                || ! $this->guidedUniverseIsComplete($guidedAnswers, $reviewedTopicIds, $confirmedTopicIds)) {
+                return null;
+            }
+        }
+
+        return collect($reviewedTopicIds)
+            ->mapWithKeys(fn (int $topicId): array => [
+                (string) $topicId => in_array($topicId, $confirmedTopicIds, true) ? 1 : 0,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{
+     *   change_reasons: array<string, array<int, string>>,
+     *   change_reason_notes: array<string, string>,
+     *   dimensions: array<string, string>,
+     *   guided_answers: array<string, array<string, mixed>>
+     * }
+     */
+    private function validStoredEvidence(array $confirmation): array
+    {
+        return [
+            'change_reasons' => $this->filterValidStoredTopicMap(
+                Arr::get($confirmation, 'change_reasons'),
+                function (mixed $reasons): bool {
+                    if (! is_array($reasons)
+                        || ! array_is_list($reasons)
+                        || count($reasons) > self::MAX_REASON_COUNT) {
+                        return false;
+                    }
+
+                    $seen = [];
+                    foreach ($reasons as $reason) {
+                        if (! is_string($reason)
+                            || ! in_array($reason, self::REASON_KEYS, true)
+                            || isset($seen[$reason])) {
+                            return false;
+                        }
+                        $seen[$reason] = true;
+                    }
+
+                    return true;
+                },
+            ),
+            'change_reason_notes' => $this->filterValidStoredTopicMap(
+                Arr::get($confirmation, 'change_reason_notes'),
+                fn (mixed $note): bool => is_string($note) && filled($note) && mb_strlen($note) <= 300,
+            ),
+            'dimensions' => $this->filterValidStoredTopicMap(
+                Arr::get($confirmation, 'dimensions'),
+                fn (mixed $dimension): bool => is_string($dimension)
+                    && in_array($dimension, self::DIMENSION_VALUES, true),
+            ),
+            'guided_answers' => $this->filterValidStoredTopicMap(
+                Arr::get($confirmation, 'guided_answers'),
+                fn (mixed $answer): bool => $this->storedGuidedAnswerValueIsValid($answer),
+            ),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function filterValidStoredTopicMap(mixed $values, callable $valueIsValid): array
+    {
+        if (! is_array($values) || count($values) > self::MAX_TOPIC_COUNT) {
+            return [];
+        }
+
+        $valid = [];
+        foreach ($values as $topicId => $value) {
+            $topicKey = (string) $topicId;
+            if (! preg_match('/^[1-9][0-9]*$/', $topicKey) || ! $valueIsValid($value)) {
+                continue;
+            }
+            $valid[$topicKey] = $value;
+        }
+
+        $existingTopicKeys = array_flip(array_map(
+            'strval',
+            $this->existingTopicIds(array_map('intval', array_keys($valid)))
+        ));
+
+        return array_filter(
+            $valid,
+            fn (string|int $topicId): bool => isset($existingTopicKeys[(string) $topicId]),
+            ARRAY_FILTER_USE_KEY,
+        );
+    }
+
+    private function storedGuidedAnswerValueIsValid(mixed $answer): bool
+    {
+        if (! is_array($answer)) {
+            return false;
+        }
+
+        $requiredKeys = [
+            'confianza',
+            'exposicion',
+            'final_result',
+            'financiero',
+            'impacto',
+            'revisar',
+            'suggested_result',
+        ];
+        $actualKeys = array_keys($answer);
+        sort($actualKeys);
+        $expectedKeys = $requiredKeys;
+        if (array_key_exists('note', $answer)) {
+            $expectedKeys[] = 'note';
+            sort($expectedKeys);
+        }
+
+        return $actualKeys === $expectedKeys
+            && in_array($answer['impacto'] ?? null, self::IMPACT_LEVELS, true)
+            && in_array($answer['financiero'] ?? null, self::IMPACT_LEVELS, true)
+            && in_array($answer['confianza'] ?? null, self::CONFIDENCE_LEVELS, true)
+            && in_array($answer['exposicion'] ?? null, self::EXPOSURE_LEVELS, true)
+            && in_array($answer['suggested_result'] ?? null, self::SUGGESTED_RESULTS, true)
+            && in_array($answer['final_result'] ?? null, self::FINAL_RESULTS, true)
+            && is_bool($answer['revisar'] ?? null)
+            && (! array_key_exists('note', $answer)
+                || (is_string($answer['note']) && filled($answer['note']) && mb_strlen($answer['note']) <= 300));
+    }
+
+    /**
+     * @param  array<string, mixed>  $stored
+     * @param  array<string, mixed>  $incoming
+     * @param  array<int, int>  $legacyRepresentableTopicIds
+     * @return array<string, mixed>
+     */
+    private function mergeLegacyHistoricalEvidence(
+        array $stored,
+        array $incoming,
+        array $legacyRepresentableTopicIds,
+    ): array {
+        $representableKeys = array_flip(array_map('strval', $legacyRepresentableTopicIds));
+        $historical = array_filter(
+            $stored,
+            fn (string|int $topicId): bool => ! isset($representableKeys[(string) $topicId]),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        return array_replace($historical, $incoming);
+    }
+
+    /**
+     * @param  array<int, int>  $reviewedTopicIds
+     */
+    private function storedTopicMapIsValid(mixed $values, array $reviewedTopicIds): bool
+    {
+        if (! is_array($values)) {
+            return false;
+        }
+
+        foreach (array_keys($values) as $topicId) {
+            $topicKey = (string) $topicId;
+            if (! preg_match('/^[1-9][0-9]*$/', $topicKey)
+                || ! in_array((int) $topicKey, $reviewedTopicIds, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @param array<int, int> $reviewedTopicIds */
+    private function storedChangeReasonsAreValid(mixed $values, array $reviewedTopicIds): bool
+    {
+        if (! $this->storedTopicMapIsValid($values, $reviewedTopicIds)) {
+            return false;
+        }
+
+        foreach ($values as $reasons) {
+            if (! is_array($reasons) || ! array_is_list($reasons)) {
+                return false;
+            }
+
+            $seen = [];
+            foreach ($reasons as $reason) {
+                if (! is_string($reason)
+                    || ! in_array($reason, self::REASON_KEYS, true)
+                    || isset($seen[$reason])) {
+                    return false;
+                }
+                $seen[$reason] = true;
+            }
+        }
+
+        return true;
+    }
+
+    /** @param array<int, int> $reviewedTopicIds */
+    private function storedNotesAreValid(mixed $values, array $reviewedTopicIds): bool
+    {
+        if (! $this->storedTopicMapIsValid($values, $reviewedTopicIds)) {
+            return false;
+        }
+
+        foreach ($values as $note) {
+            if (! is_string($note) || blank($note) || mb_strlen($note) > 300) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @param array<int, int> $reviewedTopicIds */
+    private function storedDimensionsAreValid(mixed $values, array $reviewedTopicIds): bool
+    {
+        if (! $this->storedTopicMapIsValid($values, $reviewedTopicIds)) {
+            return false;
+        }
+
+        foreach ($values as $dimension) {
+            if (! is_string($dimension) || ! in_array($dimension, self::DIMENSION_VALUES, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<int, int>  $reviewedTopicIds
+     * @param  array<int, int>  $confirmedTopicIds
+     */
+    private function storedGuidedAnswersAreValid(
+        mixed $values,
+        array $reviewedTopicIds,
+        array $confirmedTopicIds,
+    ): bool {
+        if (! $this->storedTopicMapIsValid($values, $reviewedTopicIds)) {
+            return false;
+        }
+
+        $requiredKeys = [
+            'confianza',
+            'exposicion',
+            'final_result',
+            'financiero',
+            'impacto',
+            'revisar',
+            'suggested_result',
+        ];
+
+        foreach ($values as $topicId => $answer) {
+            if (! is_array($answer)) {
+                return false;
+            }
+
+            $actualKeys = array_keys($answer);
+            sort($actualKeys);
+            $expectedKeys = $requiredKeys;
+            if (array_key_exists('note', $answer)) {
+                $expectedKeys[] = 'note';
+                sort($expectedKeys);
+            }
+
+            $expectedResult = in_array((int) $topicId, $confirmedTopicIds, true) ? 'material' : 'no_material';
+            if ($actualKeys !== $expectedKeys
+                || ! in_array($answer['impacto'] ?? null, self::IMPACT_LEVELS, true)
+                || ! in_array($answer['financiero'] ?? null, self::IMPACT_LEVELS, true)
+                || ! in_array($answer['confianza'] ?? null, self::CONFIDENCE_LEVELS, true)
+                || ! in_array($answer['exposicion'] ?? null, self::EXPOSURE_LEVELS, true)
+                || ! in_array($answer['suggested_result'] ?? null, self::SUGGESTED_RESULTS, true)
+                || ! in_array($answer['final_result'] ?? null, self::FINAL_RESULTS, true)
+                || ($answer['final_result'] ?? null) !== $expectedResult
+                || ! is_bool($answer['revisar'] ?? null)
+                || (array_key_exists('note', $answer)
+                    && (! is_string($answer['note']) || blank($answer['note']) || mb_strlen($answer['note']) > 300))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function guidedUniverseIsComplete(array $guidedAnswers, array $reviewedTopicIds, array $confirmedTopicIds): bool
+    {
+        $guidedTopicIds = $this->topicMapIds([$guidedAnswers]);
+        if (array_diff($guidedTopicIds, $reviewedTopicIds) !== []
+            || array_diff($reviewedTopicIds, $guidedTopicIds) !== []) {
+            return false;
+        }
+
+        foreach ($reviewedTopicIds as $topicId) {
+            $answer = $guidedAnswers[(string) $topicId] ?? $guidedAnswers[$topicId] ?? null;
+            $expectedResult = in_array($topicId, $confirmedTopicIds, true) ? 'material' : 'no_material';
+            if (! is_array($answer)
+                || ($answer['final_result'] ?? null) !== $expectedResult
+                || in_array($answer['impacto'] ?? null, ['no_lo_se'], true)
+                || in_array($answer['financiero'] ?? null, ['no_lo_se'], true)
+                || ($answer['suggested_result'] ?? null) === 'en_observacion') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

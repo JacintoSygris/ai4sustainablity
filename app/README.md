@@ -22,3 +22,5 @@ Antes de arrancar el perfil local, recuerda que la base SQLite incluida es tempo
 | Servicio de propuestas | `http://localhost:8001` |
 
 Estas URL sirven para evaluación local. La públicacion de puertos, HTTPS, proxy, secretos, persistencia, correo, colas y políticas de datos corresponden al operador de un entorno propio.
+
+- [Motor de aprendizaje opcional](docs/es-ES/learning-engine.md): deshabilitado por defecto; comprobaciones técnicas sintéticas locales documentadas, sin prueba de activación, calidad o despliegue.

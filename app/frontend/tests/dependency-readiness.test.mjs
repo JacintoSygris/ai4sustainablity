@@ -14,7 +14,7 @@ test("frontend dependencies do not retain the unused Recharts/Lodash chart stack
 })
 
 test("frontend workspace pins PostCSS above the audited vulnerable Next transitive version", () => {
-  assert.match(workspaceConfig, /^overrides:\n\s+postcss: 8\.5\.28\s*$/m)
+  assert.match(workspaceConfig, /^overrides:\r?\n\s+postcss: 8\.5\.28\s*$/m)
   assert.equal(packageJson.pnpm, undefined)
 })
 
@@ -27,6 +27,6 @@ test("frontend pins a patched Next release and a fixed pnpm toolchain", () => {
 
 test("frontend workspace keeps the pnpm release-age supply-chain check intact", () => {
   assert.doesNotMatch(workspaceConfig, /minimumReleaseAgeExclude/)
-  assert.match(workspaceConfig, /^allowBuilds:\n\s+sharp: true\n\s+unrs-resolver: true\s*$/m)
+  assert.match(workspaceConfig, /^allowBuilds:\r?\n\s+sharp: true\r?\n\s+unrs-resolver: true\s*$/m)
   assert.doesNotMatch(workspaceConfig, /^onlyBuiltDependencies:/m)
 })

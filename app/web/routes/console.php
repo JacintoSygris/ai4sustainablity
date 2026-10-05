@@ -15,3 +15,9 @@ Schedule::command('characterization-documents:purge-pending')
 Schedule::command('characterization-documents:recover-stale-extractions')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+// Admission remains inside the command; no scheduler flag implies activation.
+if (app()->environment('testing') && config('services.learning_batch.enabled') === true
+    && config('services.learning_batch.trusted_launcher') === true) {
+    Schedule::command('learning:batch')->daily();
+}

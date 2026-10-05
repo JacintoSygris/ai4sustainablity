@@ -38,6 +38,50 @@ class GuidedReportController extends Controller
         private readonly CharacterizationStateTransaction $stateTransactions,
     ) {}
 
+    public function taxonomyStatus()
+    {
+        $profile = $this->profiles->load('esrs-2023-preparatory-v1');
+        $taxonomy = $profile->taxonomy();
+
+        try {
+            // Admission only: discard internal metadata, including checksums.
+            $this->externalTaxonomyManifest->loadForProfile($profile);
+            $availability = ['state' => 'verified'];
+        } catch (RuntimeException $e) {
+            $allowedReasons = [
+                'external_taxonomy_manifest_missing',
+                'external_taxonomy_manifest_malformed',
+                'external_taxonomy_manifest_schema_mismatch',
+                'external_taxonomy_profile_mismatch',
+                'external_taxonomy_entrypoint_mismatch',
+                'external_taxonomy_not_confirmed',
+                'external_taxonomy_package_checksum_invalid',
+                'external_taxonomy_package_missing',
+                'external_taxonomy_package_path_forbidden',
+                'external_taxonomy_package_checksum_mismatch',
+            ];
+            $availability = [
+                'state' => 'blocked',
+                'reason_code' => in_array($e->getMessage(), $allowedReasons, true)
+                    ? $e->getMessage()
+                    : 'external_taxonomy_unavailable',
+            ];
+        }
+
+        return response()->json([
+            'data' => [
+                'type' => 'report_taxonomy_status',
+                'version' => 'v1',
+                'taxonomy' => [
+                    'name' => $taxonomy['name'],
+                    'version' => $taxonomy['version'],
+                ],
+                'reporting_profile' => $profile->profileId(),
+                'availability' => $availability,
+            ],
+        ])->header('Cache-Control', 'no-store');
+    }
+
     public function docx(Request $request, EsrsDatapointCorpusBuilder $datapoints)
     {
         [$characterization, $readiness] = $this->readyOrBlock($request, $datapoints);

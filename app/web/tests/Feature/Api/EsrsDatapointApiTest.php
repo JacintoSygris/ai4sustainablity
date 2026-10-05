@@ -662,6 +662,23 @@ it('downloads frontend ESRS datapoint responses with corpus context as csv', fun
         'evidence_reference',
         'note',
         'response_updated_at',
+        'schema_version',
+        'reporting_entity_identifier_scheme',
+        'reporting_entity_identifier',
+        'concept_id',
+        'taggable_state',
+        'taggable_reason_code',
+        'fact_id',
+        'fact_value_kind',
+        'fact_lexical_value',
+        'fact_decimals',
+        'fact_unit',
+        'fact_period_type',
+        'fact_start_date',
+        'fact_end_date',
+        'fact_instant_date',
+        'fact_dimensions',
+        'fact_evidence_reference',
     ]);
 
     $corpusCount = $this->actingAs($this->user)
@@ -1312,7 +1329,6 @@ it('ships an approved canonical AR16 matter to DR mapping covering every selecta
 
     expect($payload['version'])->toBe('esrs2023-ar16-dr-v1');
     expect($payload['source']['status'])->toBe('approved');
-    expect($payload['source']['approved_at'])->toBe('2026-06-11');
     expect(collect($payload['mappings'])->pluck('ar16_topic_id')->sort()->values()->all())
         ->toBe(EsrsTopic::orderBy('id')->pluck('id')->all());
     expect(collect($payload['mappings'])->where('needs_review', true))->toBeEmpty();

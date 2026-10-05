@@ -9,6 +9,164 @@ final class EsrsDatapointResponseState
 {
     public const SCHEMA_VERSION = 'v1';
 
+    public function __construct(private readonly Ar16MatterDrMappingRepository $mappingRepository) {}
+
+    public function projectLearningFeedbackForAccount(int $actor, array $expectedSourceHeaders, EsrsDatapointCorpusBuilder $builder): array
+    {
+        $connection = $this->learningFeedbackConnection();
+        $pdo = $connection->getPdo();
+        $parents = array_keys($expectedSourceHeaders); sort($parents, SORT_STRING);
+        if ($actor < 1 || $parents !== ['p5', 'p6_base', 'p8', 'p9']) {
+            throw new \DomainException('learning_p9.current_headers');
+        }
+        foreach ($expectedSourceHeaders as $header) {
+            if (! is_array($header)) { throw new \DomainException('learning_p9.current_headers'); }
+            $keys = array_keys($header); sort($keys, SORT_STRING);
+            if ($keys !== ['characterization_id', 'digest', 'epoch', 'generation', 'revision']) {
+                throw new \DomainException('learning_p9.current_headers');
+            }
+        }
+        return $connection->transaction(function () use ($actor, $expectedSourceHeaders, $builder, $connection, $pdo): array {
+            $assertFrame = null;
+            $result = app(CharacterizationStateTransaction::class)->runForUser($actor,
+            function (?Characterization $source) use ($actor, $expectedSourceHeaders, $builder, $connection, $pdo, &$assertFrame): array {
+                $this->learningFeedbackConnection($connection, $pdo);
+                if ($source === null) { throw new \DomainException('learning_p9.current_source_missing'); }
+                $copy = new Characterization; $copy->setRawAttributes($source->getRawOriginal(), true);
+                $id = $copy->getRawOriginal('id');
+                if (! is_int($id) || $id < 1 || $copy->getRawOriginal('user_id') !== $actor
+                    || $copy->getRawOriginal('status') !== Characterization::STATUS_COMPLETED) {
+                    throw new \DomainException('learning_p9.current_identity');
+                }
+                $headers = [];
+                foreach ($this->learningFeedbackClocks() as $name => $clock) {
+                    $headers[$name] = $clock->current($id);
+                    $actual = $headers[$name]; $expected = $expectedSourceHeaders[$name];
+                    if ($actual === null) { throw new \DomainException('learning_p9.current_headers'); }
+                    ksort($actual, SORT_STRING); ksort($expected, SORT_STRING);
+                    if ($actual !== $expected) { throw new \DomainException('learning_p9.current_headers'); }
+                }
+                $raw = $copy->getRawOriginal();
+                $lookup = function () use ($id, $raw): Characterization {
+                    $fresh = Characterization::query()->whereKey($id)->first();
+                    if ($fresh === null || $fresh->getRawOriginal() !== $raw) {
+                        throw new \DomainException('learning_p9.current_source_drift');
+                    }
+                    $copy = new Characterization; $copy->setRawAttributes($fresh->getRawOriginal(), true);
+                    return $copy;
+                };
+                $clocks = $this->learningFeedbackClocks(); $witnesses = [];
+                foreach ($clocks as $name => $clock) {
+                    if ($name !== 'p5') {
+                        $witnesses[$name] = $clock->finalizationWitness($lookup);
+                        if ($witnesses[$name]['header'] !== $headers[$name]) {
+                            throw new \DomainException('learning_p9.current_source_drift');
+                        }
+                    }
+                }
+                $corpus = $builder->build($lookup());
+                $state = $this->state($lookup(), $corpus);
+                $assertFrame = function () use ($connection, $pdo, $lookup, $builder, $corpus, $clocks, $headers, $witnesses, $id): void {
+                    $this->learningFeedbackConnection($connection, $pdo);
+                    if ($builder->build($lookup()) !== $corpus) { throw new \DomainException('learning_p9.current_authority_drift'); }
+                    foreach ($clocks as $name => $clock) {
+                        if ($clock->current($id) !== $headers[$name]
+                            || ($name !== 'p5' && $clock->finalizationWitness($lookup) !== $witnesses[$name])) {
+                            throw new \DomainException('learning_p9.current_source_drift');
+                        }
+                    }
+                    $lookup();
+                    $this->learningFeedbackConnection($connection, $pdo);
+                };
+                $assertFrame();
+                return ['source_headers' => $headers, 'learning_authority_digest' => $state['learning_authority_digest'],
+                    'learning_feedback' => $state['learning_feedback']];
+            });
+            // All Common owners/finalizers have completed inside this same-PDO outer frame.
+            $assertFrame();
+            return $result;
+        });
+    }
+
+    private function learningFeedbackClocks(): array
+    {
+        return ['p5' => new LearningP5SourceRevisionClock, 'p6_base' => new LearningP6BaseSourceRevisionClock,
+            'p8' => new LearningP8SourceRevisionClock, 'p9' => new LearningP9SourceRevisionClock];
+    }
+
+    /** All declarations precede PDO resolution. Shared aliases are admitted by PDO identity. */
+    private function learningFeedbackConnection(?\Illuminate\Database\Connection $expected = null, ?\PDO $expectedPdo = null): \Illuminate\Database\Connection
+    {
+        if (! LearningP5SourceRevisionClock::enabled() || ! LearningP6BaseSourceRevisionClock::enabled()
+            || ! LearningP8SourceRevisionClock::enabled() || ! LearningP9SourceRevisionClock::enabled()
+            || ! app()->environment('testing')) { throw new \DomainException('learning_p9.current_guard'); }
+        $default = \Illuminate\Support\Facades\DB::connection();
+        $models = array_map(fn ($class) => (new $class)->getConnection(),
+            [\App\Models\User::class, Characterization::class, \App\Models\EsrsTopic::class]);
+        if (! CharacterizationStateTransaction::admitsIsolatedConnections([$default, ...$models])) { throw new \DomainException('learning_p9.disposable_connection_required'); }
+        if ($expected !== null && $default !== $expected) { throw new \DomainException('learning_p9.connection_mismatch'); }
+        $pdo = $default->getPdo();
+        foreach ($models as $connection) {
+            if ($connection->getPdo() !== $pdo) { throw new \DomainException('learning_p9.connection_mismatch'); }
+        }
+        if ($expectedPdo !== null && $pdo !== $expectedPdo) { throw new \DomainException('learning_p9.connection_mismatch'); }
+        return $default;
+    }
+
+    public function learningAuthorityDigest(array $corpus): string
+    {
+        // The builder captured the accepted normalized mapping exactly once.
+        // Never reread a mutable file or recursively include the published token.
+        unset($corpus['learning_authority_digest']);
+        return hash('sha256', json_encode(['namespace' => 'p9-workspace-v1', 'corpus' => $corpus], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function currentFeedback(array $stored, array $corpus): array
+    {
+        $feedback = $stored['learning_feedback'] ?? null;
+        if (is_array($feedback) && ($feedback['authority_digest'] ?? null) === $this->learningAuthorityDigest($corpus)) {
+            try {
+                return $this->validateLearningFeedback($feedback, $corpus);
+            } catch (\Illuminate\Validation\ValidationException) {
+                // Preserve malformed historical evidence in storage, never current labels.
+            }
+        }
+        // Stale evidence remains stored, but is never projected as current labels.
+        return ['schema_version' => 'datapoint-feedback-v1', 'authority_digest' => $this->learningAuthorityDigest($corpus), 'reviewed_datapoint_ids' => [], 'decisions' => []];
+    }
+
+    public function validateLearningFeedback(mixed $feedback, array $corpus): array
+    {
+        $reject = static function (): never {
+            throw \Illuminate\Validation\ValidationException::withMessages(['learning_feedback' => 'Explicit binary decisions must exactly cover reviewed current catalog ids and the current authority.']);
+        };
+        $exact = static function (array $value, array $keys): bool {
+            $actual = array_keys($value); sort($actual); sort($keys); return $actual === $keys;
+        };
+        if (!is_array($feedback) || !$exact($feedback, ['schema_version','authority_digest','reviewed_datapoint_ids','decisions'])
+            || $feedback['schema_version'] !== 'datapoint-feedback-v1'
+            || $feedback['authority_digest'] !== $this->learningAuthorityDigest($corpus)
+            || !is_array($feedback['reviewed_datapoint_ids']) || !array_is_list($feedback['reviewed_datapoint_ids'])
+            || !is_array($feedback['decisions']) || !array_is_list($feedback['decisions'])) $reject();
+        $ids = $feedback['reviewed_datapoint_ids'];
+        foreach ($ids as $id) if (!is_string($id) || !in_array($id, $this->corpusDatapointIds($corpus), true)) $reject();
+        if (count($ids) !== count(array_unique($ids))) $reject();
+        $seen = [];
+        foreach ($feedback['decisions'] as $decision) {
+            if (!is_array($decision) || !$exact($decision, ['datapoint_id','relevant','selected_to_answer','reason_codes','note'])
+                || !is_string($decision['datapoint_id']) || !in_array($decision['datapoint_id'], $ids, true)
+                || in_array($decision['datapoint_id'], $seen, true)
+                || !is_bool($decision['relevant']) || !is_bool($decision['selected_to_answer'])
+                || !is_array($decision['reason_codes']) || !array_is_list($decision['reason_codes'])
+                || !(is_null($decision['note']) || (is_string($decision['note']) && mb_strlen($decision['note']) <= 2000))) $reject();
+            foreach ($decision['reason_codes'] as $reason) if (!is_string($reason) || trim($reason) === '' || mb_strlen($reason) > 100) $reject();
+            if (count($decision['reason_codes']) !== count(array_unique($decision['reason_codes']))) $reject();
+            $seen[] = $decision['datapoint_id'];
+        }
+        if (count($seen) !== count($ids)) $reject();
+        return $feedback;
+    }
+
     /**
      * @param  array<string, mixed>  $corpus
      * @return array<string, mixed>
@@ -35,6 +193,9 @@ final class EsrsDatapointResponseState
             'revision' => $this->revision($characterization),
             'updated_at' => Arr::get($stored, 'updated_at'),
             'responses' => $currentResponses,
+            'source_digest' => hash('sha256', json_encode($stored, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            'learning_authority_digest' => $this->learningAuthorityDigest($corpus),
+            'learning_feedback' => $this->currentFeedback($stored, $corpus),
             'orphaned' => [
                 'count' => count($orphanedResponses),
                 'responses' => $orphanedResponses,

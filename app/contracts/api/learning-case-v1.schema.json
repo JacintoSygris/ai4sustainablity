@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ia4s:contract:learning-case-v1",
+  "title": "learning-case-v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "case_id",
+    "case_hash",
+    "company_group_key",
+    "period_scope",
+    "authority",
+    "provenance",
+    "source_revisions",
+    "p5_snapshot",
+    "p6_snapshot",
+    "topic_universe",
+    "topic_labels",
+    "datapoint_universe",
+    "datapoint_decisions",
+    "rights",
+    "closure_evidence"
+  ],
+  "properties": {
+    "schema_version": { "const": "learning-case-v1" },
+    "case_id": { "$ref": "#/$defs/NonEmptyString" },
+    "case_hash": { "$ref": "#/$defs/Sha256" },
+    "company_group_key": { "$ref": "#/$defs/NonEmptyString" },
+    "period_scope": {
+      "type": "object",
+      "required": ["period_key", "perimeter_key"],
+      "properties": {
+        "period_key": { "$ref": "#/$defs/NonEmptyString" },
+        "perimeter_key": { "$ref": "#/$defs/NonEmptyString" }
+      },
+      "additionalProperties": false
+    },
+    "authority": {
+      "type": "object",
+      "required": ["framework_version", "catalog_version", "catalog_digest", "mapping_version", "mapping_digest"],
+      "properties": {
+        "framework_version": { "$ref": "#/$defs/NonEmptyString" },
+        "catalog_version": { "$ref": "#/$defs/NonEmptyString" },
+        "catalog_digest": { "$ref": "#/$defs/Sha256" },
+        "mapping_version": { "$ref": "#/$defs/NonEmptyString" },
+        "mapping_digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_kind", "source_record_digest", "source_revision"],
+      "properties": {
+        "source_kind": { "type": "string", "enum": ["human_product", "report", "synthetic"] },
+        "source_record_digest": { "$ref": "#/$defs/Sha256" },
+        "source_revision": { "$ref": "#/$defs/NonEmptyString" }
+      },
+      "additionalProperties": false
+    },
+    "source_revisions": { "$ref": "#/$defs/SourceRevisionTuple" },
+    "p5_snapshot": {
+      "type": "object",
+      "required": ["schema_version", "digest"],
+      "properties": {
+        "schema_version": { "$ref": "#/$defs/NonEmptyString" },
+        "digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "p6_snapshot": {
+      "type": "object",
+      "required": ["model_profile", "model_digest", "policy_digest"],
+      "properties": {
+        "model_profile": { "$ref": "#/$defs/NonEmptyString" },
+        "model_digest": { "$ref": "#/$defs/Sha256" },
+        "policy_digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "topic_universe": {
+      "type": "object",
+      "required": ["reviewed_topic_ids", "outside_scope_topic_ids"],
+      "properties": {
+        "reviewed_topic_ids": { "$ref": "#/$defs/UniqueIds" },
+        "outside_scope_topic_ids": { "$ref": "#/$defs/UniqueIds" }
+      },
+      "additionalProperties": false
+    },
+    "topic_labels": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/TopicLabel" }
+    },
+    "datapoint_universe": {
+      "type": "object",
+      "required": ["reviewed_datapoint_ids", "outside_scope_datapoint_ids"],
+      "properties": {
+        "reviewed_datapoint_ids": { "$ref": "#/$defs/UniqueIds" },
+        "outside_scope_datapoint_ids": { "$ref": "#/$defs/UniqueIds" }
+      },
+      "additionalProperties": false
+    },
+    "datapoint_decisions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DatapointDecision" }
+    },
+    "rights": {
+      "type": "object",
+      "required": ["policy_version", "policy_digest", "policy_status", "state", "authorization_generation"],
+      "properties": {
+        "policy_version": { "$ref": "#/$defs/NonEmptyString" },
+        "policy_digest": { "$ref": "#/$defs/Sha256" },
+        "policy_status": { "type": "string", "enum": ["approved", "unapproved"] },
+        "state": { "type": "string", "enum": ["granted", "revoked", "deleted", "unapproved"] },
+        "authorization_generation": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      },
+      "additionalProperties": false
+    },
+    "closure_evidence": {
+      "type": "object",
+      "required": [
+        "declaration_version",
+        "declaration_status",
+        "reviewed_universe",
+        "final_for_period_scope",
+        "server_actor_id",
+        "recorded_at"
+      ],
+      "properties": {
+        "declaration_version": { "$ref": "#/$defs/NonEmptyString" },
+        "declaration_status": { "type": "string", "enum": ["accepted", "unaccepted"] },
+        "reviewed_universe": { "type": "boolean" },
+        "final_for_period_scope": { "type": "boolean" },
+        "server_actor_id": { "$ref": "#/$defs/NonEmptyString" },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,6})?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "NonEmptyString": { "type": "string", "minLength": 1 },
+    "Sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "UniqueIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/NonEmptyString" }
+    },
+    "Revision": {
+      "type": "object",
+      "required": ["generation", "revision", "digest"],
+      "properties": {
+        "generation": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "digest": { "$ref": "#/$defs/Sha256" }
+      },
+      "additionalProperties": false
+    },
+    "SourceRevisionTuple": {
+      "type": "object",
+      "required": ["p5", "p6", "p8", "p9"],
+      "properties": {
+        "p5": { "$ref": "#/$defs/Revision" },
+        "p6": { "$ref": "#/$defs/Revision" },
+        "p8": { "$ref": "#/$defs/Revision" },
+        "p9": { "$ref": "#/$defs/Revision" }
+      },
+      "additionalProperties": false
+    },
+    "TopicLabel": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["topic_id", "value", "observed_mask"],
+          "properties": {
+            "topic_id": { "$ref": "#/$defs/NonEmptyString" },
+            "value": { "type": "integer", "enum": [0, 1] },
+            "observed_mask": { "const": 1 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["topic_id", "value", "observed_mask"],
+          "properties": {
+            "topic_id": { "$ref": "#/$defs/NonEmptyString" },
+            "value": { "type": "null" },
+            "observed_mask": { "const": 0 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DatapointDecision": {
+      "type": "object",
+      "required": ["datapoint_id", "relevant", "selected_to_answer", "reason_codes", "note"],
+      "properties": {
+        "datapoint_id": { "$ref": "#/$defs/NonEmptyString" },
+        "relevant": { "type": "boolean" },
+        "selected_to_answer": { "type": "boolean" },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/NonEmptyString" }
+        },
+        "note": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

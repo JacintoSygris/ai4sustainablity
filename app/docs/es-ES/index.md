@@ -19,3 +19,5 @@ IA4Sustainability ayuda a gestionar de principio a fin el trabajo ASG (ambiental
 ## Idiomas
 
 La fuente primaria está en español de España. La carpeta [en-GB](../en-GB/index.md) contiene una versión equivalente en inglés. Los identificadores de API, rutas, variables y nombres oficiales se conservan sin traducir cuando corresponde.
+
+- [Motor de aprendizaje opcional](learning-engine.md): deshabilitado por defecto; comprobaciones técnicas sintéticas locales documentadas, sin prueba de activación, calidad o despliegue.

@@ -13,7 +13,20 @@ class EsrsDatapointCorpusBuilder
 
     public function __construct(
         private readonly Ar16MatterDrMappingRepository $matterDrMappingRepository,
-    ) {}
+        private readonly ?array $nativeFixtureSource = null,
+    ) {
+        if ($nativeFixtureSource !== null) { $this->assertNativeFixture(); }
+    }
+
+    private function assertNativeFixture(): void
+    {
+        if (! app()->runningInConsole() || ! app()->environment('testing')
+            || config('services.learning_native_fixture') === null
+            || ! in_array(\Illuminate\Support\Facades\DB::connection()->getDriverName(), ['mysql', 'pgsql'], true)
+            || ! CharacterizationStateTransaction::admitsIsolatedConnections([\Illuminate\Support\Facades\DB::connection()])) {
+            throw new \DomainException('esrs_builder.native_fixture_denied');
+        }
+    }
 
     /**
      * @return array<string, mixed>
@@ -64,6 +77,8 @@ class EsrsDatapointCorpusBuilder
 
         return [
             'characterization_id' => $characterization->id,
+            // Witness of the exact normalized map accepted by this build, including null.
+            'mapping_snapshot_digest' => hash('sha256', json_encode($approvedMatterDrMapping, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
             'material_topic_ids' => $materialTopicIds,
             'activated_esrs_standards' => $activatedStandards,
             'material_topics' => $this->topicSummaries($materialTopicIds),
@@ -439,6 +454,11 @@ class EsrsDatapointCorpusBuilder
      */
     private function source(): array
     {
+        // Per-instance tiny input never enters or reads the production static cache.
+        if ($this->nativeFixtureSource !== null) {
+            $this->assertNativeFixture();
+            return $this->nativeFixtureSource;
+        }
         static $source = null;
 
         if ($source === null) {

@@ -6,6 +6,9 @@ use App\Http\Resources\EsrsTopicResource;
 use App\Http\Resources\NaceCodeResource;
 use App\Jobs\SubmitCharacterizationJob;
 use App\Models\Characterization;
+use App\Models\User;
+use App\Services\CharacterizationStateTransaction;
+use App\Services\LearningP6BaseSourceRevisionClock;
 use App\Repositories\EsrsTopicRepository;
 use App\Repositories\NaceCodeRepository;
 use App\Support\CharacterizationOptions;
@@ -23,6 +26,36 @@ class CharacterizationController extends Controller
 
     public function retry(Request $request)
     {
+        if (LearningP6BaseSourceRevisionClock::enabled()) {
+            $actor = (int) $request->user()->id;
+            $characterization = app(CharacterizationStateTransaction::class)->runForUser(
+                $actor,
+                function (?Characterization $fresh, User $user) use ($actor): ?Characterization {
+                    abort_unless($fresh !== null && (int) $fresh->user_id === $actor && (int) $user->id === $actor, 404);
+                    if (! in_array($fresh->status, [Characterization::STATUS_FAILED, Characterization::STATUS_TIMED_OUT], true)) {
+                        return null;
+                    }
+                    $fresh->updateStatus(Characterization::STATUS_SUBMITTED, [
+                        'submitted_at' => now(),
+                        'retry_count' => 0,
+                        'next_retry_at' => null,
+                        'last_job_attempted_at' => null,
+                        'last_error' => null,
+                        'completed_at' => null,
+                        'result_data' => null,
+                    ]);
+                    return $fresh;
+                },
+            );
+            if ($characterization === null) {
+                return redirect()->route('characterization.create')
+                    ->with('status', __('Retry is only available for failed or timed-out submissions.'));
+            }
+            Bus::dispatch(new SubmitCharacterizationJob($characterization));
+            return redirect()->route('characterization.create')
+                ->with('status', __('Characterization submission retried.'));
+        }
+
         $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
 
         if (! in_array($characterization->status, [Characterization::STATUS_FAILED, Characterization::STATUS_TIMED_OUT], true)) {

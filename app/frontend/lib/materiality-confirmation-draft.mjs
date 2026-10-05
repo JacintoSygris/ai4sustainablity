@@ -36,6 +36,16 @@ function objectRecord(value) {
   )
 }
 
+function dimensionRecord(value) {
+  if (!isPlainObject(value)) return {}
+
+  return Object.fromEntries(
+    Object.entries(value).filter(([key, entry]) => (
+      /^[1-9][0-9]*$/.test(key) && ["impact", "financial", "both"].includes(entry)
+    )),
+  )
+}
+
 export function buildMaterialityConfirmationDraft({
   baseRevision,
   p6TopicIds,
@@ -44,6 +54,7 @@ export function buildMaterialityConfirmationDraft({
   changeNotes = {},
   e1Explanation = "",
   guidedAnswers = {},
+  dimensions = {},
   mode = "direct",
   tabId = "",
   requestId = 0,
@@ -57,6 +68,7 @@ export function buildMaterialityConfirmationDraft({
     change_notes: stringRecord(changeNotes),
     e1_explanation: typeof e1Explanation === "string" ? e1Explanation : "",
     guided_answers: objectRecord(guidedAnswers),
+    dimensions: dimensionRecord(dimensions),
     mode: mode === "guided" ? "guided" : "direct",
     tab_id: typeof tabId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(tabId) ? tabId : null,
     request_id: Number.isInteger(requestId) && requestId >= 0 ? requestId : 0,
@@ -88,6 +100,7 @@ function parseMaterialityConfirmationDraft(raw) {
     changeNotes: parsed.change_notes,
     e1Explanation: parsed.e1_explanation,
     guidedAnswers: parsed.guided_answers,
+    dimensions: parsed.dimensions,
     mode: parsed.mode,
     tabId: parsed.tab_id,
     requestId: parsed.request_id,
@@ -125,6 +138,7 @@ export function rebaseMaterialityConfirmationDraft(raw, { baseRevision, p6TopicI
     changeNotes: parsed.change_notes,
     e1Explanation: parsed.e1_explanation,
     guidedAnswers: parsed.guided_answers,
+    dimensions: parsed.dimensions,
     mode: parsed.mode,
     tabId: parsed.tab_id,
     requestId: parsed.request_id,

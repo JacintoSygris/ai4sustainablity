@@ -29,14 +29,21 @@ import {
 import {
   CHANGE_REASON_OPTIONS,
   applyDirectTopicDecision,
+  attachLearningTopicDraftState,
   buildMaterialityConfirmationPayload,
   changedTopicIds,
   consistentGuidedAnswers,
   createPreviewToken,
   guidedReviewTopicIds,
+  guidedUniverseIsComplete,
   isStaleConfirmation,
   localized,
+  mergeMaterialityDimensions,
+  mergeMaterialityRecoveryState,
+  mergeReviewedTopicIds,
   removesE1FromTopics,
+  resolveLearningTopicHydration,
+  restoreLearningTopicDraftState,
   selectedTopicIdsForGuidedAnswer,
   sortTopics,
   topicSelectionKey,
@@ -72,6 +79,8 @@ export function FinalTopicsSelection() {
   const [confirmation, setConfirmation] = useState<LaravelMaterialityConfirmation | null>(null)
   const [catalogTopics, setCatalogTopics] = useState<LaravelEsrsTopic[]>([])
   const [selectedTopics, setSelectedTopics] = useState<Set<number>>(new Set())
+  const [reviewedTopics, setReviewedTopics] = useState<Set<number>>(new Set())
+  const [reviewedUniverse, setReviewedUniverse] = useState(false)
   const [changeReasons, setChangeReasons] = useState<ChangeReasons>({})
   const [changeNotes, setChangeNotes] = useState<ChangeNotes>({})
   const [e1Explanation, setE1Explanation] = useState("")
@@ -82,6 +91,7 @@ export function FinalTopicsSelection() {
   const [mode, setMode] = useState<Mode>("direct")
   const [hasUserChosenMode, setHasUserChosenMode] = useState(false)
   const [guidedDrafts, setGuidedDrafts] = useState<GuidedAnswers>({}) // topicId -> guided answer (live from assistant)
+  const [dimensions, setDimensions] = useState<Dimensions>({})
   const [inlineAssistantFor, setInlineAssistantFor] = useState<number | null>(null)
   const [previewEstimate, setPreviewEstimate] = useState<LaravelMaterialityConfirmation["preview"] | null>(null)
   const [previewSelectionKey, setPreviewSelectionKey] = useState<string | null>(null)
@@ -125,7 +135,7 @@ export function FinalTopicsSelection() {
   const serializeCurrentDraft = (serverRevision: number, requestId = activeSaveRequestId.current) => {
     if (!confirmation) return null
 
-    return JSON.stringify(buildMaterialityConfirmationDraft({
+    const draft = buildMaterialityConfirmationDraft({
       baseRevision: serverRevision,
       p6TopicIds: confirmation.p6_topic_ids,
       selectedTopicIds: selectedTopics,
@@ -133,9 +143,15 @@ export function FinalTopicsSelection() {
       changeNotes,
       e1Explanation,
       guidedAnswers: guidedDrafts,
+      dimensions: mergeMaterialityDimensions(dimensions, guidedDrafts),
       mode,
       tabId: tabId.current,
       requestId,
+    })
+
+    return JSON.stringify(attachLearningTopicDraftState(draft, {
+      reviewedTopicIds: reviewedTopics,
+      reviewedUniverse,
     }))
   }
 
@@ -175,6 +191,7 @@ export function FinalTopicsSelection() {
           const admReg = conf.adm?.acta_registered ?? false
           const initialMode: Mode = admReg ? "direct" : "guided"
           let localDraft = null
+          let localLearningState = null
           try {
             const draftKey = getDraftKey(conf.characterization_id)
             const quarantinedKey = conflictDraftKey(conf.characterization_id)
@@ -186,7 +203,12 @@ export function FinalTopicsSelection() {
                 baseRevision: conf.confirmation.revision,
                 p6TopicIds: conf.p6_topic_ids,
               })
+              localLearningState = restoreLearningTopicDraftState(draftRaw, {
+                baseRevision: conf.confirmation.revision,
+                p6TopicIds: conf.p6_topic_ids,
+              })
               if (!localDraft) {
+                localLearningState = null
                 const quarantined = quarantineMaterialityConfirmationDraft(draftRaw, {
                   baseRevision: conf.confirmation.revision,
                   p6TopicIds: conf.p6_topic_ids,
@@ -203,11 +225,30 @@ export function FinalTopicsSelection() {
           } catch {}
 
           setSelectedTopics(new Set(localDraft?.selected_topic_ids ?? conf.confirmed_topic_ids))
+          const serverReviewedTopicIds = conf.confirmation.reviewed_topic_ids ?? conf.p6_topic_ids
+          const learningHydration = resolveLearningTopicHydration({
+            hasLocalDraft: Boolean(localDraft),
+            localLearningState,
+            serverReviewedTopicIds,
+            p6TopicIds: conf.p6_topic_ids,
+            serverAttestation: conf.confirmation.universe_attestation,
+            serverLearningTopicLabels: conf.learning_topic_labels,
+            isStale: conf.is_stale,
+          })
+          setReviewedTopics(new Set(learningHydration.reviewed_topic_ids))
           setChangeReasons(localDraft?.change_reasons ?? conf.confirmation.change_reasons ?? {})
           setChangeNotes(localDraft?.change_notes ?? conf.confirmation.change_reason_notes ?? {})
           setE1Explanation(localDraft?.e1_explanation ?? conf.confirmation.e1_not_material_explanation ?? "")
           setGuidedDrafts(localDraft?.guided_answers ?? conf.confirmation.guided_answers ?? {})
-          setMode((localDraft?.mode as Mode | undefined) ?? initialMode)
+          setDimensions({
+            ...(conf.confirmation.dimensions ?? {}),
+            ...(localDraft?.dimensions ?? {}),
+          })
+          const restoredMode = (localDraft?.mode as Mode | undefined)
+            ?? conf.confirmation.universe_attestation?.mode
+            ?? initialMode
+          setMode(restoredMode)
+          setReviewedUniverse(learningHydration.reviewed_universe)
           setHasUserChosenMode(Boolean(localDraft))
           draftDirty.current = Boolean(localDraft)
           draftMutationVersion.current = 0
@@ -242,7 +283,7 @@ export function FinalTopicsSelection() {
     if (!draftDirty.current) return
     try {
       const key = getDraftKey(confirmation.characterization_id)
-      const draft = buildMaterialityConfirmationDraft({
+      const baseDraft = buildMaterialityConfirmationDraft({
         baseRevision: confirmation.confirmation.revision,
         p6TopicIds: confirmation.p6_topic_ids,
         selectedTopicIds: selectedTopics,
@@ -250,15 +291,20 @@ export function FinalTopicsSelection() {
         changeNotes,
         e1Explanation,
         guidedAnswers: guidedDrafts,
+        dimensions: mergeMaterialityDimensions(dimensions, guidedDrafts),
         mode,
         tabId: tabId.current,
         requestId: activeSaveRequestId.current,
+      })
+      const draft = attachLearningTopicDraftState(baseDraft, {
+        reviewedTopicIds: reviewedTopics,
+        reviewedUniverse,
       })
       const draftRaw = JSON.stringify(draft)
       latestDraftRaw.current = draftRaw
       recoveryStorage.setItem(key, draftRaw)
     } catch {}
-  }, [changeNotes, changeReasons, confirmation, e1Explanation, guidedDrafts, mode, selectedTopics])
+  }, [changeNotes, changeReasons, confirmation, dimensions, e1Explanation, guidedDrafts, mode, reviewedTopics, reviewedUniverse, selectedTopics])
 
   const p6TopicIds = useMemo(() => new Set(confirmation?.p6_topic_ids ?? []), [confirmation])
   const changedTopicIdList = useMemo(
@@ -272,28 +318,6 @@ export function FinalTopicsSelection() {
     selectedTopicIds: selectedTopics,
   })
   const isStale = isStaleConfirmation(confirmation)
-
-  // dimensions derived from guided or direct (simple: both if both high, etc)
-  const dimensions: Dimensions = useMemo(() => {
-    const out: Dimensions = {}
-    for (const [tid, ans] of Object.entries(guidedDrafts)) {
-      if (!ans) continue
-      const d = (ans as any).suggested_result ? deriveQuickDim(ans) : undefined
-      if (d) out[String(tid)] = d
-    }
-    return out
-  }, [guidedDrafts])
-
-  function deriveQuickDim(ans: any): "impact" | "financial" | "both" | undefined {
-    const i = ans?.impacto
-    const f = ans?.financiero
-    const iHigh = i === "medio" || i === "alto"
-    const fHigh = f === "medio" || f === "alto"
-    if (iHigh && fHigh) return "both"
-    if (iHigh) return "impact"
-    if (fHigh) return "financial"
-    return undefined
-  }
 
   const adm = confirmation?.adm || { acta_registered: false, acta: null }
   const exposicionDefaults = confirmation?.exposicion_defaults || {}
@@ -368,26 +392,50 @@ export function FinalTopicsSelection() {
 
   const recoverConflictedDraft = () => {
     if (!confirmation || !conflictedDraftRaw) return
+    const quarantined = quarantineMaterialityConfirmationDraft(conflictedDraftRaw, {
+      baseRevision: confirmation.confirmation.revision,
+      p6TopicIds: confirmation.p6_topic_ids,
+    })
     const rebased = rebaseMaterialityConfirmationDraft(conflictedDraftRaw, {
       baseRevision: confirmation.confirmation.revision,
       p6TopicIds: confirmation.p6_topic_ids,
     })
     if (!rebased) return
 
-    const recoveredGuidedAnswers = consistentGuidedAnswers(rebased.guided_answers, rebased.selected_topic_ids)
-    const recoveredDraft = {
-      ...rebased,
-      guided_answers: recoveredGuidedAnswers,
-      tab_id: tabId.current,
-      request_id: 0,
-    }
+    const priorLearningState = quarantined
+      ? restoreLearningTopicDraftState(conflictedDraftRaw, {
+          baseRevision: quarantined.base_revision,
+          p6TopicIds: quarantined.p6_topic_ids,
+        })
+      : null
+    const recoveredDraft = mergeMaterialityRecoveryState({
+      serverDraft: {
+        ...confirmation.confirmation,
+        p6_topic_ids: confirmation.p6_topic_ids,
+        selected_topic_ids: confirmation.confirmed_topic_ids,
+        change_notes: confirmation.confirmation.change_reason_notes,
+      },
+      currentDraft: {
+        reviewed_topic_ids: Array.from(reviewedTopics),
+        selected_topic_ids: Array.from(selectedTopics),
+        change_reasons: changeReasons,
+        change_notes: changeNotes,
+        guided_answers: guidedDrafts,
+        dimensions,
+      },
+      recoveredDraft: { ...rebased, tab_id: tabId.current, request_id: 0 },
+      recoveredReviewedTopicIds: priorLearningState?.reviewed_topic_ids ?? [],
+    })
     markDraftChanged()
-    setSelectedTopics(new Set(rebased.selected_topic_ids))
-    setChangeReasons(rebased.change_reasons)
-    setChangeNotes(rebased.change_notes)
-    setE1Explanation(rebased.e1_explanation)
-    setGuidedDrafts(recoveredGuidedAnswers)
-    setMode(rebased.mode as Mode)
+    setSelectedTopics(new Set(recoveredDraft.selected_topic_ids))
+    setChangeReasons(recoveredDraft.change_reasons)
+    setChangeNotes(recoveredDraft.change_notes)
+    setE1Explanation(recoveredDraft.e1_explanation)
+    setGuidedDrafts(recoveredDraft.guided_answers)
+    setDimensions(recoveredDraft.dimensions)
+    setReviewedTopics(new Set(recoveredDraft.reviewed_topic_ids))
+    setReviewedUniverse(false)
+    setMode(recoveredDraft.mode as Mode)
     setHasUserChosenMode(true)
     try {
       recoveryStorage.setItem(
@@ -411,6 +459,7 @@ export function FinalTopicsSelection() {
     if (saveInFlight.current) return
     markDraftChanged()
     setMode(nextMode)
+    setReviewedUniverse(false)
     setHasUserChosenMode(true)
   }
 
@@ -418,6 +467,8 @@ export function FinalTopicsSelection() {
   const toggleTopic = (topicId: number) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
+    setReviewedUniverse(false)
     const transition = applyDirectTopicDecision(
       selectedTopics,
       guidedDrafts,
@@ -433,6 +484,7 @@ export function FinalTopicsSelection() {
   const updateNote = (topicId: number, note: string) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
     setChangeNotes((current) => ({ ...current, [String(topicId)]: note }))
     setErrorMessage(null)
   }
@@ -440,6 +492,7 @@ export function FinalTopicsSelection() {
   const toggleReason = (topicId: number, reasonKey: string, checked: boolean) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
     setChangeReasons((current) => {
       const topicKey = String(topicId)
       const currentReasons = current[topicKey] ?? []
@@ -452,6 +505,10 @@ export function FinalTopicsSelection() {
   }
 
   const openAssistantFor = (topicId: number) => {
+    if (saveInFlight.current) return
+    markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
+    setReviewedUniverse(false)
     loadP6HistoryIfNeeded()
     setInlineAssistantFor(topicId)
   }
@@ -459,8 +516,11 @@ export function FinalTopicsSelection() {
   const applyAssistantResult = (topicId: number, answer: any) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
+    setReviewedUniverse(false)
     // store guided answer (will feed dimensions + guided_answers on save)
     setGuidedDrafts((d) => ({ ...d, [String(topicId)]: answer }))
+    setDimensions((current) => mergeMaterialityDimensions(current, { [String(topicId)]: answer }))
     setSelectedTopics((current) => selectedTopicIdsForGuidedAnswer(current, topicId, answer))
     setInlineAssistantFor(null)
     setErrorMessage(null)
@@ -468,21 +528,36 @@ export function FinalTopicsSelection() {
   }
 
   // --- guided mode ---
-  const p6GuidedTopics = useMemo(() => {
+  const guidedTopics = useMemo(() => {
     if (!confirmation) return []
-    return catalogTopics.filter((t) => p6TopicIds.has(t.id))
-  }, [catalogTopics, confirmation, p6TopicIds])
+    return catalogTopics.filter((topic) => reviewedTopics.has(topic.id))
+  }, [catalogTopics, confirmation, reviewedTopics])
 
   const guidedProgress = useMemo(() => {
-    const total = p6GuidedTopics.length || 1
-    const done = p6GuidedTopics.filter((t) => !!guidedDrafts[String(t.id)]).length
+    const total = guidedTopics.length
+    const done = guidedTopics.filter((topic) => guidedUniverseIsComplete({
+      reviewedTopicIds: [topic.id],
+      selectedTopicIds: selectedTopics,
+      guidedAnswers: guidedDrafts[String(topic.id)]
+        ? { [String(topic.id)]: guidedDrafts[String(topic.id)] }
+        : {},
+    })).length
     return { done, total }
-  }, [p6GuidedTopics, guidedDrafts])
+  }, [guidedTopics, guidedDrafts, selectedTopics])
+
+  const guidedUniverseComplete = useMemo(() => guidedUniverseIsComplete({
+    reviewedTopicIds: reviewedTopics,
+    selectedTopicIds: selectedTopics,
+    guidedAnswers: guidedDrafts,
+  }), [guidedDrafts, reviewedTopics, selectedTopics])
 
   const applyGuidedForTopic = (topicId: number, answer: any) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
+    setReviewedUniverse(false)
     setGuidedDrafts((d) => ({ ...d, [String(topicId)]: answer }))
+    setDimensions((current) => mergeMaterialityDimensions(current, { [String(topicId)]: answer }))
     setSelectedTopics((current) => selectedTopicIdsForGuidedAnswer(current, topicId, answer))
   }
 
@@ -492,6 +567,8 @@ export function FinalTopicsSelection() {
   const addTopicFromGuided = (topicId: number) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [topicId])))
+    setReviewedUniverse(false)
     setSelectedTopics((cur) => new Set([...cur, topicId]))
     // seed a normal exposicion default for added
     // (the assistant will be offered on the shared review or via direct affordance)
@@ -502,13 +579,20 @@ export function FinalTopicsSelection() {
 
   // --- shared review surface groups ---
   const { materialIds, noMaterialIds, observationIds: obsIds } = useMemo(
-    () => guidedReviewTopicIds({ selectedTopicIds: selectedTopics, guidedAnswers: guidedDrafts }),
-    [selectedTopics, guidedDrafts],
+    () => guidedReviewTopicIds({
+      mode,
+      reviewedTopicIds: reviewedTopics,
+      selectedTopicIds: selectedTopics,
+      guidedAnswers: guidedDrafts,
+    }),
+    [mode, reviewedTopics, selectedTopics, guidedDrafts],
   )
 
   const toggleObsToNo = (id: number) => {
     if (saveInFlight.current) return
     markDraftChanged()
+    setReviewedTopics((current) => new Set(mergeReviewedTopicIds(current, [id])))
+    setReviewedUniverse(false)
     // one-tap override: keep revisar true, final no_material
     const prev = guidedDrafts[String(id)] || {}
     const overridden = { ...prev, final_result: "no_material", revisar: true }
@@ -543,10 +627,13 @@ export function FinalTopicsSelection() {
         ...buildMaterialityConfirmationPayload({
         selectedTopicIds: selectedTopics,
         p6TopicIds: confirmation.p6_topic_ids,
+        reviewedTopicIds: reviewedTopics,
+        reviewedUniverse,
+        mode,
         changeReasons,
         changeNotes,
         e1Explanation,
-        dimensions,
+        dimensions: mergeMaterialityDimensions(dimensions, guidedDrafts),
         guidedAnswers: guidedDrafts,
         }),
         expected_revision: confirmation.confirmation.revision,
@@ -841,7 +928,7 @@ export function FinalTopicsSelection() {
             <div className="space-y-4">
               <div className="text-sm">Progreso guiado: {guidedProgress.done} de {guidedProgress.total}</div>
               <div className="space-y-3">
-                {p6GuidedTopics.map((topic) => (
+                {guidedTopics.map((topic) => (
                   <div key={topic.id} className="border rounded p-3">
                     <TopicSignalAssistant
                       topic={topic}
@@ -894,7 +981,7 @@ export function FinalTopicsSelection() {
               {noMaterialIds.length === 0 && <div className="text-xs text-muted-foreground">—</div>}
               {noMaterialIds.map((id) => {
                 const t = catalogTopics.find((x) => x.id === id)
-                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t)}` : id}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Quitar</Button></div>
+                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t)}` : id}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Marcar como material</Button></div>
               })}
             </div>
             <div>
@@ -925,6 +1012,33 @@ export function FinalTopicsSelection() {
               </CardContent>
             </Card>
           ) : null}
+
+          <Card>
+            <CardContent className="pt-6">
+              <label className="flex items-start gap-3 text-sm">
+                <Checkbox
+                  aria-label="Atestación técnica del universo revisado"
+                  checked={reviewedUniverse && (mode === "direct" || guidedUniverseComplete)}
+                  disabled={mode === "guided" && !guidedUniverseComplete}
+                  onCheckedChange={(checked) => {
+                    if (saveInFlight.current) return
+                    markDraftChanged()
+                    setReviewedUniverse(checked === true && (mode === "direct" || guidedUniverseComplete))
+                  }}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block font-medium text-foreground">He revisado todos los temas mostrados o añadidos en este paso.</span>
+                  <span className="mt-1 block text-muted-foreground">
+                    Esta marca solo completa el universo técnico de revisión para aprendizaje; no aprueba un modelo ni constituye una declaración legal final.
+                    {mode === "guided" && !guidedUniverseComplete
+                      ? " Antes debes resolver cada tema revisado con un resultado material o no material, sin estados en observación ni respuestas desconocidas."
+                      : ""}
+                  </span>
+                </span>
+              </label>
+            </CardContent>
+          </Card>
 
           {/* 7. Confirm + decision sheet CTA */}
           <div className="flex items-center justify-between border-t pt-4">

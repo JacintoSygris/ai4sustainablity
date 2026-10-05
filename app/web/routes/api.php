@@ -34,6 +34,10 @@ Route::middleware(['web'])->get('auth/register-config', function () {
 })->name('api.auth.register_config');
 
 Route::middleware(['web', 'private-dev-user', 'auth', 'verified.required'])->group(function () {
+    Route::get('learning-case/draft', [\App\Http\Controllers\Api\LearningCaseController::class, 'show'])->name('api.learning_case.draft');
+    Route::put('learning-case/draft', [\App\Http\Controllers\Api\LearningCaseController::class, 'update'])->name('api.learning_case.save');
+    Route::post('learning-case/close', [\App\Http\Controllers\Api\LearningCaseController::class, 'close'])->name('api.learning_case.close');
+    Route::post('learning-case/withdraw', [\App\Http\Controllers\Api\LearningCaseController::class, 'withdraw'])->name('api.learning_case.withdraw');
     // Session must be readable by UNVERIFIED users so the frontend can detect
     // the state and show the verify-email screen — exempt it from the guard.
     Route::get('auth/session', [FrontendSessionController::class, 'show'])
@@ -86,6 +90,8 @@ Route::middleware(['web', 'private-dev-user', 'auth', 'verified.required'])->gro
         ->name('api.materiality-confirmation.decision-sheet');
     Route::post('materiality-confirmation/preview', [MaterialityConfirmationController::class, 'preview'])
         ->name('api.materiality-confirmation.preview');
+    Route::get('report/taxonomy', [GuidedReportController::class, 'taxonomyStatus'])
+        ->name('api.report.taxonomy');
     Route::get('report/draft', [ReportController::class, 'draft'])
         ->name('api.report.draft');
     Route::get('report/package', [ReportController::class, 'package'])

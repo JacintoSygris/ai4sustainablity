@@ -10,6 +10,15 @@ class CharacterizationPredictionMapper
 {
     private ?array $mapping = null;
 
+    private ?string $mappingSha256 = null;
+
+    public static function fromCapturedRaw(string $raw): self
+    {
+        $mapper = new self;
+        $mapper->decodeCapturedRaw($raw);
+        return $mapper;
+    }
+
     /**
      * @param  array<string, int|bool>  $rawPrediction
      * @return array<int, array<string, mixed>>
@@ -91,7 +100,6 @@ class CharacterizationPredictionMapper
      */
     public function mappingMetadata(): array
     {
-        $path = config('services.characterization.prediction_mapping_path');
         $mapping = $this->mapping();
 
         if ($this->usesNewFormatInventory()) {
@@ -108,9 +116,7 @@ class CharacterizationPredictionMapper
                 'mapping_status' => Arr::get($mapping, 'status'),
                 'mapping_key_count' => $approvedKeys->count(),
                 'mapping_model_key_count' => Arr::get($mapping, 'model_key_count'),
-                'mapping_sha256' => is_string($path) && File::exists($path)
-                    ? hash_file('sha256', $path)
-                    : null,
+                'mapping_sha256' => $this->mappingSha256,
             ];
         }
 
@@ -124,9 +130,7 @@ class CharacterizationPredictionMapper
             'mapping_version' => Arr::get($mapping, 'version'),
             'mapping_status' => Arr::get($mapping, 'status'),
             'mapping_key_count' => $mappedKeys->count(),
-            'mapping_sha256' => is_string($path) && File::exists($path)
-                ? hash_file('sha256', $path)
-                : null,
+            'mapping_sha256' => $this->mappingSha256,
         ];
     }
 
@@ -180,12 +184,19 @@ class CharacterizationPredictionMapper
             throw new RuntimeException('Characterization prediction mapping file is not configured.');
         }
 
-        $mapping = json_decode(File::get($path), true);
+        $raw = File::get($path);
+        return $this->decodeCapturedRaw($raw);
+    }
+
+    private function decodeCapturedRaw(string $raw): array
+    {
+        $mapping = json_decode($raw, true);
 
         if (! is_array($mapping)) {
             throw new RuntimeException('Characterization prediction mapping file is invalid JSON.');
         }
 
+        $this->mappingSha256 = hash('sha256', $raw);
         return $this->mapping = $mapping;
     }
 

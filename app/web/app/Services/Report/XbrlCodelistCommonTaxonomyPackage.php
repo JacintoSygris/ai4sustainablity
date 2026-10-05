@@ -225,10 +225,10 @@ class XbrlCodelistCommonTaxonomyPackage
 
     private function basePath(string $path): string
     {
-        try {
-            return base_path($path);
-        } catch (Throwable) {
-            return dirname(__DIR__, 3).'/'.$path;
+        if (! function_exists('config')) {
+            throw new RuntimeException('generic_xbrl_root_missing');
         }
+
+        return (new GenericXbrlPackageRoot())->resolve($path);
     }
 }

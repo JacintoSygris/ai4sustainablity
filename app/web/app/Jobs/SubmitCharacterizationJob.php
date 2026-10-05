@@ -26,8 +26,20 @@ class SubmitCharacterizationJob implements ShouldQueue
 
     public ?int $retryDeadlineTimestamp = null;
 
+    private bool $parentFenceRequested = false;
+    private bool $interpretationRequested = false;
+    private ?array $parentFenceRawIdentity = null;
+    private ?\App\Services\LearningP6JobParentFence $parentFence = null;
+    private ?\App\Services\Contracts\PreparedCharacterizationGateway $parentFenceGateway = null;
+
     public function __construct(public Characterization $characterization)
     {
+        $this->interpretationRequested = \App\Services\LearningP6InterpretationContext::requested();
+        $this->parentFenceRequested = \App\Services\LearningP6JobParentFence::requested();
+        if ($this->parentFenceRequested) {
+            $raw = $characterization->getAttributes();
+            $this->parentFenceRawIdentity = array_intersect_key($raw, array_flip(['id', 'user_id', 'submission_generation']));
+        }
         $this->submissionGeneration = (int) ($characterization->submission_generation ?? 0);
         $submittedAt = $characterization->submitted_at
             ?? $characterization->created_at
@@ -44,6 +56,17 @@ class SubmitCharacterizationJob implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
+        if ($this->interpretationRequested || \App\Services\LearningP6InterpretationContext::requested()) {
+            try { \App\Services\LearningP6InterpretationContext::guard(); }
+            catch (\DomainException $denied) { return; }
+            if (! $this->parentFenceRequested && ! \App\Services\LearningP6JobParentFence::requested()) { return; }
+        }
+        if ($this->parentFenceRequested || \App\Services\LearningP6JobParentFence::requested()) {
+            if ($this->parentFence !== null && $this->parentFenceGateway !== null) {
+                $this->parentFenceFailure($exception ?? new \RuntimeException('Retry deadline exhausted.'), app(CharacterizationStateTransaction::class), true);
+            }
+            return;
+        }
         $now = now();
         $updated = Characterization::query()
             ->whereKey($this->characterization->id)
@@ -71,6 +94,18 @@ class SubmitCharacterizationJob implements ShouldQueue
         ?CharacterizationStateTransaction $stateTransactions = null,
     ): void
     {
+        if ($this->interpretationRequested || \App\Services\LearningP6InterpretationContext::requested()) {
+            $this->interpretationRequested = true;
+            \App\Services\LearningP6InterpretationContext::guard();
+            if (! $this->parentFenceRequested && ! \App\Services\LearningP6JobParentFence::requested()) {
+                throw new \DomainException('learning_p6_interpretation.prepared_required');
+            }
+        }
+        if ($this->parentFenceRequested || \App\Services\LearningP6JobParentFence::requested()) {
+            $this->parentFenceRequested = true;
+            $this->handleParentFence($gateway, $stateTransactions ?? app(CharacterizationStateTransaction::class));
+            return;
+        }
         $stateTransactions ??= app(CharacterizationStateTransaction::class);
 
         if (! $this->claimForProcessing()) {
@@ -158,6 +193,88 @@ class SubmitCharacterizationJob implements ShouldQueue
         event(new CharacterizationStatusUpdated($this->characterization->fresh()));
 
         return true;
+    }
+
+    private function handleParentFence(CharacterizationGateway $gateway, CharacterizationStateTransaction $transactions): void
+    {
+        \App\Services\LearningP6JobParentFence::guard($gateway);
+        $identity = \App\Services\LearningP6JobParentFence::identity($this->parentFenceRawIdentity ?? []);
+        $this->parentFenceGateway = $gateway;
+        $claimed = \Illuminate\Support\Facades\DB::transaction(function () use ($gateway, $transactions, $identity): bool {
+            $claimed = false;
+            $expected = null;
+            $transactions->runForUser($identity['user_id'], function ($row) use ($gateway, $identity, &$claimed, &$expected): void {
+                if ($row === null) { throw new \DomainException('learning_p6_job.row_missing'); }
+                if (\App\Services\LearningP6JobParentFence::identity($row->getRawOriginal()) !== $identity) {
+                    throw new \DomainException('learning_p6_job.identity_changed');
+                }
+                if (! in_array($row->status, [Characterization::STATUS_SUBMITTED, Characterization::STATUS_WAITING], true)) { return; }
+                if ($this->parentFence === null) {
+                    \App\Services\LearningP6JobParentFence::assertFreshClaim($row->getRawOriginal(), $this->attempts());
+                    $this->parentFence = \App\Services\LearningP6JobParentFence::capture($identity, $row, $gateway);
+                } else {
+                    $this->parentFence->assertParents($row, $gateway, [Characterization::STATUS_SUBMITTED, Characterization::STATUS_WAITING]);
+                }
+                $row->update(['status' => Characterization::STATUS_PROCESSING, 'last_error' => null,
+                    'next_retry_at' => null, 'last_job_attempted_at' => now()]);
+                $expected = $row->getRawOriginal();
+                $claimed = true;
+            });
+            if ($claimed) {
+                $fresh = Characterization::query()->findOrFail($identity['id']);
+                if ($fresh->getRawOriginal() !== $expected) { throw new \DomainException('learning_p6_job.claim_finalization'); }
+                $this->parentFence->assertParents($fresh, $gateway, [Characterization::STATUS_PROCESSING]);
+            }
+            return $claimed;
+        });
+        if (! $claimed) { return; }
+        $this->characterization = Characterization::query()->findOrFail($identity['id']);
+        event(new CharacterizationStatusUpdated($this->characterization));
+        $this->parentFence->mutate($gateway, $transactions, [Characterization::STATUS_PROCESSING], fn () => null);
+        // Only the actual transport invocation participates in network failure handling.
+        try {
+            $response = $gateway->submitPrepared($this->parentFence->prepared());
+        } catch (Throwable $exception) {
+            $this->parentFenceFailure($exception, $transactions);
+            return;
+        }
+        unset($response['request_payload']);
+        $this->characterization = $this->parentFence->mutate($gateway, $transactions, [Characterization::STATUS_PROCESSING], function ($row) use ($response): void {
+            $attributes = ['status' => Characterization::STATUS_COMPLETED, 'result_data' => $response,
+                'completed_at' => now(), 'next_retry_at' => null];
+            if (array_key_exists('candidate_topics', $response)) {
+                $ids = $this->parentFence->prepared()->interpretation()?->candidateTopicIds($response)
+                    ?? $this->candidateTopicIds($response);
+                $form = $row->form_data ?? [];
+                Arr::set($form, 'esg_focus.topic_ids', $ids);
+                $attributes['esrs_topic_ids'] = $ids;
+                $attributes['form_data'] = $form;
+            }
+            $row->update($attributes);
+        }, true);
+        event(new CharacterizationStatusUpdated($this->characterization));
+    }
+
+    private function parentFenceFailure(Throwable $exception, CharacterizationStateTransaction $transactions, bool $terminal = false): void
+    {
+        if ($this->parentFence === null || $this->parentFenceGateway === null) { return; }
+        $retry = false;
+        $delay = 0;
+        try {
+            $row = $this->parentFence->mutate($this->parentFenceGateway, $transactions,
+                $terminal ? [Characterization::STATUS_PROCESSING, Characterization::STATUS_WAITING, Characterization::STATUS_SUBMITTED] : [Characterization::STATUS_PROCESSING],
+                function ($row) use ($exception, $terminal, &$retry, &$delay): void {
+                    $attempt = (int) $row->retry_count + 1;
+                    $delay = $exception instanceof CharacterizationCapacityException ? $exception->retryAfterSeconds : $this->calculateDelaySeconds($attempt);
+                    $retry = ! $terminal && now()->addSeconds($delay)->getTimestamp() <= ($this->retryDeadlineTimestamp ?? 0);
+                    $row->update(['status' => $retry ? Characterization::STATUS_WAITING : Characterization::STATUS_TIMED_OUT,
+                        'retry_count' => $attempt, 'last_error' => $exception->getMessage(), 'last_job_attempted_at' => now(),
+                        'next_retry_at' => $retry ? now()->addSeconds($delay) : null]);
+                });
+        } catch (\DomainException $denied) { return; }
+        $this->characterization = $row;
+        event(new CharacterizationStatusUpdated($row));
+        if ($retry) { $this->release($delay); }
     }
 
     protected function handleFailure(

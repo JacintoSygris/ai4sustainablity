@@ -1,3 +1,5 @@
+import { validateDatapointWorkspace } from "./esrs-datapoints-state.mjs"
+
 export type LaravelApiOptions = Omit<RequestInit, "body" | "credentials" | "signal"> & {
   body?: BodyInit | Record<string, unknown> | unknown[] | null
   csrfToken?: string
@@ -350,6 +352,16 @@ export type LaravelPaginatedEnvelope<T> = {
 
 // (LaravelMaterialityConfirmation extended above with P7/P8 A2-A3 fields; old duplicate removed)
 
+type LaravelMaterialityLearningUniversePair =
+  | {
+      reviewed_topic_ids: number[]
+      universe_attestation: LaravelMaterialityUniverseAttestation
+    }
+  | {
+      reviewed_topic_ids?: never
+      universe_attestation?: never
+    }
+
 export type LaravelMaterialityConfirmationPayload = {
   expected_revision: number
   confirmed_topic_ids: number[]
@@ -367,9 +379,15 @@ export type LaravelMaterialityConfirmationPayload = {
     revisar: boolean
     note?: string | null
   }>
-}
+} & LaravelMaterialityLearningUniversePair
 
 export type LaravelMaterialityConfirmationDecisionBasis = "guided_questionnaire" | "adm_registered" | "none"
+
+export type LaravelMaterialityUniverseAttestation = {
+  version: 1
+  reviewed_universe: boolean
+  mode: "direct" | "guided"
+}
 
 export type LaravelP6Snapshot = {
   topic_ids: number[]
@@ -401,6 +419,7 @@ export type LaravelMaterialityConfirmation = {
   p6_anchor_date: string | null
   p6_topic_ids: number[]
   confirmed_topic_ids: number[]
+  learning_topic_labels: Record<string, 0 | 1> | null
   delta: {
     added: number[]
     removed: number[]
@@ -409,6 +428,8 @@ export type LaravelMaterialityConfirmation = {
   topics: LaravelMaterialityTopic[]
   confirmation: {
     revision: number
+    reviewed_topic_ids: number[]
+    universe_attestation: LaravelMaterialityUniverseAttestation | null
     change_reasons: Record<string, string[]>
     change_reason_notes: Record<string, string>
     e1_not_material_explanation: string | null
@@ -482,6 +503,19 @@ export type LaravelEsrsDatapointCorpus = {
 
 export type LaravelEsrsDatapointResponseStatus = "draft" | "completed" | "not_applicable"
 
+export type LaravelDatapointReview = {
+  relevant?: boolean
+  selected_to_answer?: boolean
+  reason_codes?: string[]
+  note?: string | null
+}
+export type LaravelDatapointFeedback = {
+  schema_version: "datapoint-feedback-v1"
+  authority_digest: string
+  reviewed_datapoint_ids: string[]
+  decisions: Array<{ datapoint_id: string; relevant: boolean; selected_to_answer: boolean; reason_codes: string[]; note: string | null }>
+}
+
 export type LaravelEsrsDatapointResponse = {
   datapoint_id: string
   status: LaravelEsrsDatapointResponseStatus
@@ -493,6 +527,9 @@ export type LaravelEsrsDatapointResponse = {
 }
 
 export type LaravelEsrsDatapointResponses = {
+  source_digest: string
+  learning_authority_digest: string
+  learning_feedback: LaravelDatapointFeedback
   characterization_id: number
   schema_version: "v0" | "v1"
   revision: number
@@ -517,8 +554,122 @@ export type LaravelEsrsDatapointResponses = {
 }
 
 export type LaravelEsrsDatapointResponsesPayload = {
+  learning_feedback?: LaravelDatapointFeedback
   expected_revision: number
   responses: LaravelEsrsDatapointResponse[]
+}
+
+export type LaravelLearningRevision = {
+  generation: number
+  revision: number
+  digest: string
+}
+
+export type LaravelLearningSourceRevisions = {
+  p5: LaravelLearningRevision
+  p6: LaravelLearningRevision
+  p8: LaravelLearningRevision
+  p9: LaravelLearningRevision
+}
+
+export type LaravelLearningTopicLabel =
+  | { topic_id: string; value: 0 | 1; observed_mask: 1 }
+  | { topic_id: string; value: null; observed_mask: 0 }
+
+export type LaravelLearningDatapointDecision = {
+  datapoint_id: string
+  relevant: boolean
+  selected_to_answer: boolean
+  reason_codes: string[]
+  note: string | null
+}
+
+export type LaravelLearningCaseV1 = {
+  schema_version: "learning-case-v1"
+  case_id: string
+  case_hash: string
+  company_group_key: string
+  period_scope: {
+    period_key: string
+    perimeter_key: string
+  }
+  authority: {
+    framework_version: string
+    catalog_version: string
+    catalog_digest: string
+    mapping_version: string
+    mapping_digest: string
+  }
+  provenance: {
+    source_kind: "human_product" | "report" | "synthetic"
+    source_record_digest: string
+    source_revision: string
+  }
+  source_revisions: LaravelLearningSourceRevisions
+  p5_snapshot: {
+    schema_version: string
+    digest: string
+  }
+  p6_snapshot: {
+    model_profile: string
+    model_digest: string
+    policy_digest: string
+  }
+  topic_universe: {
+    reviewed_topic_ids: string[]
+    outside_scope_topic_ids: string[]
+  }
+  topic_labels: LaravelLearningTopicLabel[]
+  datapoint_universe: {
+    reviewed_datapoint_ids: string[]
+    outside_scope_datapoint_ids: string[]
+  }
+  datapoint_decisions: LaravelLearningDatapointDecision[]
+  rights: {
+    policy_version: string
+    policy_digest: string
+    policy_status: "approved" | "unapproved"
+    state: "granted" | "revoked" | "deleted" | "unapproved"
+    authorization_generation: number
+  }
+  closure_evidence: {
+    declaration_version: string
+    declaration_status: "accepted" | "unaccepted"
+    reviewed_universe: boolean
+    final_for_period_scope: boolean
+    server_actor_id: string
+    recorded_at: string
+  }
+}
+
+export type LaravelLearningEligibilityCase = {
+  case_id: string
+  case_hash: string
+  source_revisions: LaravelLearningSourceRevisions
+  rights_digest: string
+  policy_digest: string
+}
+
+export type LaravelLearningEligibilityTombstone = {
+  case_id: string
+  case_hash: string
+  at: string
+}
+
+export type LaravelLearningEligibilityManifestV1 = {
+  schema_version: "learning-eligibility-v1"
+  generation: number
+  issued_at: string
+  valid_until: string
+  cases: LaravelLearningEligibilityCase[]
+  eligible_case_ids: string[]
+  tombstones: {
+    revoked: LaravelLearningEligibilityTombstone[]
+    deleted: LaravelLearningEligibilityTombstone[]
+  }
+  rights_snapshot_digest: string
+  eligibility_policy_digest: string
+  canonical_digest: string
 }
 
 export type LaravelReportSectionStatus =
@@ -1103,6 +1254,22 @@ export function getLaravelEsrsDatapoints(
   })
 }
 
+export type LaravelEsrsDatapointWorkspace = {
+  snapshot_version: "p9-workspace-v1"
+  data: (LaravelEsrsDatapointCorpus & { learning_authority_digest: string; mapping_snapshot_digest: string })
+  response_state: LaravelEsrsDatapointResponses
+}
+
+export async function getLaravelEsrsDatapointWorkspace(
+  options: Omit<LaravelApiOptions, "body" | "method"> = {},
+): Promise<LaravelEsrsDatapointWorkspace> {
+  const snapshot = await laravelApi<LaravelEsrsDatapointWorkspace>("/esrs-datapoints", {
+    ...options, cache: "no-store", method: "GET",
+  })
+  validateDatapointWorkspace(snapshot)
+  return snapshot
+}
+
 export function getLaravelEsrsDatapointResponses(
   options: Omit<LaravelApiOptions, "body" | "method"> = {},
 ): Promise<LaravelApiEnvelope<LaravelEsrsDatapointResponses | null>> {
@@ -1246,4 +1413,57 @@ export function previewLaravelMaterialityConfirmation(
     body: payload,
     method: "POST",
   })
+}
+
+export type LaravelLearningClosureHeader = LaravelLearningRevision & { characterization_id: number; epoch: string }
+export type LaravelLearningClosureCommand = {
+  expected_revisions: Record<"p5" | "p6_base" | "p8" | "p9", LaravelLearningClosureHeader>
+  expected_authorization_generation: number
+  source_token: string
+  idempotency_key: string
+  reviewed_universe: boolean
+  final_for_period_scope: boolean
+  declaration_version: "local-synthetic-closure-v1"
+}
+export type LaravelLearningClosureReceipt = {
+  schema_version: "learning-case-closure-receipt-v1"
+  case_id: string
+  case_hash: string
+  source_token: string
+  p5_completion_reference: string
+  actor_id: number
+  authorization_generation: number
+  authorization_digest: string
+  recorded_at: string
+  receipt_hash: string
+  provenance: "synthetic-only"
+  promotion_allowed: false
+}
+export type LaravelLearningClosureResult = {
+  schema_version: "learning-case-closure-v1"
+  status: "disabled" | "blocked" | "ready" | "closed" | "stale" | "withdrawn"
+  case_hash: string | null
+  receipt: LaravelLearningClosureReceipt | null
+  provenance: "synthetic-only"
+  promotion_allowed: false
+}
+export type LaravelLearningClosureDraft = LaravelLearningClosureResult & {
+  can_close: boolean
+  can_withdraw: boolean
+  expected_revisions: LaravelLearningClosureCommand["expected_revisions"] | null
+  expected_authorization_generation: number | null
+  source_token: string | null
+  draft: LaravelLearningClosureCommand | null
+}
+export function getLaravelLearningCaseDraft(options: Omit<LaravelApiOptions, "body" | "method"> = {}) {
+  return laravelApi<LaravelApiEnvelope<LaravelLearningClosureDraft>>("/learning-case/draft", { ...options, method: "GET", cache: "no-store" })
+}
+export function saveLaravelLearningCaseDraft(body: LaravelLearningClosureCommand, options: Omit<LaravelApiOptions, "body" | "method"> = {}) {
+  return laravelApi<LaravelApiEnvelope<LaravelLearningClosureDraft>>("/learning-case/draft", { ...options, method: "PUT", body })
+}
+export function closeLaravelLearningCase(body: LaravelLearningClosureCommand, options: Omit<LaravelApiOptions, "body" | "method"> = {}) {
+  return laravelApi<LaravelApiEnvelope<LaravelLearningClosureResult>>("/learning-case/close", { ...options, method: "POST", body })
+}
+export function withdrawLaravelLearningCase(body: Pick<LaravelLearningClosureCommand, "expected_authorization_generation" | "idempotency_key">, options: Omit<LaravelApiOptions, "body" | "method"> = {}) {
+  return laravelApi<LaravelApiEnvelope<LaravelLearningClosureDraft>>("/learning-case/withdraw", { ...options, method: "POST", body })
 }

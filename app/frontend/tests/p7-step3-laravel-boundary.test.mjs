@@ -45,7 +45,7 @@ test("double materiality guide loads Laravel P7 prose guide + persisted checklis
   assert.match(source, /Plantillas para tu análisis/, "P7 must render the localized templates card (restored per owner decision 2026-06-10)")
   assert.match(source, /templateDownloadPath\(template\.key, locale\)/, "P7 template downloads must be per-locale")
   assert.doesNotMatch(source, /Plantillas ADM/, "P7 must not use the ADM jargon in the templates card title")
-  assert.match(source, /firstOpenStepKey\(guideResponse\.data\)/, "P7 component must use guide data for initial open state")
+  assert.doesNotMatch(source, /firstOpenStepKey\(guideResponse\.data\)/, "P7 sections start collapsed until the user opens them")
   assert.match(source, /canContinueFromGuideState/, "P7 component must gate continuation from guide state")
   assert.match(source, /disabled=\{!canContinue\}/, "P7 component must not offer continue as primary action before guide success")
   assert.match(source, /error\.status === 401/, "P7 component must detect Laravel 401 responses")
@@ -78,7 +78,7 @@ test("double materiality guide state helpers derive progress label and acta/chec
     ],
   }
 
-  assert.deepEqual(firstOpenStepKey(guide), ["review_p5_p6"])
+  assert.deepEqual(firstOpenStepKey(guide), [])
   assert.deepEqual(firstOpenStepKey({ sections: [] }), [])
   assert.equal(localized({ es: "ES", en: "EN" }), "ES")
   assert.equal(localized({ es: null, en: "EN" }), "EN")

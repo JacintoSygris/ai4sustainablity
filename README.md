@@ -32,3 +32,5 @@ La guía de instalación está en [app/docs/es-ES/technical/installation-local.m
 - [English documentation](README.en-GB.md)
 - [Manual técnico](app/docs/es-ES/technical/index.md)
 - [Integraciones](app/docs/es-ES/integrations/authentication.md)
+
+- [Motor de aprendizaje opcional](app/docs/es-ES/learning-engine.md): deshabilitado por defecto; comprobaciones técnicas sintéticas locales documentadas, sin prueba de activación, calidad o despliegue.

@@ -23,7 +23,21 @@ class ArelleXhtmlIxbrlValidator
     public function validate(string $xhtml, ReportingProfile $profile, array $internalManifest): void
     {
         $command = config('services.report.arelle_command');
-        if (! is_string($command) || trim($command) === '' || ! str_starts_with($command, '/') || ! is_file($command) || ! is_executable($command)) {
+        $prefix = is_string($command) ? [$command] : $command;
+        if (! is_array($prefix) || ! array_is_list($prefix) || $prefix === []) {
+            throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_unavailable');
+        }
+        foreach ($prefix as $token) {
+            if (! is_string($token) || $token === '' || str_contains($token, "\0")) {
+                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_unavailable');
+            }
+        }
+
+        $executable = $prefix[0];
+        $isAbsolute = DIRECTORY_SEPARATOR === '\\'
+            ? preg_match('~^[A-Za-z]:[/\\\\]~', $executable) === 1
+            : str_starts_with($executable, '/') && ! str_starts_with($executable, '//');
+        if (! $isAbsolute || ! is_file($executable) || ! is_executable($executable)) {
             throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_unavailable');
         }
 
@@ -46,7 +60,7 @@ class ArelleXhtmlIxbrlValidator
                 chmod($xhtmlPath, 0600);
 
                 $args = [
-                    $command,
+                    ...$prefix,
                     ...$this->profileArguments($profile),
                     '--validationExitCode',
                     '--packages',
@@ -55,7 +69,7 @@ class ArelleXhtmlIxbrlValidator
                     $xhtmlPath,
                 ];
 
-                $result = $this->run($args);
+                $result = $this->run($args, $tmpDir);
                 if ($result['exit_code'] !== 0 || ! $this->outputIsCleanAndAnalyzable($result['stdout']."\n".$result['stderr'])) {
                     throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
                 }
@@ -95,92 +109,126 @@ class ArelleXhtmlIxbrlValidator
      * @param list<string> $args
      * @return array{exit_code: int, stdout: string, stderr: string}
      */
-    private function run(array $args): array
+    private function run(array $args, string $tmpDir): array
     {
-        $descriptor = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-
-        $process = @proc_open($args, $descriptor, $pipes, null, null, ['bypass_shell' => true]);
-        if (! is_resource($process)) {
-            throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
-        }
-
-        fclose($pipes[0]);
-        stream_set_blocking($pipes[1], false);
-        stream_set_blocking($pipes[2], false);
-
-        $stdout = '';
-        $stderr = '';
-        $deadline = microtime(true) + max(1, $this->timeoutSeconds);
-        $exitCode = null;
-        $timedOut = false;
-        $outputExceeded = false;
+        $paths = [$tmpDir.'/stdout.capture', $tmpDir.'/stderr.capture'];
+        $captures = [];
+        $createdPaths = [];
+        $pipes = [];
+        $process = null;
+        $limit = max(1, $this->maxOutputBytes);
+        $deadline = hrtime(true) / 1e9 + max(1, $this->timeoutSeconds);
 
         try {
+            foreach ($paths as $path) {
+                $capture = @fopen($path, 'x+b');
+                if ($capture === false) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+                $captures[] = $capture;
+                $createdPaths[] = $path;
+                if (! @chmod($path, 0600)) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+            }
+
+            $descriptor = [0 => ['pipe', 'r'], 1 => $captures[0], 2 => $captures[1]];
+            if (hrtime(true) / 1e9 >= $deadline) {
+                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+            }
+            $process = @proc_open($args, $descriptor, $pipes, null, null, ['bypass_shell' => true]);
+            if (! is_resource($process)) {
+                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+            }
+            fclose($pipes[0]);
+            unset($pipes[0]);
+
             while (true) {
-                if (! $this->readProcessOutput($pipes, $stdout, $stderr)) {
-                    $this->terminate($process);
-                    $outputExceeded = true;
+                if (hrtime(true) / 1e9 >= $deadline) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+                $status = @proc_get_status($process);
+                if (! is_array($status) || ! is_bool($status['running'] ?? null) || ! is_int($status['exitcode'] ?? null)) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+                $total = 0;
+                foreach ($paths as $path) {
+                    clearstatcache(true, $path);
+                    $size = @filesize($path);
+                    if ($size === false || $size < 0 || $size > $limit - $total) {
+                        throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                    }
+                    $total += $size;
+                }
+                // Check before accepting even a zero exit: a late child is a failure.
+                if (hrtime(true) / 1e9 >= $deadline) {
+                    throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                }
+                if (! $status['running']) {
+                    if ($status['exitcode'] < 0) {
+                        throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
+                    }
+                    $exitCode = $status['exitcode'];
                     break;
                 }
-                $status = proc_get_status($process);
-                if (($status['exitcode'] ?? -1) !== -1) {
-                    $exitCode = (int) $status['exitcode'];
-                }
-
-                if (! ($status['running'] ?? false)) {
-                    break;
-                }
-
-                if (microtime(true) > $deadline) {
-                    $this->terminate($process);
-                    $timedOut = true;
-                    break;
-                }
-
                 usleep(10000);
             }
 
-            if (! $outputExceeded && ! $this->readProcessOutput($pipes, $stdout, $stderr)) {
-                $outputExceeded = true;
+            @proc_close($process);
+            $process = null;
+            $stdout = '';
+            $stderr = '';
+            if (hrtime(true) / 1e9 >= $deadline || ! $this->readProcessOutput($paths, $stdout, $stderr)
+                || hrtime(true) / 1e9 >= $deadline) {
+                throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
             }
+
+            return ['exit_code' => $exitCode, 'stdout' => $stdout, 'stderr' => $stderr];
+        } catch (\Throwable) {
+            throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
         } finally {
-            foreach ([1, 2] as $pipe) {
-                if (isset($pipes[$pipe]) && is_resource($pipes[$pipe])) {
-                    fclose($pipes[$pipe]);
+            try {
+                if (is_resource($process)) {
+                    try {
+                        $this->terminate($process);
+                    } finally {
+                        @proc_close($process);
+                    }
+                }
+            } finally {
+                foreach (array_merge($pipes, $captures) as $handle) {
+                    if (is_resource($handle)) {
+                        fclose($handle);
+                    }
+                }
+                foreach ($createdPaths as $path) {
+                    @unlink($path);
                 }
             }
         }
-
-        $closedExitCode = proc_close($process);
-        if ($exitCode === null && $closedExitCode !== -1) {
-            $exitCode = $closedExitCode;
-        }
-
-        if ($timedOut || $outputExceeded) {
-            throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
-        }
-
-        return ['exit_code' => $exitCode ?? -1, 'stdout' => $stdout, 'stderr' => $stderr];
     }
 
-    /**
-     * @param array<int, resource> $pipes
-     */
-    private function readProcessOutput(array $pipes, string &$stdout, string &$stderr): bool
+    /** @param list<string> $paths */
+    private function readProcessOutput(array $paths, string &$stdout, string &$stderr): bool
     {
-        $stdoutChunk = stream_get_contents($pipes[1]) ?: '';
-        $stderrChunk = stream_get_contents($pipes[2]) ?: '';
-
-        if (strlen($stdout) + strlen($stderr) + strlen($stdoutChunk) + strlen($stderrChunk) > max(1, $this->maxOutputBytes)) {
-            return false;
+        $limit = max(1, $this->maxOutputBytes);
+        $chunks = [];
+        $total = 0;
+        foreach ($paths as $path) {
+            clearstatcache(true, $path);
+            $size = @filesize($path);
+            if ($size === false || $size < 0 || $size > $limit - $total) {
+                return false;
+            }
+            $remaining = $limit - $total;
+            $chunk = @file_get_contents($path, false, null, 0, $remaining + 1);
+            if ($chunk === false || strlen($chunk) !== $size || strlen($chunk) > $remaining) {
+                return false;
+            }
+            $chunks[] = $chunk;
+            $total += strlen($chunk);
         }
-
-        $stdout .= $stdoutChunk;
-        $stderr .= $stderrChunk;
+        [$stdout, $stderr] = $chunks;
 
         return true;
     }
