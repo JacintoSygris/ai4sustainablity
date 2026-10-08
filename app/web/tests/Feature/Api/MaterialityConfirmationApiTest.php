@@ -29,6 +29,7 @@ it('requires authentication for the materiality decision sheet', function () {
 });
 
 it('returns delta state using the P6 proposal as the default confirmation', function () {
+    $this->withSession(['app_locale' => 'es']);
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -57,7 +58,7 @@ it('returns delta state using the P6 proposal as the default confirmation', func
 
     expect($preview['datapoint_estimate']['total_datapoint_count'])->toBeGreaterThan(0);
     expect($preview['datapoint_estimate']['topical_datapoint_count'])->toBe(0);
-    expect($preview['datapoint_estimate']['label'])->toBe('Materiality-filtered P9 corpus estimate');
+    expect($preview['datapoint_estimate']['label'])->toBe('Estimación del catálogo de datos según la materialidad');
     expect($preview['effort_level'])->toBeIn(['low', 'medium', 'high']);
 });
 
@@ -233,6 +234,184 @@ it('persists dimensions and guided answers and validates their topic-keyed maps'
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['guided_answers']);
 });
+
+it('rejects foreign and non-canonical dimension and guided keys without changing user data', function () {
+    $foreign = EsrsTopic::whereKeyNot([$this->e2Topic->id, $this->s1Topic->id])->firstOrFail();
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+        'form_data' => ['user_note' => 'Texto libre unchanged =1+1'],
+    ]);
+    $before = $characterization->getRawOriginal('form_data');
+    $answer = guidedMaterialityAnswer(['final_result' => 'no_material']);
+
+    // A real, seeded topic outside both selections bypassed the old exists-only check.
+    foreach ([(string) $foreign->id, '0'.$this->e2Topic->id, $this->e2Topic->id.'x'] as $key) {
+        foreach (['dimensions' => 'both', 'guided_answers' => $answer] as $field => $value) {
+            $this->actingAs($this->user)->putJson('/api/materiality-confirmation', [
+                'expected_revision' => 0,
+                'confirmed_topic_ids' => [$this->s1Topic->id],
+                $field => [$key => $value],
+            ])->assertUnprocessable()->assertJsonValidationErrors([$field]);
+
+            expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+            $this->getJson('/api/materiality-confirmation')->assertOk()
+                ->assertJsonPath('data.decision_basis', 'none')
+                ->assertJsonPath('data.confirmation.guided_answers', [])
+                ->assertJsonPath('data.confirmation.dimensions', []);
+        }
+    }
+});
+
+it('accepts both removed P6 and newly confirmed P8 map entries', function () {
+    Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+    ]);
+
+    $this->actingAs($this->user)->putJson('/api/materiality-confirmation', [
+        'expected_revision' => 0,
+        'confirmed_topic_ids' => [$this->s1Topic->id],
+        'dimensions' => [$this->e2Topic->id => 'both', $this->s1Topic->id => 'impact'],
+        'guided_answers' => [
+            $this->e2Topic->id => guidedMaterialityAnswer(['final_result' => 'no_material', 'note' => 'Texto libre unchanged']),
+            $this->s1Topic->id => guidedMaterialityAnswer(),
+        ],
+    ])->assertOk()
+        ->assertJsonPath('data.decision_basis', 'guided_questionnaire')
+        ->assertJsonPath('data.confirmation.dimensions.'.$this->e2Topic->id, 'both')
+        ->assertJsonPath('data.confirmation.dimensions.'.$this->s1Topic->id, 'impact')
+        ->assertJsonPath('data.confirmation.guided_answers.'.$this->e2Topic->id.'.note', 'Texto libre unchanged')
+        ->assertJsonPath('data.confirmation.guided_answers.'.$this->s1Topic->id.'.final_result', 'material');
+});
+
+it('does not let foreign legacy answers or a stored guided basis create guided evidence on reads', function (?string $storedBasis, bool $hasActa) {
+    $foreign = EsrsTopic::whereKeyNot([$this->e2Topic->id])->firstOrFail();
+    $confirmation = [
+        'confirmed_topic_ids' => [$this->e2Topic->id],
+        'dimensions' => [$foreign->id => 'both'],
+        'guided_answers' => [$foreign->id => guidedMaterialityAnswer(['suggested_result' => 'en_observacion', 'final_result' => 'no_material'])],
+    ];
+    if ($storedBasis !== null) {
+        $confirmation['decision_basis'] = $storedBasis;
+    }
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+        'form_data' => [
+            'materiality_confirmation' => $confirmation,
+            'user_note' => 'Unchanged',
+            'double_materiality_process' => $hasActa ? [
+                'acta' => ['completed_on' => '2026-09-29', 'method' => 'Synthetic review', 'participants' => 'Synthetic reviewer'],
+            ] : [],
+        ],
+    ]);
+    $before = $characterization->getRawOriginal('form_data');
+    $clockBefore = \Illuminate\Support\Facades\DB::table('learning_p8_source_revisions')->get()->toJson();
+
+    $this->actingAs($this->user)->getJson('/api/materiality-confirmation')->assertOk()
+        ->assertJsonPath('data.decision_basis', $hasActa ? 'adm_registered' : 'none')
+        ->assertJsonPath('data.confirmation.dimensions', [])
+        ->assertJsonPath('data.confirmation.guided_answers', []);
+    $this->getJson('/api/materiality-confirmation/decision-sheet')->assertOk()
+        ->assertJsonPath('data.decision_basis', $hasActa ? 'adm_registered' : 'none')
+        ->assertJsonPath('data.observation_resolutions', [])
+        ->assertJsonPath('data.changes.unchanged.0.guided', null);
+    expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+    expect(\Illuminate\Support\Facades\DB::table('learning_p8_source_revisions')->get()->toJson())->toBe($clockBefore);
+})->with([
+    'legacy without stored basis' => [null, false],
+    'legacy with false guided basis' => ['guided_questionnaire', false],
+    'legacy with legitimate ADM record' => ['guided_questionnaire', true],
+]);
+
+it('preserves legitimate historical snapshot and current map entries without exposing foreign keys or rewriting history', function () {
+    $foreign = EsrsTopic::whereKeyNot([$this->e1Topic->id, $this->e2Topic->id, $this->s1Topic->id])->firstOrFail();
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+        'form_data' => ['materiality_confirmation' => [
+            'confirmed_topic_ids' => [$this->s1Topic->id],
+            'p6_snapshot' => ['topic_ids' => [$this->e1Topic->id], 'captured_at' => now()->subDay()->toJSON()],
+            'decision_basis' => 'guided_questionnaire',
+            'dimensions' => [$this->e1Topic->id => 'impact', $this->e2Topic->id => 'both', $foreign->id => 'financial'],
+            'guided_answers' => [
+                $this->e1Topic->id => guidedMaterialityAnswer(['final_result' => 'no_material', 'note' => 'Nota histórica intacta']),
+                $this->e2Topic->id => guidedMaterialityAnswer(['final_result' => 'no_material', 'note' => 'Nota actual intacta']),
+                $this->s1Topic->id => guidedMaterialityAnswer(),
+                $foreign->id => guidedMaterialityAnswer(['suggested_result' => 'en_observacion', 'final_result' => 'no_material']),
+            ],
+        ]],
+    ]);
+    $before = $characterization->getRawOriginal('form_data');
+    $response = $this->actingAs($this->user)->getJson('/api/materiality-confirmation')->assertOk()
+        ->assertJsonPath('data.is_stale', true)
+        ->assertJsonPath('data.decision_basis', 'guided_questionnaire')
+        ->assertJsonPath('data.confirmation.reviewed_topic_ids', [$this->e2Topic->id, $this->s1Topic->id])
+        ->assertJsonPath('data.confirmation.universe_attestation', null)
+        ->assertJsonPath('data.learning_topic_labels', null)
+        ->assertJsonPath('data.confirmation.dimensions.'.$this->e1Topic->id, 'impact')
+        ->assertJsonPath('data.confirmation.dimensions.'.$this->e2Topic->id, 'both')
+        ->assertJsonPath('data.confirmation.guided_answers.'.$this->e1Topic->id.'.note', 'Nota histórica intacta')
+        ->assertJsonPath('data.confirmation.guided_answers.'.$this->e2Topic->id.'.note', 'Nota actual intacta')
+        ->assertJsonPath('data.confirmation.guided_answers.'.$this->s1Topic->id.'.final_result', 'material');
+    expect($response->json('data.confirmation.dimensions'))->not->toHaveKey((string) $foreign->id);
+    expect($response->json('data.confirmation.guided_answers'))->not->toHaveKey((string) $foreign->id);
+    expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+
+    $this->getJson('/api/materiality-confirmation/decision-sheet')->assertOk()
+        ->assertJsonPath('data.observation_resolutions', [
+            ['topic_id' => $this->e1Topic->id, 'final_result' => 'no_material', 'revisar' => true],
+            ['topic_id' => $this->e2Topic->id, 'final_result' => 'no_material', 'revisar' => true],
+            ['topic_id' => $this->s1Topic->id, 'final_result' => 'material', 'revisar' => true],
+        ])
+        ->assertJsonPath('data.changes.removed.0.guided.note', 'Nota actual intacta');
+    expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+
+    // Historical read allowance must never widen the current write boundary.
+    foreach (['change_reasons' => ['other'], 'change_reason_notes' => 'New write to a snapshot-only topic.', 'dimensions' => 'impact', 'guided_answers' => guidedMaterialityAnswer(['final_result' => 'no_material'])] as $field => $value) {
+        $this->putJson('/api/materiality-confirmation', [
+            'expected_revision' => 0,
+            'confirmed_topic_ids' => [$this->s1Topic->id],
+            $field => [$this->e1Topic->id => $value],
+        ])->assertUnprocessable()->assertJsonValidationErrors([$field]);
+        expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+    }
+});
+
+it('does not use malformed frozen snapshot IDs as projection membership or guided evidence', function (string $shape) {
+    $topicId = $this->e1Topic->id;
+    $snapshotIds = match ($shape) {
+        'numeric string' => [(string) $topicId],
+        'duplicate' => [$topicId, $topicId],
+        'unknown' => [$topicId, 999999],
+        'boolean' => [true],
+    };
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => [$this->e2Topic->id],
+        'form_data' => ['materiality_confirmation' => [
+            'confirmed_topic_ids' => [$this->e2Topic->id],
+            'p6_snapshot' => ['topic_ids' => $snapshotIds, 'captured_at' => now()->subDay()->toJSON()],
+            'decision_basis' => 'guided_questionnaire',
+            'dimensions' => [$topicId => 'both'],
+            'guided_answers' => [$topicId => guidedMaterialityAnswer(['final_result' => 'no_material'])],
+        ]],
+    ]);
+    $before = $characterization->getRawOriginal('form_data');
+    $this->actingAs($this->user)->getJson('/api/materiality-confirmation')->assertOk()
+        ->assertJsonPath('data.confirmation.reviewed_topic_ids', [$this->e2Topic->id])
+        ->assertJsonPath('data.confirmation.dimensions', [])
+        ->assertJsonPath('data.confirmation.guided_answers', [])
+        ->assertJsonPath('data.decision_basis', 'none')
+        ->assertJsonPath('data.learning_topic_labels', null);
+    expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+})->with(['numeric string', 'duplicate', 'unknown', 'boolean']);
 
 it('rejects guided verdicts that contradict the final confirmed topic set', function () {
     Characterization::factory()->create([
@@ -651,7 +830,7 @@ it('rejects non-canonical or stale reason topic keys', function () {
         ->assertJsonValidationErrors(['change_reason_notes']);
 });
 
-it('salvages canonical stored evidence keys while filtering invalid legacy keys', function () {
+it('projects only independently reviewed stored evidence while filtering invalid and foreign legacy keys', function () {
     $unrelatedTopic = EsrsTopic::whereKeyNot([
         $this->e1Topic->id,
         $this->e2Topic->id,
@@ -685,21 +864,21 @@ it('salvages canonical stored evidence keys while filtering invalid legacy keys'
         ->assertJsonPath('data.confirmation.reviewed_topic_ids', [
             $this->e2Topic->id,
             $this->s1Topic->id,
-            $unrelatedTopic->id,
         ])
         ->assertJsonPath('data.confirmation.universe_attestation', null)
         ->assertJsonPath('data.learning_topic_labels', null)
         ->assertJsonPath('data.confirmation.change_reasons.'.$this->e2Topic->id, ['threshold'])
         ->assertJsonPath('data.confirmation.change_reasons.'.$this->s1Topic->id, ['stakeholders'])
-        ->assertJsonPath('data.confirmation.change_reasons.'.$unrelatedTopic->id, ['other'])
+        ->assertJsonPath('data.confirmation.change_reasons.'.$unrelatedTopic->id, null)
         ->assertJsonPath('data.confirmation.change_reason_notes.'.$this->s1Topic->id, 'Stakeholder review added this topic.')
-        ->assertJsonPath('data.confirmation.change_reason_notes.'.$unrelatedTopic->id, 'Stale note.');
+        ->assertJsonPath('data.confirmation.change_reason_notes.'.$unrelatedTopic->id, null);
 
     expect($response->json('data.confirmation.change_reasons'))
         ->not->toHaveKey('0');
 });
 
 it('marks an unconfirmed decision sheet as preview-only instead of final ADM evidence', function () {
+    $this->withSession(['app_locale' => 'es']);
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -721,10 +900,11 @@ it('marks an unconfirmed decision sheet as preview-only instead of final ADM evi
         ->assertJsonPath('data.confirmation_status', 'defaulted_from_p6')
         ->assertJsonPath('data.confirmed_at', null)
         ->assertJsonPath('data.summary.confirmed_topic_count', 1)
-        ->assertJsonPath('data.note', 'No final P8 confirmation has been stored yet. Values are defaulted from the P6 proposal for preview only.');
+        ->assertJsonPath('data.note', 'Todavía no se ha guardado la confirmación final. Los valores de la propuesta de materialidad se muestran únicamente como vista previa.');
 });
 
 it('returns a P8 decision sheet summary for the separate frontend', function () {
+    $this->withSession(['app_locale' => 'es']);
     $characterization = Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -768,7 +948,7 @@ it('returns a P8 decision sheet summary for the separate frontend', function () 
         ->assertJsonPath('data.summary.activated_esrs_standards', ['E2', 'S1'])
         ->assertJsonPath('data.summary.coverage_status', 'topical_mapping_required')
         ->assertJsonPath('data.e1_not_material_explanation', 'Climate impacts are below the documented ADM threshold.')
-        ->assertJsonPath('data.note', 'These selections reflect the external double materiality assessment. Evidence remains outside the application.');
+        ->assertJsonPath('data.note', 'Estas selecciones reflejan la evaluación externa de doble importancia relativa. Las evidencias permanecen fuera de la aplicación.');
 
     expect($response->json('data.summary.p9_total_datapoint_estimate'))->toBeGreaterThan(0);
     expect($response->json('data.summary.effort_level'))->toBeIn(['low', 'medium', 'high']);
@@ -831,3 +1011,81 @@ function guidedMaterialityAnswer(array $overrides = []): array
         ...$overrides,
     ];
 }
+
+it('persists the same scope_change reason for two different removed topics through the materiality confirmation HTTP boundary', function () {
+    $p6TopicIds = [$this->e1Topic->id, $this->e2Topic->id, $this->s1Topic->id];
+    $characterization = Characterization::factory()->create([
+        'user_id' => $this->user->id,
+        'status' => Characterization::STATUS_COMPLETED,
+        'esrs_topic_ids' => $p6TopicIds,
+        'form_data' => [
+            'company_profile' => ['company_name' => 'Synthetic P8 scope-change entity'],
+            'notes' => 'Unrelated synthetic characterization notes must survive P8.',
+        ],
+    ]);
+    $characterization->refresh();
+    $originalFormData = $characterization->form_data;
+    $originalMetadata = $characterization->getRawOriginal();
+    unset($originalMetadata['form_data'], $originalMetadata['updated_at']);
+
+    $initial = $this->actingAs($this->user)
+        ->getJson('/api/materiality-confirmation')
+        ->assertOk()
+        ->assertJsonPath('data.is_confirmed', false)
+        ->assertJsonPath('data.confirmation.revision', 0)
+        ->assertJsonPath('data.p6_topic_ids', $p6TopicIds);
+    $revision = $initial->json('data.confirmation.revision');
+    $note = str_pad('Synthetic scope-change review; this removed topic is outside the fixture scope. ', 299, 'x');
+    $changeReasons = [
+        (string) $this->e2Topic->id => ['scope_change'],
+        (string) $this->s1Topic->id => ['scope_change'],
+    ];
+    $changeNotes = [
+        (string) $this->e2Topic->id => $note,
+        (string) $this->s1Topic->id => $note,
+    ];
+
+    // Retain E1 and omit the optional learning-universe attestation.
+    $this->actingAs($this->user)
+        ->putJson('/api/materiality-confirmation', [
+            'expected_revision' => $revision,
+            'confirmed_topic_ids' => [$this->e1Topic->id],
+            'change_reasons' => $changeReasons,
+            'change_reason_notes' => $changeNotes,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.is_confirmed', true)
+        ->assertJsonPath('data.confirmation.revision', $revision + 1)
+        ->assertJsonPath('data.confirmation.change_reasons', $changeReasons)
+        ->assertJsonPath('data.confirmation.change_reason_notes', $changeNotes);
+
+    $this->actingAs($this->user)
+        ->getJson('/api/materiality-confirmation')
+        ->assertOk()
+        ->assertJsonPath('data.is_confirmed', true)
+        ->assertJsonPath('data.confirmation_status', 'confirmed')
+        ->assertJsonPath('data.confirmation.revision', $revision + 1)
+        ->assertJsonPath('data.confirmed_topic_ids', [$this->e1Topic->id])
+        ->assertJsonPath('data.p6_topic_ids', $p6TopicIds)
+        ->assertJsonPath('data.delta.added', [])
+        ->assertJsonPath('data.delta.removed', [$this->e2Topic->id, $this->s1Topic->id])
+        ->assertJsonPath('data.delta.unchanged', [$this->e1Topic->id])
+        ->assertJsonPath('data.confirmation.change_reasons', $changeReasons)
+        ->assertJsonPath('data.confirmation.change_reason_notes', $changeNotes)
+        ->assertJsonPath('data.confirmation.universe_attestation', null);
+
+    $characterization->refresh();
+    $confirmation = $characterization->form_data['materiality_confirmation'];
+    expect($confirmation['revision'])->toBe($revision + 1);
+    expect($confirmation['confirmed_topic_ids'])->toBe([$this->e1Topic->id]);
+    expect($confirmation['change_reasons'])->toBe($changeReasons);
+    expect($confirmation['change_reason_notes'])->toBe($changeNotes);
+    expect($confirmation['universe_attestation'])->toBeNull();
+
+    $persistedFormData = $characterization->form_data;
+    unset($persistedFormData['materiality_confirmation']);
+    expect($persistedFormData)->toBe($originalFormData);
+    $persistedMetadata = $characterization->getRawOriginal();
+    unset($persistedMetadata['form_data'], $persistedMetadata['updated_at']);
+    expect($persistedMetadata)->toEqual($originalMetadata);
+});

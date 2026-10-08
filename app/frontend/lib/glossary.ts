@@ -48,9 +48,9 @@ export const GLOSSARY = {
   },
   doble_materialidad: {
     es: {
-      term: "Doble materialidad",
+      term: "Doble importancia relativa",
       definition:
-        "Mirar cada asunto desde dos lados: el impacto que tu empresa causa hacia fuera (personas, medioambiente) y el efecto que el asunto puede tener hacia dentro (costes, ingresos, riesgos). Determina qué asuntos e información ESRS deben tratarse.",
+        "Mirar cada asunto desde dos lados: el impacto que tu empresa causa hacia fuera (personas, medioambiente) y el efecto que el asunto puede tener hacia dentro (costes, ingresos, riesgos). Determina qué asuntos e información NEIS deben tratarse.",
     },
     en: {
       term: "Double materiality",
@@ -60,9 +60,9 @@ export const GLOSSARY = {
   },
   adm: {
     es: {
-      term: "Análisis de doble materialidad",
+      term: "Análisis de doble importancia relativa",
       definition:
-        "El trabajo de revisar tus asuntos ASG uno a uno con la mirada de doble materialidad, hablando con las personas adecuadas, y concluir cuáles son materiales. Esta aplicación te guía, pero el análisis lo hace la organización.",
+        "El trabajo de revisar tus asuntos ASG uno a uno con la mirada de doble importancia relativa, hablando con las personas adecuadas, y concluir cuáles son materiales. Esta aplicación te guía, pero el análisis lo hace la organización.",
     },
     en: {
       term: "Double materiality assessment",
@@ -72,9 +72,9 @@ export const GLOSSARY = {
   },
   datapoint: {
     es: {
-      term: "Punto de información",
+      term: "Dato normativo",
       definition:
-        "Cada indicador/dato ESRS concreto que puede requerir una cifra, un porcentaje, una explicación o una referencia. La lista depende de asuntos confirmados y de correspondencias configuradas.",
+        "Cada dato normativo NEIS concreto que puede requerir una cifra, un porcentaje, una explicación o una referencia. La lista depende de asuntos confirmados y de correspondencias configuradas.",
     },
     en: {
       term: "Information point",
@@ -84,9 +84,9 @@ export const GLOSSARY = {
   },
   esrs: {
     es: {
-      term: "ESRS",
+      term: "NEIS",
       definition:
-        "Las normas europeas de información de sostenibilidad (European Sustainability Reporting Standards). Definen asuntos, requisitos de divulgación e indicadores/datos.",
+        "Las normas europeas de información sobre sostenibilidad (NEIS). Definen asuntos, requisitos de divulgación y datos normativos.",
     },
     en: {
       term: "ESRS",
@@ -98,7 +98,7 @@ export const GLOSSARY = {
     es: {
       term: "Requisito de divulgación",
       definition:
-        "Un apartado de las ESRS que agrupa varios indicadores/datos sobre una misma cuestión. Que un asunto sea material no elimina la revisión de aplicabilidad.",
+        "Un apartado de las NEIS que agrupa varios datos normativos sobre una misma cuestión. Que un asunto sea material no elimina la revisión de aplicabilidad.",
     },
     en: {
       term: "Disclosure requirement",
@@ -144,7 +144,7 @@ export const GLOSSARY = {
   },
   fase_transicion: {
     es: {
-      term: "Aplazamiento (phase-in)",
+      term: "Aplazamiento por aplicación gradual",
       definition:
         "Alivio temporal del estándar: las empresas de menos de 750 personas empleadas pueden aplazar ciertos datos durante los primeros ejercicios.",
     },

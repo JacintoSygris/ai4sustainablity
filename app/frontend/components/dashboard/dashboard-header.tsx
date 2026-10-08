@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { LanguageSelector } from "@/components/language-selector"
+import { useLocale } from "@/components/locale-provider"
+import { ui } from "@/lib/i18n/messages.mjs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -37,9 +42,11 @@ function readCookie(name: string): string | null {
 }
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
   const router = useRouter()
   const [loggingOut, setLoggingOut] = useState(false)
-  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [logoutError, setLogoutError] = useSystemMessage(null)
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -64,7 +71,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     })
 
     if (result.outcome === "retryable_error") {
-      setLogoutError("No se ha podido cerrar la sesión. Inténtalo de nuevo.")
+      setLogoutError(systemCopy("No se ha podido cerrar la sesión. Inténtalo de nuevo."))
       setLoggingOut(false)
 
       return
@@ -86,26 +93,27 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur">
       {logoutError ? (
         <div role="alert" className="absolute right-4 top-16 rounded-md border border-destructive/40 bg-background px-4 py-2 text-sm text-destructive shadow">
-          {logoutError}
+          {tr(logoutError)}
         </div>
       ) : null}
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/dashboard" className="flex items-center gap-1">
           <span className="text-2xl font-bold text-primary">Airis</span>
-          <span className="text-xs text-muted-foreground">By Sygris</span>
+          <span className="text-xs text-muted-foreground">{tr("Por Sygris")}</span>
         </Link>
 
         <div className="flex items-center gap-4">
           <Link href="/help" className="flex items-center gap-2 text-sm text-primary hover:underline">
             <HelpCircle className="h-4 w-4" aria-hidden="true" />
-            ¿Necesitas ayuda?
+            {tr("¿Necesitas ayuda?")}
           </Link>
 
+          <LanguageSelector />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                aria-label="Abrir menú de usuario"
+                aria-label={tr("Abrir menú de usuario")}
               >
                 <Avatar className="h-10 w-10 border-2 border-accent">
                   <AvatarImage src={user.image || undefined} alt={displayName} />
@@ -120,11 +128,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings">Configuración</Link>
+                <Link href="/settings">{tr("Configuración")}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="text-destructive">
-                {loggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+                {tr(loggingOut ? "Cerrando sesión..." : "Cerrar sesión")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

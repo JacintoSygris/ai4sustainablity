@@ -66,10 +66,10 @@ test("initial survey form preserves multi-select operation arrays", () => {
   assert.match(source, /regions: formData\.regions/, "P5 save payload must send all selected regions")
   assert.match(source, /value_chain: formData\.valueChain/, "P5 save payload must send all value chain positions")
   assert.match(source, /MultiSelectCheckboxes/, "P5 form must render a multi-select control")
-  assert.match(source, /optionLabels\(regionOptions, formData\.regions\)/, "P5 read-only summary must render all regions")
+  assert.match(source, /optionLabels\(regionOptions, formData\.regions, locale\)/, "P5 read-only summary must render all regions")
   assert.match(
     source,
-    /optionLabels\(valueChainOptions, formData\.valueChain\)/,
+    /optionLabels\(valueChainOptions, formData\.valueChain, locale\)/,
     "P5 read-only summary must render all value chain positions",
   )
 
@@ -157,7 +157,7 @@ test("initial survey form captures the optional activity questions from Laravel 
   )
   assert.match(
     formSource,
-    /options\.levels\.activity_questions\?\.fields/,
+    /visibleOptions\.levels\.activity_questions\?\.fields/,
     "P5 form must render questions from the Laravel options payload, not hardcoded copy",
   )
   assert.match(formSource, /Preguntas sobre la actividad/, "P5 form must label the activity questions section in Spanish")

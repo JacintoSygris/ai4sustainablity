@@ -124,14 +124,14 @@ it('renders factual labels and values in Spanish without visible internal identi
 
     expect($text)->toContain('Información sobre temas materiales');
     expect($text)->toContain('Consumo y combinación energética');
-    expect($text)->toContain('Consumo total de energía en operaciones propias');
+    expect($text)->toContain('Consumo total de energía de las operaciones propias');
     expect($text)->toContain('86,4 MWh');
     expect($text)->not->toContain('E1-5');
     expect($text)->not->toContain('Topical datapoints');
     expect($text)->not->toContain('orientación general');
     expect($text)->not->toContain('E9-9 English');
     expect($documentXml)->toMatch('/<w:p>(?:(?!<\/w:p>).)*<w:keepNext w:val="1"\/>'.
-        '(?:(?!<\/w:p>).)*Consumo total de energía en operaciones propias(?:(?!<\/w:p>).)*<\/w:p>/s');
+        '(?:(?!<\/w:p>).)*Consumo total de energía de las operaciones propias(?:(?!<\/w:p>).)*<\/w:p>/s');
 });
 
 it('never renders a banned overclaiming term in the generated document.xml', function () {

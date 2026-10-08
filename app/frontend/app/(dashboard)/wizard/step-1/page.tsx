@@ -1,3 +1,5 @@
+import { ui } from "@/lib/i18n/messages.mjs"
+import { getLaravelServerLocale } from "@/lib/laravel-server"
 import { WizardSidebar } from "@/components/wizard/wizard-sidebar"
 import { AcademyTips } from "@/components/wizard/academy-tips"
 import { InitialSurveyForm } from "@/components/wizard/initial-survey-form"
@@ -18,7 +20,7 @@ const importanceItems = [
   {
     title: "Ingresos anuales (€)",
     description:
-      "La información sobre ingresos ayuda a contextualizar el tamaño y el nivel de detalle del trabajo ASG/ESRS.",
+      "La información sobre ingresos ayuda a contextualizar el tamaño y el nivel de detalle del trabajo ASG/NEIS.",
   },
   {
     title: "Número de empleados",
@@ -35,7 +37,10 @@ const importanceItems = [
   },
 ]
 
-export default function WizardStep1Page() {
+export default async function WizardStep1Page() {
+  const locale = await getLaravelServerLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const wizardSteps = wizardStepsForView(1)
 
   return (
@@ -48,9 +53,9 @@ export default function WizardStep1Page() {
       </main>
 
       <AcademyTips
-        title="Consejos prácticos"
+        title={tr("Consejos prácticos")}
         tips={tips}
-        importanceTitle="¿Por qué es importante cada campo?"
+        importanceTitle={tr("¿Por qué es importante cada campo?")}
         importanceItems={importanceItems}
       />
     </div>

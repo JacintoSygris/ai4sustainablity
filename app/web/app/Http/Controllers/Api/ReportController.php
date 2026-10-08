@@ -69,7 +69,8 @@ class ReportController extends Controller
         $draft = $this->draftPayload(...$context);
 
         return response($this->packageHtml($readiness, $draft), 200)
-            ->header('Content-Type', 'text/html; charset=UTF-8');
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-preparation-package.html' : 'paquete-preparacion-neis.html').'"');
     }
 
     public function evidenceBundle(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -88,7 +89,7 @@ class ReportController extends Controller
 
         return response()->json([
             'data' => $this->evidenceBundlePayload(...$context),
-        ]);
+        ])->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-preparation-evidence.json' : 'evidencias-preparacion-neis.json').'"');
     }
 
     /**
@@ -100,6 +101,7 @@ class ReportController extends Controller
             'data' => [
                 'type' => 'report_package_blocked',
                 'version' => 'v0',
+                'locale' => app()->getLocale(),
                 'status' => $readiness['status'],
                 'sections' => $readiness['sections'],
                 'downloads' => $readiness['downloads'],
@@ -120,7 +122,7 @@ class ReportController extends Controller
             return null;
         }
 
-        $corpus = $datapoints->build($characterization);
+        $corpus = (new \App\Support\EsrsDisplayCatalogue)->project($datapoints->build($characterization), app()->getLocale());
         $responseState = $this->responseState($characterization, $corpus);
         $sections = $this->sections($characterization, $corpus, $responseState);
 
@@ -145,8 +147,10 @@ class ReportController extends Controller
         return [
             'type' => 'report_package_readiness',
             'version' => 'v0',
+            'locale' => app()->getLocale(),
             'characterization_id' => $characterization->id,
             'status' => $this->status($sections),
+            'status_label' => \App\Support\DisplayLabels::code($this->status($sections)),
             'workflow_status' => $workflowStatus,
             'workflow_complete' => $workflowStatus === 'ready',
             'report_content_status' => $reportContentStatus,
@@ -177,6 +181,7 @@ class ReportController extends Controller
         return [
             'type' => 'report_draft',
             'version' => 'v0',
+            'locale' => app()->getLocale(),
             'characterization_id' => $characterization->id,
             'generation_status' => $workflowStatus === 'ready'
                 ? 'report_preparation_package_ready'
@@ -221,6 +226,7 @@ class ReportController extends Controller
         return [
             'type' => 'report_evidence_bundle',
             'version' => 'v0',
+            'locale' => app()->getLocale(),
             'characterization_id' => $characterization->id,
             'generated_at' => now()->toJSON(),
             'bundle' => [
@@ -241,8 +247,8 @@ class ReportController extends Controller
                     'draft' => '/api/report/draft',
                     'report_package' => '/api/report/package',
                     'decision_sheet' => '/api/materiality-confirmation/decision-sheet',
-                    'datapoint_responses_csv' => '/api/esrs-datapoints/responses/export.csv',
-                    'datapoints_csv' => '/api/esrs-datapoints/export.csv',
+                    'datapoint_responses_csv' => '/api/esrs-datapoints/responses/export.localized.csv',
+                    'datapoints_csv' => '/api/esrs-datapoints/export.localized.csv',
                 ],
                 'ar16_to_dr_mapping' => [
                     'status' => Arr::get($corpus, 'generation.matter_to_dr_mapping_status'),
@@ -266,82 +272,12 @@ class ReportController extends Controller
      */
     private function packageHtml(array $readiness, array $draft): string
     {
-        $company = $this->e(Arr::get($draft, 'company.name') ?: 'Empresa sin nombre');
-        $year = $this->e((string) (Arr::get($draft, 'company.reporting_year') ?: '-'));
-        $status = $this->e((string) $readiness['status']);
-        $datapointCompletion = (float) Arr::get($draft, 'datapoints.completion_ratio', 0);
-        $datapointPercent = (string) round($datapointCompletion * 100);
-        $topics = collect(Arr::get($draft, 'materiality.confirmed_themes', []))
-            ->map(fn (array $topic): string => '<li><strong>'.$this->e((string) $topic['esrs_code']).'</strong> - '.$this->e((string) $topic['label']).'</li>')
-            ->implode('');
-        $blocks = collect(Arr::get($draft, 'datapoints.blocks', []))
-            ->map(fn (array $block): string => '<tr><td>'.$this->e((string) ($block['title'] ?? $block['key'] ?? 'Bloque')).'</td><td>'.$this->e((string) $block['decided_count']).'</td><td>'.$this->e((string) $block['datapoint_count']).'</td></tr>')
-            ->implode('');
-        $limitations = collect(Arr::get($draft, 'limitations', []))
-            ->map(fn (array $limitation): string => '<li>'.$this->e((string) ($limitation['message'] ?? $limitation['key'] ?? '')).'</li>')
-            ->implode('');
-
-        if ($topics === '') {
-            $topics = '<li>Sin temas materiales confirmados.</li>';
-        }
-
-        if ($limitations === '') {
-            $limitations = '<li>Sin limitaciones registradas.</li>';
-        }
-
-        return '<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Paquete de preparación ESRS 2023 - '.$company.'</title>
-  <style>
-    body { color: #172033; font-family: Arial, sans-serif; line-height: 1.5; margin: 32px; }
-    header { border-bottom: 2px solid #172033; margin-bottom: 24px; padding-bottom: 16px; }
-    h1, h2 { line-height: 1.2; }
-    .notice { background: #fff7ed; border: 1px solid #fed7aa; margin: 18px 0; padding: 12px 14px; }
-    .metrics { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0; }
-    .metric { border: 1px solid #d6d9e0; padding: 12px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #d6d9e0; padding: 8px; text-align: left; vertical-align: top; }
-    @media print { body { margin: 18mm; } .notice { break-inside: avoid; } }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Paquete de preparación ESRS 2023</h1>
-    <p><strong>'.$company.'</strong> - Ejercicio '.$year.'</p>
-  </header>
-  <section class="notice">
-    <strong>No sustituye la presentación oficial.</strong>
-    Este paquete organiza la preparación ESRS 2023, las evidencias y la trazabilidad; no sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera formatos electrónicos regulatorios.
-  </section>
-  <section class="metrics">
-    <div class="metric"><strong>Estado</strong><br>'.$status.'</div>
-    <div class="metric"><strong>Temas materiales</strong><br>'.$this->e((string) Arr::get($draft, 'materiality.confirmed_theme_count', 0)).'</div>
-    <div class="metric"><strong>Datos normativos decididos</strong><br>'.$datapointPercent.'%</div>
-  </section>
-  <section>
-    <h2>Temas materiales confirmados</h2>
-    <ul>'.$topics.'</ul>
-  </section>
-  <section>
-    <h2>Cobertura de datos normativos</h2>
-    <table>
-      <thead><tr><th>Bloque</th><th>Decididos</th><th>Total</th></tr></thead>
-      <tbody>'.$blocks.'</tbody>
-    </table>
-  </section>
-  <section>
-    <h2>Limitaciones y alcance</h2>
-    <ul>'.$limitations.'</ul>
-  </section>
-</body>
-</html>';
-    }
-
-    private function e(string $value): string
-    {
-        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return view('reports.preparation-package', [
+            'readiness' => $readiness,
+            'draft' => $draft,
+            'locale' => app()->getLocale(),
+            'statusLabel' => \App\Support\DisplayLabels::code($readiness['status']),
+        ])->render();
     }
 
     private function currentCharacterization(Request $request): ?Characterization
@@ -680,8 +616,8 @@ class ReportController extends Controller
             ->unique(fn (array $topic): string => (string) $topic['esrs_code'])
             ->map(fn (array $topic): array => [
                 'esrs_code' => (string) $topic['esrs_code'],
-                'label' => (string) (Arr::get($topic, 'theme.es')
-                    ?: Arr::get($topic, 'theme.en')
+                'label' => (string) (Arr::get($topic, 'theme.'.app()->getLocale())
+                    ?: Arr::get($topic, 'theme.es')
                     ?: $topic['esrs_code']),
             ])
             ->values()
@@ -789,12 +725,12 @@ class ReportController extends Controller
                 ...$this->downloadReadiness($sections, ['materiality_confirmation']),
             ],
             'p9_responses_csv' => [
-                'endpoint' => '/api/esrs-datapoints/responses/export.csv',
+                'endpoint' => '/api/esrs-datapoints/responses/export.localized.csv',
                 'content_type' => 'text/csv',
                 ...$this->downloadReadiness($sections, ['esrs_datapoints', 'datapoint_responses']),
             ],
             'p9_datapoints_csv' => [
-                'endpoint' => '/api/esrs-datapoints/export.csv',
+                'endpoint' => '/api/esrs-datapoints/export.localized.csv',
                 'content_type' => 'text/csv',
                 ...$this->downloadReadiness($sections, ['esrs_datapoints']),
             ],
@@ -897,28 +833,28 @@ class ReportController extends Controller
         $limitations = [
             [
                 'key' => 'report_package_scope',
-                'message' => 'El paquete permite preparar el informe ESRS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.',
+                'message' => __('El paquete permite preparar el informe NEIS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.'),
             ],
         ];
 
         if (Arr::get($corpus, 'generation.matter_to_dr_mapping_status') !== 'loaded') {
             $limitations[] = [
                 'key' => 'exact_ar16_matter_to_dr_mapping_pending',
-                'message' => 'El paso de datos no incluye los puntos temáticos hasta que se configure un mapa aprobado y completo entre los asuntos AR16 y los requisitos de información.',
+                'message' => __('El paso de datos no incluye los puntos temáticos hasta que se configure un mapa aprobado y completo entre los asuntos AR16 y los requisitos de información.'),
             ];
         }
 
         if ((int) Arr::get($sections, 'datapoint_responses.orphaned_response_count', 0) > 0) {
             $limitations[] = [
                 'key' => 'orphaned_datapoint_responses',
-                'message' => 'Algunas respuestas guardadas ya no coinciden con el alcance de materialidad vigente. Se conservan y volverán a incorporarse si el alcance las incluye de nuevo.',
+                'message' => __('Algunas respuestas guardadas ya no coinciden con el alcance de materialidad vigente. Se conservan y volverán a incorporarse si el alcance las incluye de nuevo.'),
             ];
         }
 
         if (Arr::get($sections, 'materiality_confirmation.is_stale') === true) {
             $limitations[] = [
                 'key' => 'materiality_confirmation_stale',
-                'message' => 'La confirmación final de materialidad es anterior a los últimos cambios de la propuesta. Vuelve a confirmarla en el paso 4.',
+                'message' => __('La confirmación final de materialidad es anterior a los últimos cambios de la propuesta. Vuelve a confirmarla en el paso 4.'),
             ];
         }
 

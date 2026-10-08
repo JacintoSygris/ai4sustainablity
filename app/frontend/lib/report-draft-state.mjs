@@ -12,9 +12,9 @@ export function humanizeKey(key) {
 const SECTION_LABELS = {
   characterization: "Caracterización de la empresa",
   materiality_proposal: "Propuesta de temas (IA)",
-  double_materiality_guide: "Guía de doble materialidad",
+  double_materiality_guide: "Guía de doble importancia relativa",
   materiality_confirmation: "Confirmación de materialidad final",
-  esrs_datapoints: "Lista de información ESRS",
+  esrs_datapoints: "Lista de información NEIS",
   datapoint_responses: "Respuestas registradas",
   report_content: "Contenido factual revisado",
   final_report_generation: "Resumen de resultados",
@@ -23,7 +23,7 @@ const SECTION_LABELS = {
 const DOWNLOAD_LABELS = {
   p8_decision_sheet: "Hoja de decisión de materialidad",
   p9_responses_csv: "Respuestas registradas (CSV)",
-  p9_datapoints_csv: "Lista de información ESRS (CSV)",
+  p9_datapoints_csv: "Lista de información NEIS (CSV)",
   characterization_summary_pdf: "Resumen de caracterización (PDF)",
   report_readiness: "Resumen de preparación (JSON)",
   report_package_html: "Paquete HTML imprimible",
@@ -32,7 +32,7 @@ const DOWNLOAD_LABELS = {
 
 const LIMITATION_MESSAGES = {
   report_package_scope:
-    "El paquete organiza preparación ESRS 2023. No sustituye presentación oficial, aseguramiento, Taxonomía UE ni aceptación de formatos digitales.",
+    "El paquete organiza preparación NEIS 2023. No sustituye presentación oficial, aseguramiento, Taxonomía UE ni aceptación de formatos digitales.",
   exact_ar16_matter_to_dr_mapping_pending:
     "Modo alcance: la lista incluye bloques transversales disponibles, pero la información temática derivada de tus temas no se genera hasta que la plataforma tenga una correspondencia tema-requisito configurada y válida.",
   materiality_confirmation_stale:
@@ -42,15 +42,15 @@ const LIMITATION_MESSAGES = {
 }
 
 export function sectionLabel(key) {
-  return SECTION_LABELS[key] ?? humanizeKey(key)
+  return SECTION_LABELS[key] ?? "Sección del informe"
 }
 
 export function downloadLabel(key) {
-  return DOWNLOAD_LABELS[key] ?? humanizeKey(key)
+  return DOWNLOAD_LABELS[key] ?? "Descarga"
 }
 
 export function limitationMessage(limitation) {
-  return LIMITATION_MESSAGES[limitation?.key] ?? limitation?.message ?? "Esta versión tiene una limitación adicional."
+  return LIMITATION_MESSAGES[limitation?.key] ?? "Esta versión tiene una limitación adicional."
 }
 
 export function statusLabel(status) {
@@ -69,9 +69,11 @@ export function statusLabel(status) {
     not_started: "Sin empezar",
     ready: "Listo",
     scoping_only: "Modo alcance",
+    verified: "Verificado",
+    external_taxonomy_unavailable: "Taxonomía externa no disponible",
   }
 
-  return labels[status] ?? humanizeKey(status)
+  return labels[status] ?? "Estado no disponible"
 }
 
 export function statusTone(status) {
@@ -98,7 +100,7 @@ export function formatPercent(value) {
   return `${Math.round(value * 100)}%`
 }
 
-export function materialThemeGroups(topics = []) {
+export function materialThemeGroups(topics = [], locale = "es") {
   const groups = new Map()
 
   for (const topic of topics) {
@@ -111,7 +113,7 @@ export function materialThemeGroups(topics = []) {
     const themeEn = typeof topic?.theme?.en === "string" ? topic.theme.en.trim() : ""
     groups.set(esrsCode, {
       esrs_code: esrsCode,
-      label: themeEs || themeEn || esrsCode,
+      label: (locale === "en" ? themeEn : themeEs) || esrsCode,
     })
   }
 
@@ -173,7 +175,7 @@ export function actionLabel(endpoint) {
   }
 
   if (endpoint?.includes("esrs-datapoints")) {
-    return "Registrar información ESRS (paso 5)"
+    return "Registrar información NEIS (paso 5)"
   }
 
   if (endpoint === "/api/report/draft") {
@@ -188,7 +190,7 @@ export function actionLabel(endpoint) {
     return "Abrir el paquete HTML (paso 6)"
   }
 
-  return humanizeKey(endpoint?.replace(/^\/api\//, "") ?? "")
+  return "Continuar"
 }
 
 export function isScopingOnly(readiness, draft) {

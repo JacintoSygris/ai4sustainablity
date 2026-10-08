@@ -1,30 +1,35 @@
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export function HeroSection() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background py-20 md:py-28">
       <div className="container mx-auto px-4">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="max-w-xl">
             <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Gestiona tu trabajo ASG, CSRD y ESRS,
-              <br />
-              <span className="text-foreground">con decisiones humanas y límites claros</span>
+              {" "}{tr("Gestiona tu trabajo ASG, CSRD y NEIS,")}{" "}<br />
+              <span className="text-foreground">{tr("con decisiones humanas y límites claros")}</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Airis te ayuda a describir tu organización, revisar asuntos ASG propuestos para la doble materialidad,
-              registrar decisiones humanas y preparar indicadores/datos ESRS para el informe de sostenibilidad.
-            </p>
+              {" "}{tr("Airis te ayuda a describir tu organización, revisar asuntos ASG propuestos para la doble importancia relativa, registrar decisiones humanas y preparar datos normativos NEIS para el informe de sostenibilidad.")}{" "}</p>
             <Button size="lg" className="mt-8" asChild>
-              <Link href="/register">Empezar ahora</Link>
+              <Link href="/register">{tr("Empezar ahora")}</Link>
             </Button>
           </div>
 
           <div className="relative hidden lg:block">
             <img
-              src="/dashboard-esg-report-interface-mockup.jpg"
-              alt="Vista previa de la interfaz de Airis"
+              src={locale === "es" ? "/dashboard-sostenibilidad-es.svg" : "/dashboard-esg-report-interface-mockup.jpg"}
+              alt={tr("Vista previa de la interfaz de Airis")}
               className="w-full rounded-lg shadow-2xl"
             />
           </div>

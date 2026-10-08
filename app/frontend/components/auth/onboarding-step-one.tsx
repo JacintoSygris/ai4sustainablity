@@ -1,5 +1,8 @@
 "use client"
 
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
@@ -11,8 +14,8 @@ const purposeOptions = [
 ]
 
 const roleOptions = [
-  { value: "freelance", label: "Freelance" },
-  { value: "ceo", label: "CEO" },
+  { value: "freelance", label: "Profesional independiente" },
+  { value: "ceo", label: "Dirección general" },
   { value: "director", label: "Director" },
   { value: "lider_equipo", label: "Líder de equipo" },
   { value: "miembro_equipo", label: "Miembro del equipo" },
@@ -24,6 +27,9 @@ interface OnboardingStepOneProps {
 }
 
 export function OnboardingStepOne({ onNext }: OnboardingStepOneProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const [purpose, setPurpose] = useState("")
   const [role, setRole] = useState("")
 
@@ -32,7 +38,7 @@ export function OnboardingStepOne({ onNext }: OnboardingStepOneProps) {
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-foreground">¿Qué te trae por aquí?</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{tr("¿Qué te trae por aquí?")}</h1>
       </div>
 
       <div className="space-y-3">
@@ -48,14 +54,14 @@ export function OnboardingStepOne({ onNext }: OnboardingStepOneProps) {
                   : "border-border bg-background text-foreground hover:border-primary/50"
               }`}
             >
-              {option.label}
+              {tr(option.label)}
             </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-medium text-foreground">¿Cómo describirías tu rol actual?</h2>
+        <h2 className="text-lg font-medium text-foreground">{tr("¿Cómo describirías tu rol actual?")}</h2>
         <div className="flex flex-wrap gap-2">
           {roleOptions.map((option) => (
             <button
@@ -68,15 +74,14 @@ export function OnboardingStepOne({ onNext }: OnboardingStepOneProps) {
                   : "border-border bg-background text-foreground hover:border-primary/50"
               }`}
             >
-              {option.label}
+              {tr(option.label)}
             </button>
           ))}
         </div>
       </div>
 
       <Button onClick={() => onNext({ purpose, role })} disabled={!canContinue} className="w-full">
-        Siguiente
-      </Button>
+        {" "}{tr("Siguiente")}{" "}</Button>
     </div>
   )
 }

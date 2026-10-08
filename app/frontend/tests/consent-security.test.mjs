@@ -25,3 +25,21 @@ test('late script completion after unmount cannot render a widget', async () => 
   win.turnstile = { render() { renders++ } }; script.onload(); await Promise.resolve(); await Promise.resolve()
   assert.equal(renders, 0)
 })
+
+test('language changes update an activated security challenge without loading it or clearing surrounding input', async () => {
+  const document = fakeDocument(), host = document.createElement('div'), input = document.createElement('input')
+  input.value = 'Texto libre unchanged'; document.body.append(input, host)
+  let changed, disconnected = false
+  document.defaultView = { MutationObserver: class { constructor(fn) { changed = fn } observe() {} disconnect() { disconnected = true } } }
+  const renders = [], removed = []
+  const win = { document, turnstile: { render(_, options) { renders.push(options.language); return renders.length }, remove(id) { removed.push(id) } } }
+  const off = mountSecurityCheck(host, { enabled: true, siteKey: 'test-key', action: 'register' }, win)
+  document.documentElement.lang = 'en'; changed()
+  assert.equal(renders.length, 0)
+  host.children.find(el => el.tagName === 'button').click(); await Promise.resolve()
+  assert.deepEqual(renders, ['en'])
+  document.documentElement.lang = 'es'; changed()
+  assert.deepEqual(renders, ['en', 'es']); assert.deepEqual(removed, [1])
+  assert.equal(input.value, 'Texto libre unchanged'); assert.equal(input.isConnected, true)
+  off(); assert.equal(disconnected, true)
+})

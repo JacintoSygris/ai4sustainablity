@@ -9,3 +9,10 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Keep qualified WP13 source bytes; CRLF is intentional on these exact paths.
+app/Console/Commands/RunLearningBatch.php -text whitespace=cr-at-eol
+app/Services/LearningCandidateSelection.php -text whitespace=cr-at-eol
+app/Services/LearningCaseExport.php -text whitespace=cr-at-eol
+tests/Feature/Services/LearningCaseCurationTest.php -text whitespace=cr-at-eol
+tests/Feature/Services/LearningCaseExportTest.php -text whitespace=cr-at-eol

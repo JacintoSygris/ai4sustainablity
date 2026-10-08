@@ -467,6 +467,7 @@ it('reports stored topic ids as the source when they differ from AI candidates',
 });
 
 it('uses a specific validation message when a completed proposal has no topics to review', function () {
+    $this->withSession(['app_locale' => 'es']);
     Characterization::factory()->create([
         'user_id' => $this->user->id,
         'status' => Characterization::STATUS_COMPLETED,
@@ -480,7 +481,7 @@ it('uses a specific validation message when a completed proposal has no topics t
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['characterization'])
-        ->assertJsonPath('errors.characterization.0', 'The P6 materiality proposal has no topics to review. Add or confirm material topics before storing review actions.');
+        ->assertJsonPath('errors.characterization.0', 'La propuesta de materialidad no contiene temas para revisar. Añade o confirma temas materiales antes de guardar las acciones de revisión.');
 });
 
 it('treats malformed legacy raw prediction values as empty evidence', function () {

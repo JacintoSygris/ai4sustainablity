@@ -57,7 +57,7 @@ class PasswordResetLinkController extends Controller
             });
         }, 250_000);
 
-        SendPasswordResetLink::dispatch($userId, $email, $authVersion, $generation);
+        SendPasswordResetLink::dispatch($userId, $email, $authVersion, $generation, app()->getLocale());
 
         // Always return the same response so this endpoint cannot be used to
         // discover whether an email address belongs to an account.

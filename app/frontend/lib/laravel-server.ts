@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { headers } from "next/headers"
 import type {
   LaravelApiEnvelope,
@@ -92,3 +93,13 @@ export async function getLaravelServerReportReadiness(): Promise<LaravelReportRe
 
   return response?.data ?? null
 }
+
+// Resolve encrypted guest preferences through the session authority.
+export const getLaravelServerLocale = cache(async (): Promise<"es" | "en"> => {
+  try {
+    const response = await laravelServerApi<{ locale: string }>("/locale")
+    return response?.data.locale === "en" ? "en" : "es"
+  } catch {
+    return "es"
+  }
+})

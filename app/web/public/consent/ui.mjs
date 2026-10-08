@@ -33,10 +33,15 @@ const mounts = new WeakMap()
 export function mountConsent(host, api) {
   if (mounts.has(host)) return mounts.get(host)
   const doc = host.ownerDocument
-  const t = copy[doc.documentElement.lang.startsWith('en') ? 'en' : 'es']
+  let t = copy[doc.documentElement.lang.startsWith('en') ? 'en' : 'es']
+  const localizedNodes = []
   const el = (tag, text, className) => {
     const node = doc.createElement(tag)
-    if (text) node.textContent = text
+    if (text) {
+      node.textContent = text
+      const key = Object.keys(t).find(key => t[key] === text)
+      if (key) localizedNodes.push([node, key])
+    }
     if (className) node.className = className
     return node
   }
@@ -125,7 +130,16 @@ export function mountConsent(host, api) {
   shell.append(notice, persistent, dialog); host.append(shell)
   render(api.getState())
   const off = api.subscribe(render), offOpen = api.onReopen(open)
-  const dispose = () => { if (dialog.open) close(); off(); offOpen(); shell.remove(); mounts.delete(host) }
+  const Observer = doc.defaultView?.MutationObserver
+  const observer = Observer ? new Observer(() => {
+    t = copy[doc.documentElement.lang.startsWith('en') ? 'en' : 'es']
+    for (const [node, key] of localizedNodes) node.textContent = t[key]
+    notice.setAttribute('aria-label', t.title)
+    persistent.setAttribute('aria-label', t.reopen)
+    dialog.setAttribute('aria-label', t.reopen)
+  }) : null
+  observer?.observe(doc.documentElement, { attributes: true, attributeFilter: ['lang'] })
+  const dispose = () => { observer?.disconnect(); if (dialog.open) close(); off(); offOpen(); shell.remove(); mounts.delete(host) }
   mounts.set(host, dispose)
   return dispose
 }

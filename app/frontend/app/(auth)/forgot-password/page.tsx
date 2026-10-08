@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import type React from "react"
 
 import Link from "next/link"
@@ -10,9 +15,12 @@ import { Label } from "@/components/ui/label"
 import { fetchLaravelCsrfToken, laravelAuthHeaders, laravelValidationMessage } from "@/lib/laravel-auth"
 
 export default function ForgotPasswordPage() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const [email, setEmail] = useState("")
-  const [error, setError] = useState("")
-  const [status, setStatus] = useState("")
+  const [error, setError] = useSystemMessage("")
+  const [status, setStatus] = useSystemMessage("")
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -35,13 +43,13 @@ export default function ForgotPasswordPage() {
       })
 
       if (response.status === 419) {
-        setError(await laravelValidationMessage(response, "La sesión de seguridad ha caducado."))
+        setError(await laravelValidationMessage(response, tr("La sesión de seguridad ha caducado."), locale))
         return
       }
 
-      setStatus("Si existe una cuenta con ese email, enviaremos un enlace para restablecer la contraseña.")
+      setStatus(systemCopy("Si existe una cuenta con ese email, enviaremos un enlace para restablecer la contraseña."))
     } catch {
-      setError("No se ha podido solicitar el enlace. Inténtalo de nuevo.")
+      setError(systemCopy("No se ha podido solicitar el enlace. Inténtalo de nuevo."))
     } finally {
       setLoading(false)
     }
@@ -50,21 +58,20 @@ export default function ForgotPasswordPage() {
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Recuperar contraseña</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{tr("Recuperar contraseña")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Indica tu email y te enviaremos un enlace de recuperación si la cuenta existe.
-        </p>
+          {" "}{tr("Indica tu email y te enviaremos un enlace de recuperación si la cuenta existe.")}{" "}</p>
       </div>
 
       {status ? <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{status}</div> : null}
       {error ? <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{tr("Email")}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="nombre@empresa.com"
+          placeholder={tr("nombre@empresa.com")}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
@@ -72,13 +79,12 @@ export default function ForgotPasswordPage() {
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Solicitando enlace..." : "Enviar enlace de recuperación"}
+        {loading ? tr("Solicitando enlace...") : tr("Enviar enlace de recuperación")}
       </Button>
 
       <div className="text-center">
         <Link href="/login" className="text-sm text-primary hover:underline">
-          Volver a iniciar sesión
-        </Link>
+          {" "}{tr("Volver a iniciar sesión")}{" "}</Link>
       </div>
     </form>
   )

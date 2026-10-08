@@ -27,15 +27,19 @@ class EsrsDatapointCsvExporter
     /**
      * @param  array<string, mixed>  $corpus
      */
-    public function toCsv(array $corpus): string
+    public function toCsv(array $corpus, ?string $locale = null): string
     {
+        $catalogue = $locale === null ? null : new EsrsDisplayCatalogue;
+        if ($catalogue) {
+            $corpus = $catalogue->project($corpus, $locale);
+        }
         $handle = fopen('php://temp', 'r+');
 
         if ($handle === false) {
             return '';
         }
 
-        fputcsv($handle, self::COLUMNS);
+        fputcsv($handle, $catalogue ? $catalogue->headers([...self::COLUMNS, 'selection_reason_labels'], $locale) : self::COLUMNS);
 
         foreach (['always_required', 'topical', 'minimum_disclosure_requirements'] as $blockKey) {
             $block = $corpus['blocks'][$blockKey] ?? null;
@@ -51,7 +55,7 @@ class EsrsDatapointCsvExporter
                     continue;
                 }
 
-                fputcsv($handle, $this->row($block, $datapoint, $disclosureRequirementByDatapoint));
+                fputcsv($handle, $this->row($block, $datapoint, $disclosureRequirementByDatapoint, $locale, $catalogue));
             }
         }
 
@@ -90,11 +94,14 @@ class EsrsDatapointCsvExporter
      * @param  array<string, string>  $disclosureRequirementByDatapoint
      * @return array<int, string>
      */
-    private function row(array $block, array $datapoint, array $disclosureRequirementByDatapoint): array
+    private function row(array $block, array $datapoint, array $disclosureRequirementByDatapoint, ?string $locale, ?EsrsDisplayCatalogue $catalogue): array
     {
         $phaseIn = is_array($datapoint['phase_in'] ?? null) ? $datapoint['phase_in'] : [];
         $selection = is_array($datapoint['selection'] ?? null) ? $datapoint['selection'] : [];
         $datapointId = (string) ($datapoint['id'] ?? '');
+
+        $display = $datapoint['display'] ?? [];
+        $boolean = fn (bool $value) => $catalogue ? $catalogue->text($value ? 'true' : 'false', $locale) : ($value ? 'true' : 'false');
 
         return [
             (string) ($block['key'] ?? ''),
@@ -105,15 +112,16 @@ class EsrsDatapointCsvExporter
             (string) ($datapoint['dr'] ?? ''),
             (string) ($datapoint['paragraph'] ?? ''),
             (string) ($datapoint['related_ar'] ?? ''),
-            (string) ($datapoint['name'] ?? ''),
-            (string) ($datapoint['data_type'] ?? ''),
-            (string) ($datapoint['conditional_or_alternative'] ?? ''),
-            ($datapoint['may_disclose'] ?? false) ? 'true' : 'false',
+            (string) ($display['name'] ?? $datapoint['name'] ?? ''),
+            (string) ($display['data_type'] ?? $datapoint['data_type'] ?? ''),
+            (string) ($display['conditional_or_alternative'] ?? $datapoint['conditional_or_alternative'] ?? ''),
+            $boolean((bool) ($datapoint['may_disclose'] ?? false)),
             (string) ($datapoint['appendix_b'] ?? ''),
-            (string) ($phaseIn['less_than_750'] ?? ''),
-            (string) ($phaseIn['all_undertakings'] ?? ''),
-            ($selection['default_selected'] ?? true) ? 'true' : 'false',
+            (string) ($display['phase_in']['less_than_750'] ?? $phaseIn['less_than_750'] ?? ''),
+            (string) ($display['phase_in']['all_undertakings'] ?? $phaseIn['all_undertakings'] ?? ''),
+            $boolean((bool) ($selection['default_selected'] ?? true)),
             implode(' | ', array_map('strval', $selection['reason_codes'] ?? [])),
+            ...($catalogue ? [implode(' | ', array_map(fn ($code) => $catalogue->text($code, $locale), $selection['reason_codes'] ?? []))] : []),
         ];
     }
 }

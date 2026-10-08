@@ -14,7 +14,7 @@ class DoubleMaterialityGuideController extends Controller
 {
     public function show()
     {
-        return response()->json(['data' => DoubleMaterialityGuide::toArray()]);
+        return response()->json(['data' => DoubleMaterialityGuide::toArray(app()->getLocale())]);
     }
 
     public function templateCsv(Request $request, string $template)
@@ -23,15 +23,20 @@ class DoubleMaterialityGuideController extends Controller
             'locale' => ['sometimes', 'string', 'in:en,es'],
         ]);
 
-        $csv = DoubleMaterialityGuide::templateCsv($template, $validated['locale'] ?? 'es');
+        // Legacy direct clients may choose a query locale only without a stored preference.
+        $locale = \App\Support\ApplicationLocale::preference($request) === null
+            ? ($validated['locale'] ?? app()->getLocale())
+            : app()->getLocale();
+        $csv = DoubleMaterialityGuide::templateCsv($template, $locale);
 
         if (! $csv) {
-            return response()->json(['message' => 'Template not found.'], 404);
+            return response()->json(['message' => __('Template not found.')], 404);
         }
 
         return response($csv['content'], 200, [
             'Content-Disposition' => 'attachment; filename='.$csv['filename'],
             'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Language' => $locale,
         ]);
     }
 

@@ -1,3 +1,8 @@
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import * as React from 'react'
 import {
   ChevronLeftIcon,
@@ -9,10 +14,13 @@ import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <nav
       role="navigation"
-      aria-label="Paginación"
+      aria-label={tr("Paginación")}
       data-slot="pagination"
       className={cn('mx-auto flex w-full justify-center', className)}
       {...props}
@@ -69,15 +77,18 @@ function PaginationPrevious({
   className,
   ...props
 }: React.ComponentProps<typeof PaginationLink>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <PaginationLink
-      aria-label="Ir a la página anterior"
+      aria-label={tr("Ir a la página anterior")}
       size="default"
       className={cn('gap-1 px-2.5 sm:pl-2.5', className)}
       {...props}
     >
       <ChevronLeftIcon />
-      <span className="hidden sm:block">Anterior</span>
+      <span className="hidden sm:block">{tr("Anterior")}</span>
     </PaginationLink>
   )
 }
@@ -86,14 +97,17 @@ function PaginationNext({
   className,
   ...props
 }: React.ComponentProps<typeof PaginationLink>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <PaginationLink
-      aria-label="Ir a la página siguiente"
+      aria-label={tr("Ir a la página siguiente")}
       size="default"
       className={cn('gap-1 px-2.5 sm:pr-2.5', className)}
       {...props}
     >
-      <span className="hidden sm:block">Siguiente</span>
+      <span className="hidden sm:block">{tr("Siguiente")}</span>
       <ChevronRightIcon />
     </PaginationLink>
   )
@@ -103,6 +117,9 @@ function PaginationEllipsis({
   className,
   ...props
 }: React.ComponentProps<'span'>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <span
       aria-hidden
@@ -111,7 +128,7 @@ function PaginationEllipsis({
       {...props}
     >
       <MoreHorizontalIcon className="size-4" />
-      <span className="sr-only">Más páginas</span>
+      <span className="sr-only">{tr("Más páginas")}</span>
     </span>
   )
 }

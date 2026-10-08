@@ -6,6 +6,7 @@ use App\Models\ReportingFact;
 use App\Models\User;
 use App\Services\EsrsDatapointCorpusBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\FrontendCompatibilitySchema;
 
 uses(RefreshDatabase::class);
 
@@ -16,6 +17,188 @@ beforeEach(function () {
 
     $this->user = User::factory()->create();
     $this->e2Topic = EsrsTopic::where('esrs_code', 'E2')->firstOrFail();
+});
+
+it('conforms to the bounded OpenAPI readiness and draft response schemas in both persisted locales', function (string $state) {
+    config(['services.esrs_datapoints.matter_dr_mapping_path' => null]);
+    $characterization = reportReadyCharacterization($this->user, $this->e2Topic);
+    $mappingPath = null;
+    try {
+        if ($state !== 'incomplete') {
+            configureApprovedReportDrMap($this->e2Topic);
+            $mappingPath = config('services.esrs_datapoints.matter_dr_mapping_path');
+            completeDoubleMaterialityProcess($characterization);
+            completeReportDatapointResponses($characterization);
+        } else {
+            // Exercise all conditional limitation keys using persisted legacy data.
+            $formData = $characterization->form_data;
+            $otherTopic = EsrsTopic::whereKeyNot([$this->e2Topic->id])->firstOrFail();
+            $formData['materiality_confirmation']['p6_snapshot'] = ['topic_ids' => [$otherTopic->id]];
+            $formData['esrs_datapoint_responses']['responses']['obsolete_datapoint'] = ['status' => 'completed', 'value' => 'Historical user value'];
+            $characterization->forceFill(['form_data' => $formData])->save();
+        }
+        if ($state === 'factual_ready') {
+            $corpus = app(EsrsDatapointCorpusBuilder::class)->build($characterization);
+            foreach (reportDatapointIds($corpus) as $id) {
+                ReportingFact::create([
+                    'characterization_id' => $characterization->id,
+                    'fact_id' => 'rf_contract_'.hash('sha256', $id),
+                    'schema_version' => ReportingFact::SCHEMA_VERSION,
+                    'profile_id' => ReportingFact::PROFILE_ID,
+                    'datapoint_id' => $id,
+                    'applicability' => 'applicable',
+                    'value_type' => 'text',
+                    'value' => ['text' => 'Synthetic reviewed user text'],
+                    'dimensions' => [],
+                    'language' => 'es',
+                    'nil' => false,
+                    'evidence_refs' => [['type' => 'note', 'value' => 'Synthetic contract fixture']],
+                    'provenance' => 'api',
+                    'approval_status' => 'reviewed',
+                    'blocking_reasons' => [],
+                ]);
+            }
+        }
+        $before = $characterization->fresh()->getRawOriginal('form_data');
+        $contract = new FrontendCompatibilitySchema();
+        $this->actingAs($this->user)->withHeader('Accept-Language', 'en');
+        $spanish = [];
+        foreach (['es', 'en'] as $locale) {
+            if ($locale === 'en') {
+                $this->putJson('/api/locale', ['locale' => 'en'])->assertOk();
+            }
+            foreach (['/api/report', '/api/report/draft'] as $route) {
+                $response = $this->getJson($route.'?locale='.($locale === 'es' ? 'en' : 'es'))
+                    ->assertOk()->assertHeader('Content-Language', $locale)
+                    ->assertJsonPath('data.locale', $locale)
+                    ->assertJsonPath('data.workflow_status', $state === 'incomplete' ? 'incomplete' : 'ready')
+                    ->assertJsonPath('data.workflow_complete', $state !== 'incomplete')
+                    ->assertJsonPath('data.report_content_status', $state === 'factual_ready' ? 'ready' : 'incomplete')
+                    ->assertJsonPath('data.report_content_ready', $state === 'factual_ready');
+                expect($contract->responseErrors($route, $response->getContent()))->toBe([]);
+                $response->assertJsonPath($route === '/api/report' ? 'data.status' : 'data.readiness_status', $state === 'factual_ready' ? 'ready' : 'incomplete');
+                if ($route === '/api/report/draft') {
+                    $response->assertJsonPath('data.generation_status', $state === 'incomplete' ? 'frontend_rendered_draft' : 'report_preparation_package_ready');
+                    $response->assertJsonPath('data.company.name', 'Entidad Demo');
+                }
+                $data = $response->json('data');
+                $keys = array_column($data['limitations'], 'key');
+                expect($keys)->toContain('report_package_scope');
+                if ($state === 'incomplete') {
+                    expect($keys)->toContain('exact_ar16_matter_to_dr_mapping_pending', 'orphaned_datapoint_responses', 'materiality_confirmation_stale');
+                }
+                if ($locale === 'es') {
+                    $spanish[$route] = $data;
+                } else {
+                    expect($data['limitations'][0]['message'])->not->toBe($spanish[$route]['limitations'][0]['message']);
+                    expect($keys)->toBe(array_column($spanish[$route]['limitations'], 'key'));
+                    foreach (['type', 'version', 'characterization_id', 'workflow_status', 'workflow_complete', 'report_content_status', 'report_content_ready', 'coverage_mode'] as $key) {
+                        expect($data[$key])->toBe($spanish[$route][$key]);
+                    }
+                    if ($route === '/api/report/draft') {
+                        expect($data['company'])->toBe($spanish[$route]['company']);
+                    }
+                }
+                // Mutations of real emitted payloads prove required/type/enum checks are effective.
+                foreach ([
+                    function ($payload) { unset($payload->data->locale); },
+                    fn ($payload) => $payload->data->locale = 'fr',
+                    fn ($payload) => $payload->data->workflow_complete = 'true',
+                    fn ($payload) => $payload->data->report_content_status = 'generation_pending',
+                    fn ($payload) => $payload->data->limitations[0]->key = 'final_report_generation_pending',
+                    fn ($payload) => $payload->data->limitations[0]->message = false,
+                ] as $mutate) {
+                    $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+                    $mutate($payload);
+                    expect($contract->responseErrors($route, json_encode($payload, JSON_THROW_ON_ERROR)))->not->toBe([]);
+                }
+                $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+                if ($route === '/api/report') {
+                    unset($payload->data->sections->report_content->required_count);
+                } else {
+                    $payload->data->generation_status = 'not_implemented';
+                }
+                expect($contract->responseErrors($route, json_encode($payload, JSON_THROW_ON_ERROR)))->not->toBe([]);
+                if ($route === '/api/report/draft') {
+                    foreach (['name', 'nace_code', 'status', 'reporting_year', 'product_service_type', 'employee_count_range', 'revenue_range', 'regions'] as $key) {
+                        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+                        unset($payload->data->company->{$key});
+                        expect($contract->responseErrors($route, json_encode($payload, JSON_THROW_ON_ERROR)))->not->toBe([]);
+                    }
+                    foreach ([
+                        fn ($payload) => $payload->data->company->name = false,
+                        fn ($payload) => $payload->data->company->nace_code = 123,
+                        fn ($payload) => $payload->data->company->status = 'ready',
+                        fn ($payload) => $payload->data->company->status = null,
+                        fn ($payload) => $payload->data->company->reporting_year = '2025',
+                        fn ($payload) => $payload->data->company->product_service_type = 'invalid_product_service_type',
+                        fn ($payload) => $payload->data->company->product_service_type = true,
+                        fn ($payload) => $payload->data->company->employee_count_range = 'invalid_employee_count_range',
+                        fn ($payload) => $payload->data->company->employee_count_range = 150,
+                        fn ($payload) => $payload->data->company->revenue_range = 'invalid_revenue_range',
+                        fn ($payload) => $payload->data->company->revenue_range = 6000000,
+                        fn ($payload) => $payload->data->company->regions = 'eu',
+                        fn ($payload) => $payload->data->company->regions = null,
+                        fn ($payload) => $payload->data->company->regions = ['invalid_region'],
+                        fn ($payload) => $payload->data->company->regions = [true],
+                        fn ($payload) => $payload->data->company->extra = true,
+                    ] as $mutate) {
+                        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+                        $mutate($payload);
+                        expect($contract->responseErrors($route, json_encode($payload, JSON_THROW_ON_ERROR)))->not->toBe([]);
+                    }
+                }
+            }
+        }
+        expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+    } finally {
+        if ($mappingPath !== null) {
+            unlink($mappingPath);
+        }
+    }
+})->with(['incomplete', 'workflow_complete', 'factual_ready']);
+
+it('conforms to the bounded company schema for an empty draft in both persisted locales', function () {
+    Characterization::factory()->create(['user_id' => $this->user->id]);
+    $contract = new FrontendCompatibilitySchema();
+    $this->actingAs($this->user)->withHeader('Accept-Language', 'en');
+
+    foreach (['es', 'en'] as $locale) {
+        if ($locale === 'en') {
+            $this->putJson('/api/locale', ['locale' => 'en'])->assertOk();
+        }
+        $response = $this->getJson('/api/report/draft?locale='.($locale === 'es' ? 'en' : 'es'))
+            ->assertOk()->assertHeader('Content-Language', $locale)
+            ->assertJsonPath('data.locale', $locale)
+            ->assertJsonPath('data.readiness_status', 'incomplete');
+        expect($response->json('data.company'))->toBe([
+            'name' => null,
+            'nace_code' => null,
+            'status' => Characterization::STATUS_DRAFT,
+            'reporting_year' => null,
+            'product_service_type' => null,
+            'employee_count_range' => null,
+            'revenue_range' => null,
+            'regions' => [],
+        ]);
+        expect($contract->responseErrors('/api/report/draft', $response->getContent()))->toBe([]);
+    }
+});
+
+it('conforms to the bounded OpenAPI null report envelopes in both locales', function () {
+    $contract = new FrontendCompatibilitySchema();
+    $this->actingAs($this->user)->withHeader('Accept-Language', 'en');
+    foreach (['es', 'en'] as $locale) {
+        if ($locale === 'en') {
+            $this->putJson('/api/locale', ['locale' => 'en'])->assertOk();
+        }
+        foreach (['/api/report', '/api/report/draft'] as $route) {
+            $response = $this->getJson($route)->assertOk()->assertHeader('Content-Language', $locale)->assertJsonPath('data', null);
+            expect($contract->responseErrors($route, $response->getContent()))->toBe([]);
+            expect($contract->responseErrors($route, '{}'))->not->toBe([]);
+            expect($contract->responseErrors($route, '{"data":[]}'))->not->toBe([]);
+        }
+    }
 });
 
 it('requires authentication for report readiness', function () {
@@ -66,11 +249,11 @@ it('returns report package readiness and download endpoints for the separate fro
         ->assertJsonPath('data.downloads.evidence_bundle_json.endpoint', '/api/report/evidence-bundle')
         ->assertJsonPath('data.downloads.evidence_bundle_json.status', 'incomplete')
         ->assertJsonPath('data.downloads.p8_decision_sheet.endpoint', '/api/materiality-confirmation/decision-sheet')
-        ->assertJsonPath('data.downloads.p9_responses_csv.endpoint', '/api/esrs-datapoints/responses/export.csv')
-        ->assertJsonPath('data.downloads.p9_datapoints_csv.endpoint', '/api/esrs-datapoints/export.csv')
+        ->assertJsonPath('data.downloads.p9_responses_csv.endpoint', '/api/esrs-datapoints/responses/export.localized.csv')
+        ->assertJsonPath('data.downloads.p9_datapoints_csv.endpoint', '/api/esrs-datapoints/export.localized.csv')
         ->assertJsonPath('data.downloads.characterization_summary_pdf.endpoint', '/characterization/summary?format=pdf')
         ->assertJsonPath('data.limitations.0.key', 'report_package_scope')
-        ->assertJsonPath('data.limitations.0.message', 'El paquete permite preparar el informe ESRS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.');
+        ->assertJsonPath('data.limitations.0.message', 'El paquete permite preparar el informe NEIS 2023 y organizar sus evidencias. No sustituye la presentación oficial ni el aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera de forma nativa documentos PDF ni formatos electrónicos regulatorios.');
 
     expect($response->json('data.sections.esrs_datapoints.total_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.sections.datapoint_responses.response_count'))->toBe(2);
@@ -610,7 +793,7 @@ it('generates a self-contained report package and evidence bundle when report in
         ->get('/api/report/package')
         ->assertOk()
         ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
-        ->assertSee('Paquete de preparación ESRS 2023', false)
+        ->assertSee('Paquete de preparación NEIS 2023', false)
         ->assertSee('Entidad Demo', false)
         ->assertSee('No sustituye la presentación oficial', false)
         ->getContent();

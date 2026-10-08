@@ -6,7 +6,7 @@ import { wizardStepsForView } from "@/lib/wizard-steps"
 const academyTips = {
   title: "Consejos prácticos",
   tips: [
-    "La doble materialidad evalúa cada asunto desde el impacto y desde el efecto financiero; el paso 3 te guía para hacer el análisis fuera de la aplicación y el paso 4 registra tu confirmación final.",
+    "La doble importancia relativa evalúa cada asunto desde el impacto y desde el efecto financiero; el paso 3 te guía para hacer el análisis fuera de la aplicación y el paso 4 registra tu confirmación final.",
   ],
 }
 

@@ -32,20 +32,20 @@ class FrontendWorkflowManifest
                     'optional_private_values' => [],
                 ],
                 'handoff_warnings' => [
-                    'The received Next /api/wizard/* routes are historical source behavior and are not authoritative IA4S workflow APIs.',
-                    'Step 2 and Step 3 use client-supplied reportId without userId ownership checks in the received source.',
-                    'Imported Better Auth and Turso/libSQL modules remain historical source-snapshot code; the current integrated runtime is Laravel-owned.',
+                    __('The received Next /api/wizard/* routes are historical source behavior and are not authoritative IA4S workflow APIs.'),
+                    __('Step 2 and Step 3 use client-supplied reportId without userId ownership checks in the received source.'),
+                    __('Imported Better Auth and Turso/libSQL modules remain historical source-snapshot code; the current integrated runtime is Laravel-owned.'),
                 ],
                 'quality_gates' => [
                     'build' => [
                         'command' => 'corepack pnpm build',
                         'status' => 'pass_smoke',
-                        'notes' => 'Next build succeeds as a runability smoke and the public gate runs TypeScript validation explicitly with corepack pnpm exec tsc --noEmit.',
+                        'notes' => __('Next build succeeds as a runability smoke and the public gate runs TypeScript validation explicitly with corepack pnpm exec tsc --noEmit.'),
                     ],
                     'lint' => [
                         'command' => 'corepack pnpm lint',
                         'status' => 'pass_with_baseline_warnings',
-                        'notes' => 'ESLint is enabled and exits successfully. Current legacy debt is tracked as warnings; new lint errors fail the gate.',
+                        'notes' => __('ESLint is enabled and exits successfully. Current legacy debt is tracked as warnings; new lint errors fail the gate.'),
                     ],
                 ],
             ],
@@ -90,7 +90,7 @@ class FrontendWorkflowManifest
                         '/api/materiality-confirmation/decision-sheet',
                     ],
                     'implemented',
-                    'Final user-confirmed materiality with delta against P6 and decision-sheet JSON.',
+                    'Final user-confirmed materiality with changes from the materiality proposal and decision-sheet JSON.',
                 ),
                 self::phase(
                     'P9',
@@ -99,8 +99,8 @@ class FrontendWorkflowManifest
                     [
                         '/api/esrs-topics',
                         '/api/esrs-datapoints/responses',
-                        '/api/esrs-datapoints/responses/export.csv',
-                        '/api/esrs-datapoints/export.csv',
+                        '/api/esrs-datapoints/responses/export.localized.csv',
+                        '/api/esrs-datapoints/export.localized.csv',
                     ],
                     'implemented_dr_level',
                     'Deterministic IG3 datapoint corpus with approved AR16 matter to Disclosure Requirement mapping, DR grouping, completion plan, and phase-in metadata.',
@@ -114,8 +114,8 @@ class FrontendWorkflowManifest
                         '/api/report/package',
                         '/api/report/evidence-bundle',
                         '/api/materiality-confirmation/decision-sheet',
-                        '/api/esrs-datapoints/responses/export.csv',
-                        '/api/esrs-datapoints/export.csv',
+                        '/api/esrs-datapoints/responses/export.localized.csv',
+                        '/api/esrs-datapoints/export.localized.csv',
                         '/characterization/summary?format=pdf',
                     ],
                     'implemented_report_preparation_package',
@@ -133,7 +133,7 @@ class FrontendWorkflowManifest
                     'review_traceability' => true,
                 ],
                 'p7' => [
-                    'content_format' => 'structured_json',
+                    'content_format' => 'structured_prose_v2',
                 ],
                 'p8' => [
                     'decision_sheet_json' => true,
@@ -159,8 +159,8 @@ class FrontendWorkflowManifest
                     'available_downloads' => [
                         '/api/report/draft',
                         '/api/materiality-confirmation/decision-sheet',
-                        '/api/esrs-datapoints/responses/export.csv',
-                        '/api/esrs-datapoints/export.csv',
+                        '/api/esrs-datapoints/responses/export.localized.csv',
+                        '/api/esrs-datapoints/export.localized.csv',
                         '/characterization/summary?format=pdf',
                     ],
                 ],
@@ -168,15 +168,15 @@ class FrontendWorkflowManifest
             'limitations' => [
                 [
                     'key' => 'historical_imported_frontend_source_state',
-                    'message' => 'El código fuente importado se conserva por trazabilidad, pero la aplicación integrada actual usa una única autoridad de autenticación, persistencia y API. Las rutas independientes del prototipo histórico no forman parte del producto vigente.',
+                    'message' => __('El código fuente importado se conserva por trazabilidad, pero la aplicación integrada actual usa una única autoridad de autenticación, persistencia y API. Las rutas independientes del prototipo histórico no forman parte del producto vigente.'),
                 ],
                 [
                     'key' => 'final_report_package_scope',
-                    'message' => 'La fase final prepara un informe ESRS 2023 revisable y exporta sus evidencias. No constituye una presentación oficial ni un trabajo de aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera formatos electrónicos regulatorios ni PDF nativo.',
+                    'message' => __('La fase final prepara un informe NEIS 2023 revisable y exporta sus evidencias. No constituye una presentación oficial ni un trabajo de aseguramiento, no acredita el cumplimiento de la Taxonomía de la UE y no genera formatos electrónicos regulatorios ni PDF nativo.'),
                 ],
                 [
                     'key' => 'auth_boundary',
-                    'message' => 'La aplicación usa una sesión autenticada para el acceso de usuarios y las API protegidas. Un operador puede añadir una autenticación externa en su propia infraestructura sin cambiar el contrato de la aplicación.',
+                    'message' => __('La aplicación usa una sesión autenticada para el acceso de usuarios y las API protegidas. Un operador puede añadir una autenticación externa en su propia infraestructura sin cambiar el contrato de la aplicación.'),
                 ],
             ],
         ];
@@ -197,11 +197,11 @@ class FrontendWorkflowManifest
     ): array {
         return [
             'phase' => $phase,
-            'title' => $title,
+            'title' => __($title),
             'status' => $status,
             'primary_endpoint' => $primaryEndpoint,
             'supporting_endpoints' => $supportingEndpoints,
-            'summary' => $summary,
+            'summary' => __($summary),
         ];
     }
 }

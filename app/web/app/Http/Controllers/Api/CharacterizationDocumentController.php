@@ -65,9 +65,9 @@ class CharacterizationDocumentController extends Controller
         $request->validate([
             'document' => ['required', 'file', 'max:'.self::MAX_SIZE_KILOBYTES],
         ], [
-            'document.required' => 'Selecciona un documento para subirlo.',
-            'document.file' => 'El archivo no se pudo recibir. Inténtalo de nuevo.',
-            'document.max' => 'El documento supera el tamaño máximo de 50 MB.',
+            'document.required' => __('Selecciona un documento para subirlo.'),
+            'document.file' => __('El archivo no se pudo recibir. Inténtalo de nuevo.'),
+            'document.max' => __('El documento supera el tamaño máximo de 50 MB.'),
         ]);
 
         $file = $request->file('document');
@@ -82,8 +82,8 @@ class CharacterizationDocumentController extends Controller
             $scan = UploadVirusScanner::scan($file);
             if (! $scan['ok']) {
                 $message = $scan['result'] === UploadVirusScanner::INFECTED
-                    ? 'El documento no ha superado el análisis de seguridad y no se ha guardado.'
-                    : 'No se ha podido analizar el documento en este momento. Inténtalo de nuevo más tarde.';
+                    ? __('El documento no ha superado el análisis de seguridad y no se ha guardado.')
+                    : __('No se ha podido analizar el documento en este momento. Inténtalo de nuevo más tarde.');
                 throw ValidationException::withMessages(['document' => $message]);
             }
         } finally {
@@ -92,7 +92,7 @@ class CharacterizationDocumentController extends Controller
 
         $globalQuotaLock = Cache::lock('p6-document-global-quota', 120);
         if (! $globalQuotaLock->get()) {
-            abort(503, 'El almacenamiento de documentos está ocupado. Inténtalo de nuevo.');
+            abort(503, __('El almacenamiento de documentos está ocupado. Inténtalo de nuevo.'));
         }
 
         try {
@@ -126,7 +126,7 @@ class CharacterizationDocumentController extends Controller
 
                         if ($currentCount >= $maxDocuments || $currentBytes + $incomingBytes > $maxTotalBytes) {
                             throw ValidationException::withMessages([
-                                'document' => 'Se ha alcanzado el límite de documentos almacenados. Elimina uno antes de subir otro.',
+                                'document' => __('Se ha alcanzado el límite de documentos almacenados. Elimina uno antes de subir otro.'),
                             ]);
                         }
 
@@ -137,12 +137,12 @@ class CharacterizationDocumentController extends Controller
                                 ->whereKeyNot($lockedUploadIntent->id)
                                 ->sum('size_bytes');
                         if ($globalBytes + $incomingBytes > $maxGlobalBytes) {
-                            abort(503, 'El almacenamiento de documentos no está disponible en este momento.');
+                            abort(503, __('El almacenamiento de documentos no está disponible en este momento.'));
                         }
                         $globalDocuments = CharacterizationDocument::query()->count()
                             + CharacterizationDocumentPurge::query()->whereKeyNot($lockedUploadIntent->id)->count();
                         if ($globalDocuments >= $maxGlobalDocuments) {
-                            abort(503, 'El almacenamiento de documentos no está disponible en este momento.');
+                            abort(503, __('El almacenamiento de documentos no está disponible en este momento.'));
                         }
 
                         $storedPath = $file->storeAs(
@@ -152,7 +152,7 @@ class CharacterizationDocumentController extends Controller
                         );
 
                         if (! is_string($storedPath)) {
-                            abort(500, 'No se pudo guardar el documento. Inténtalo de nuevo.');
+                            abort(500, __('No se pudo guardar el documento. Inténtalo de nuevo.'));
                         }
 
                         $document = $locked->documents()->create([
@@ -198,7 +198,7 @@ class CharacterizationDocumentController extends Controller
             abort_if(
                 $documentModel->status === CharacterizationDocument::STATUS_EXTRACTING,
                 409,
-                'El documento se está procesando. Inténtalo de nuevo cuando termine.'
+                __('El documento se está procesando. Inténtalo de nuevo cuando termine.')
             );
 
             $this->storeDeletionTombstone($locked, $documentModel);
@@ -235,7 +235,7 @@ class CharacterizationDocumentController extends Controller
             }
         }
 
-        abort(503, 'El análisis de documentos está ocupado. Inténtalo de nuevo.');
+        abort(503, __('El análisis de documentos está ocupado. Inténtalo de nuevo.'));
     }
 
     private function validatedExtension(UploadedFile $file): string
@@ -244,7 +244,7 @@ class CharacterizationDocumentController extends Controller
 
         if (! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
             throw ValidationException::withMessages([
-                'document' => 'Solo se admiten documentos PDF o DOCX.',
+                'document' => __('Solo se admiten documentos PDF o DOCX.'),
             ]);
         }
 
@@ -262,7 +262,7 @@ class CharacterizationDocumentController extends Controller
         // Fail-closed: an unreadable header or a mismatch rejects the upload.
         if ($header !== $expected) {
             throw ValidationException::withMessages([
-                'document' => 'El contenido del archivo no coincide con un documento PDF o DOCX válido.',
+                'document' => __('El contenido del archivo no coincide con un documento PDF o DOCX válido.'),
             ]);
         }
     }

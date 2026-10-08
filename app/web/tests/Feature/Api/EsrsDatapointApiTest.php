@@ -58,12 +58,12 @@ it('returns not found when exporting datapoints without a characterization', fun
     $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints/export.csv')
         ->assertNotFound()
-        ->assertJsonPath('message', 'No characterization found.');
+        ->assertJsonPath('message', 'No se ha encontrado la caracterización de la empresa.');
 
     $this->actingAs($this->user)
         ->getJson('/api/esrs-datapoints/responses/export.csv')
         ->assertNotFound()
-        ->assertJsonPath('message', 'No characterization found.');
+        ->assertJsonPath('message', 'No se ha encontrado la caracterización de la empresa.');
 });
 
 it('stores frontend ESRS datapoint responses for the current corpus', function () {
@@ -757,7 +757,7 @@ it('fails closed without an approved AR16 matter to Disclosure Requirement map',
     expect($response->json('data.phase_in_assessment.counts.less_than_750_relief_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.phase_in_assessment.counts.applicable_phase_in_datapoint_count'))->toBeGreaterThan(0);
     expect($response->json('data.generation.limitations.0'))
-        ->toContain('topical datapoints are not included');
+        ->toContain('Falta el mapa aprobado AR16 a requisitos de información. Los datos temáticos se excluyen');
 
     expect(collect($response->json('data.blocks.always_required.datapoints'))->pluck('id'))
         ->toContain('BP-1_01');
@@ -994,7 +994,7 @@ it('fails closed when an approved matter map duplicates a selected topic', funct
         ->assertJsonPath('data.blocks.topical.datapoint_count', 0);
 
     expect($response->json('data.generation.limitations.0'))
-        ->toContain('duplicate');
+        ->toContain('asignaciones duplicadas para temas materiales seleccionados');
 
     @unlink($mappingPath);
 });
@@ -1047,7 +1047,7 @@ it('fails closed when a full approved AR16 matter map has invalid DR keys', func
         ->assertJsonPath('data.blocks.topical.datapoint_count', 0);
 
     expect($response->json('data.generation.limitations.0'))
-        ->toContain('missing or invalid');
+        ->toContain('Faltan asignaciones válidas para uno o más temas materiales');
     expect(collect($response->json('data.blocks.topical.disclosure_requirements'))->pluck('key'))
         ->toBeEmpty();
 

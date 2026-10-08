@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { compactDrafts } from "../lib/esrs-datapoints-state.mjs"
 import * as state from "../lib/esrs-datapoints-state.mjs"
+import { formatUi } from "../lib/i18n/messages.mjs"
 test("explicit false choices survive draft compact and JSON recovery without becoming completed",()=>{
  const review={relevant:false,selected_to_answer:false,reason_codes:["other"],note:"Synthetic"}
  const drafts=JSON.parse(JSON.stringify({"BP-1_01":{...state.emptyDraft(),learning_review:review}}))
@@ -36,6 +37,10 @@ import fs from "node:fs"
 import vm from "node:vm"
 import { createRequire } from "node:module"
 const ts = createRequire(import.meta.url)("typescript")
+const messageTree = ts.createSourceFile("use-system-message.ts", fs.readFileSync(new URL("../lib/i18n/use-system-message.ts", import.meta.url), "utf8"), ts.ScriptTarget.Latest, true)
+const messageFactory = messageTree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "systemCopy")
+assert.ok(messageFactory)
+const systemCopy = vm.runInNewContext(ts.transpileModule(messageFactory.getText(messageTree).replace(/^export\s+/, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText + "\nsystemCopy")
 function actualSource(name) {
  const tree=ts.createSourceFile("form.tsx",fs.readFileSync(new URL("../components/wizard/esrs-datapoints-form.tsx",import.meta.url),"utf8"),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX)
  let found; function visit(n){if((ts.isFunctionDeclaration(n)||ts.isVariableDeclaration(n))&&n.name?.getText(tree)===name)found=n;ts.forEachChild(n,visit)}visit(tree)
@@ -44,7 +49,7 @@ function actualSource(name) {
 }
 function recoveryHarness() {
  const timers=[], cancelled=[], mirror=new Map(), sent=[]
- const c=vm.createContext({...state,window:{},mounted:true,rows:[],characterizationId:1,csrfToken:"synthetic",pendingRecoveryDrafts:null,
+ const c=vm.createContext({...state,systemCopy,window:{},mounted:true,rows:[],characterizationId:1,csrfToken:"synthetic",pendingRecoveryDrafts:null,
  loadGenerationRef:{current:0},workspaceContextRef:{current:null},recoveryTimerRef:{current:null},autoSaveTimerRef:{current:null},
  learningAuthorityRef:{current:""},draftsRef:{current:{}},dirtyRef:{current:false},editVersionRef:{current:0},saveQueueRef:{current:state.createResponseSaveQueue()},
  recoveryStorage:{getItem:k=>mirror.get(k),setItem:(k,v)=>mirror.set(k,v),removeItem:k=>mirror.delete(k)},preferenceStorage:{getItem:()=>null},
@@ -138,7 +143,7 @@ function workspace(authority=authorityA) {
 }
 async function loadActual(snapshot) {
  const observed={};const a=workspace(),b=workspace(authorityB)
- const context={...state,mounted:true,window:undefined,setTimeout(){},clearTimeout(){},
+ const context={...state,systemCopy,mounted:true,window:undefined,setTimeout(){},clearTimeout(){},
  loadGenerationRef:{current:0},workspaceContextRef:{current:null},recoveryTimerRef:{current:null},
  saveQueueRef:{current:state.createResponseSaveQueue()},autoSaveTimerRef:{current:null},learningAuthorityRef:{current:""},editVersionRef:{current:0},draftsRef:{current:{}},
  getLaravelSession:async()=>({data:{csrf_token:"synthetic"}}),
@@ -160,6 +165,9 @@ test("actual loadP9 rejects unsupported and mismatched partial snapshots before 
  for(const invalid of [{data:workspace().data},{...workspace(),response_state:workspace(authorityB).response_state}]){
  const {observed,context}=await loadActual(invalid)
  assert.equal(context.learningAuthorityRef.current,"");assert.equal(observed.setCorpus,null);assert.ok(observed.setErrorMessage)
+ const notice=observed.setErrorMessage
+ assert.equal(formatUi("es",notice.source,notice.values),"No se han podido cargar los datos normativos del paso 5 desde la plataforma.")
+ assert.equal(formatUi("en",notice.source,notice.values),"Could not load the disclosure data for step 5.")
  }
 })
 
@@ -177,9 +185,11 @@ test("validated workspace denies malformed labels, unknown universe and partial 
 })
 test("actual 409 handler invalidates display and reloads, never installs standalone conflict authority",()=>{
  const source=actualCallback("installConflictRecovery").replace(/installConflictRecovery\(\);?\s*$/, "installConflictRecovery({status:409,payload:{code:'datapoint_responses_conflict',data:{revision:3,responses:{},learning_authority_digest:'"+authorityB+"'}}})")
- let reloaded=false,display="A",mirror
- const queue=state.createResponseSaveQueue(2);const context={...state,characterizationId:1,learningAuthorityRef:{current:authorityA},draftsRef:{current:{SHARED:{learning_review:{relevant:false,selected_to_answer:false,note:"Synthetic",reason_codes:[]}}}},saveQueueRef:{current:queue},recoveryStorage:{setItem(k,v){mirror=JSON.parse(v)}},setCorpus(v){display=v},reload(){reloaded=true},setAutoSaveError(){}}
+ let reloaded=false,display="A",mirror,notice
+ const queue=state.createResponseSaveQueue(2);const context={...state,systemCopy,characterizationId:1,learningAuthorityRef:{current:authorityA},draftsRef:{current:{SHARED:{learning_review:{relevant:false,selected_to_answer:false,note:"Synthetic",reason_codes:[]}}}},saveQueueRef:{current:queue},recoveryStorage:{setItem(k,v){mirror=JSON.parse(v)}},setCorpus(v){display=v},reload(){reloaded=true},setAutoSaveError(value){notice=value}}
  assert.equal(vm.runInNewContext(source,context),true);assert.equal(display,null);assert.equal(context.learningAuthorityRef.current,"");assert.equal(queue.isActive(),false);assert.ok(reloaded);assert.equal(mirror.drafts.SHARED.learning_review.relevant,false)
+ assert.equal(formatUi("es",notice.source,notice.values),"Las respuestas cambiaron en otra pestaña. Recarga la versión actualizada para recuperar tus cambios.")
+ assert.equal(formatUi("en",notice.source,notice.values),"Responses changed in another tab. Reload the current version to recover your changes.")
 })
 
 test("coherent initial Laravel publication accepts empty PHP response collections only",()=>{

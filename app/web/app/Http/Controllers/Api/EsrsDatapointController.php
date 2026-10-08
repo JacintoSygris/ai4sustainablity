@@ -31,6 +31,8 @@ class EsrsDatapointController extends Controller
             $corpus = $builder->build($locked);
             $state = $responseState->state($locked, $corpus);
             $corpus['learning_authority_digest'] = $state['learning_authority_digest'];
+            // Authority is derived from canonical source bytes before locale projection.
+            $corpus = app(\App\Support\EsrsDisplayCatalogue::class)->project($corpus, app()->getLocale());
 
             return response()->json(['snapshot_version' => 'p9-workspace-v1', 'data' => $corpus, 'response_state' => $state]);
         });
@@ -41,14 +43,31 @@ class EsrsDatapointController extends Controller
         EsrsDatapointCorpusBuilder $builder,
         EsrsDatapointCsvExporter $exporter,
     ) {
+        return $this->corpusCsv($request, $builder, $exporter, null);
+    }
+
+    public function exportLocalizedCsv(
+        Request $request,
+        EsrsDatapointCorpusBuilder $builder,
+        EsrsDatapointCsvExporter $exporter,
+    ) {
+        return $this->corpusCsv($request, $builder, $exporter, app()->getLocale());
+    }
+
+    private function corpusCsv(
+        Request $request,
+        EsrsDatapointCorpusBuilder $builder,
+        EsrsDatapointCsvExporter $exporter,
+        ?string $locale,
+    ) {
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
-        return response($exporter->toCsv($builder->build($characterization)), 200, [
-            'Content-Disposition' => 'attachment; filename=esrs-datapoints.csv',
+        return response($exporter->toCsv($builder->build($characterization), $locale), 200, [
+            'Content-Disposition' => 'attachment; filename='.($locale === 'es' ? 'datos-neis.csv' : 'esrs-datapoints.csv'),
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
@@ -59,16 +78,35 @@ class EsrsDatapointController extends Controller
         EsrsDatapointResponseState $responseState,
         EsrsDatapointResponseCsvExporter $exporter,
     ) {
+        return $this->responsesCsv($request, $builder, $responseState, $exporter, null);
+    }
+
+    public function exportLocalizedResponsesCsv(
+        Request $request,
+        EsrsDatapointCorpusBuilder $builder,
+        EsrsDatapointResponseState $responseState,
+        EsrsDatapointResponseCsvExporter $exporter,
+    ) {
+        return $this->responsesCsv($request, $builder, $responseState, $exporter, app()->getLocale());
+    }
+
+    private function responsesCsv(
+        Request $request,
+        EsrsDatapointCorpusBuilder $builder,
+        EsrsDatapointResponseState $responseState,
+        EsrsDatapointResponseCsvExporter $exporter,
+        ?string $locale,
+    ) {
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $corpus = $builder->build($characterization);
 
-        return response($exporter->toCsv($corpus, $responseState->state($characterization, $corpus)), 200, [
-            'Content-Disposition' => 'attachment; filename=esrs-datapoint-responses.csv',
+        return response($exporter->toCsv($corpus, $responseState->state($characterization, $corpus), $locale), 200, [
+            'Content-Disposition' => 'attachment; filename='.($locale === 'es' ? 'respuestas-datos-neis.csv' : 'esrs-datapoint-responses.csv'),
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
@@ -100,7 +138,7 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $validated = $request->validate([
@@ -125,7 +163,7 @@ class EsrsDatapointController extends Controller
 
         if (count($submittedDatapointIds) !== count(array_unique($submittedDatapointIds))) {
             throw ValidationException::withMessages([
-                'responses' => 'Each datapoint may only be submitted once after canonical trimming.',
+                'responses' => __('Each datapoint may only be submitted once after canonical trimming.'),
             ]);
         }
 
@@ -150,7 +188,7 @@ class EsrsDatapointController extends Controller
             $allowedDatapointIds = $responseState->corpusDatapointIds($corpus);
             if (array_diff($submittedDatapointIds, $allowedDatapointIds) !== []) {
                 throw ValidationException::withMessages([
-                    'responses' => 'One or more datapoints are not part of the current corpus.',
+                    'responses' => __('One or more datapoints are not part of the current corpus.'),
                 ]);
             }
 
@@ -159,11 +197,11 @@ class EsrsDatapointController extends Controller
                 if (!$rawFeedback instanceof \stdClass
                     || !is_array($rawFeedback->reviewed_datapoint_ids ?? null)
                     || !is_array($rawFeedback->decisions ?? null)) {
-                    throw ValidationException::withMessages(['learning_feedback' => 'Review universes and decisions must be JSON lists.']);
+                    throw ValidationException::withMessages(['learning_feedback' => __('Review universes and decisions must be JSON lists.')]);
                 }
                 foreach ($rawFeedback->decisions as $rawDecision) {
                     if (!$rawDecision instanceof \stdClass || !is_array($rawDecision->reason_codes ?? null)) {
-                        throw ValidationException::withMessages(['learning_feedback' => 'Review decisions must be objects with reason-code lists.']);
+                        throw ValidationException::withMessages(['learning_feedback' => __('Review decisions must be objects with reason-code lists.')]);
                     }
                 }
             }
@@ -174,7 +212,7 @@ class EsrsDatapointController extends Controller
             // P9 legacy has no operational selected_to_answer field. Reject its ambiguous use.
             foreach ($request->input('responses', []) as $submitted) {
                 if (is_array($submitted) && array_key_exists('selected_to_answer', $submitted)) {
-                    throw ValidationException::withMessages(['responses' => 'Use explicit versioned learning_feedback for review selection.']);
+                    throw ValidationException::withMessages(['responses' => __('Use explicit versioned learning_feedback for review selection.')]);
                 }
             }
 
@@ -215,7 +253,7 @@ class EsrsDatapointController extends Controller
 
         if ($result['conflict']) {
             return response()->json([
-                'message' => 'The datapoint responses changed after this edit started.',
+                'message' => __('The datapoint responses changed after this edit started.'),
                 'code' => 'datapoint_responses_conflict',
                 'current_revision' => $result['current_revision'],
                 'data' => $result['state'],

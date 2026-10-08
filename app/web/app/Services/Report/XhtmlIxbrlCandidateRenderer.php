@@ -14,7 +14,7 @@ class XhtmlIxbrlCandidateRenderer
     private const LINK_NS = 'http://www.xbrl.org/2003/linkbase';
     private const XLINK_NS = 'http://www.w3.org/1999/xlink';
     private const ISO4217_NS = 'http://www.xbrl.org/2003/iso4217';
-    private const ESRS_NS = 'https://xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs';
+    private const ESRS_NS = 'https://xbrl.efrag.org/taxonomy/esrs/2023-12-22';
 
     private const NUMERIC_VALUE_TYPES = ['decimal', 'integer', 'monetary', 'number'];
 
@@ -26,8 +26,9 @@ class XhtmlIxbrlCandidateRenderer
      * @param array<string, mixed> $ir
      * @param array<string, mixed> $internalManifest
      */
-    public function render(array $ir, ReportingProfile $profile, array $internalManifest): string
+    public function render(array $ir, ReportingProfile $profile, array $internalManifest, string $locale = 'es'): string
     {
+        $display = new ReportDisplayProjection($locale);
         $context = $this->context($ir);
         $facts = $this->facts($ir);
 
@@ -40,6 +41,8 @@ class XhtmlIxbrlCandidateRenderer
         $doc->preserveWhiteSpace = false;
 
         $html = $doc->createElementNS(self::XHTML_NS, 'html');
+        $html->setAttribute('lang', $display->locale);
+        $html->setAttribute('xml:lang', $display->locale);
         $html->setAttribute('xmlns:ix', self::IX_NS);
         $html->setAttribute('xmlns:ixt', self::IXT_NS);
         $html->setAttribute('xmlns:xbrli', self::XBRLI_NS);
@@ -51,7 +54,7 @@ class XhtmlIxbrlCandidateRenderer
 
         $head = $html->appendChild($doc->createElementNS(self::XHTML_NS, 'head'));
         $head->appendChild($doc->createElementNS(self::XHTML_NS, 'title'))
-            ->appendChild($doc->createTextNode('Candidato XHTML/iXBRL ESRS'));
+            ->appendChild($doc->createTextNode($display->text('Candidato XHTML/iXBRL NEIS')));
 
         $body = $html->appendChild($doc->createElementNS(self::XHTML_NS, 'body'));
         $header = $body->appendChild($doc->createElementNS(self::IX_NS, 'ix:header'));
@@ -68,9 +71,9 @@ class XhtmlIxbrlCandidateRenderer
         }
 
         $body->appendChild($doc->createElementNS(self::XHTML_NS, 'h1'))
-            ->appendChild($doc->createTextNode('Candidato XHTML/iXBRL ESRS'));
+            ->appendChild($doc->createTextNode($display->text('Candidato XHTML/iXBRL NEIS')));
         $body->appendChild($doc->createElementNS(self::XHTML_NS, 'p'))
-            ->appendChild($doc->createTextNode($context['entity_name'].' - Ejercicio '.$context['year']));
+            ->appendChild($doc->createTextNode($context['entity_name'].' - '.$display->text('Ejercicio').' '.$context['year']));
 
         foreach ($facts as $index => $fact) {
             $p = $body->appendChild($doc->createElementNS(self::XHTML_NS, 'p'));

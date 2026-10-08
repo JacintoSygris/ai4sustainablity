@@ -4,13 +4,13 @@
     $providers = [
         [
             'key' => 'google',
-            'loginLabel' => 'Iniciar sesión con Google',
-            'registerLabel' => 'Regístrate con Google',
+            'loginLabel' => __('Iniciar sesión con Google'),
+            'registerLabel' => __('Regístrate con Google'),
         ],
         [
             'key' => 'microsoft',
-            'loginLabel' => 'Iniciar sesión con Microsoft',
-            'registerLabel' => 'Regístrate con Microsoft',
+            'loginLabel' => __('Iniciar sesión con Microsoft'),
+            'registerLabel' => __('Regístrate con Microsoft'),
         ],
     ];
 @endphp
@@ -68,7 +68,7 @@
 
     <div class="flex items-center gap-4">
         <div class="h-px flex-1 bg-slate-200"></div>
-        <span>O</span>
+        <span>{{ __('O') }}</span>
         <div class="h-px flex-1 bg-slate-200"></div>
     </div>
 </div>

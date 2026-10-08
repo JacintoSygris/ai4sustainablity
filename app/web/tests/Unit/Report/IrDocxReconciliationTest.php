@@ -26,6 +26,12 @@ const NON_VISUAL_IR_KEYS = [
     'provenance_tier',  // machine provenance tier; surfaced in the evidence bundle
     'authoritative',    // machine flag; drives the "[orientación general]" prefix
     'cross_refs',       // subtree: machine edges, mirrored by rendered cross_ref_sentences
+    'claims',           // subtree: factual traceability; only safe values are visualized explicitly
+    'claim_id',         // machine claim identifier
+    'fact_id',          // machine fact identifier
+    'evidence_refs',    // authenticated traceability; never visual DOCX text
+    'source',           // snapshot/audit metadata; evidence bundle only
+    'approval_status',  // audit state; evidence bundle only
 ];
 
 /** @return list<string> every string leaf not under a non-visual key */
@@ -184,7 +190,7 @@ it('renders the E1 exception chapter explanation leaf', function () {
         'captured_at' => '2026-01-01T00:00:00Z',
     ];
     $formData['materiality_confirmation']['e1_not_material_explanation'] =
-        'E1 (Cambio climático) se excluyó porque la evaluación de doble materialidad no identificó impactos, riesgos ni oportunidades materiales.';
+        'E1 (Cambio climático) se excluyó porque la evaluación de doble importancia relativa no identificó impactos, riesgos ni oportunidades materiales.';
     $characterization->update(['form_data' => $formData]);
 
     $ir = app(ReportIrBuilder::class)->build($characterization->fresh());
@@ -228,4 +234,53 @@ it('fails when a new visual IR field is added but never rendered', function () {
 
     // The guarantee: an unlisted new key is checked by default and reported missing.
     expect($missing)->toContain('Texto que nadie renderiza jamás');
+});
+
+it('renders factual claim text while evidence refs stay out of visible text and raw docx bytes', function () {
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'version_hash' => str_repeat('f', 64),
+        'company' => ['name' => 'ACME', 'reporting_year' => 2025],
+        'disclaimers' => [],
+        'source' => ['snapshot_hash' => 'machine_snapshot_hash'],
+        'claims' => [[
+            'claim_id' => 'claim_bp1_01_rf_frozen',
+            'fact_id' => 'rf_frozen',
+            'datapoint_id' => 'BP-1_01',
+            'value' => ['text' => 'Frozen approved fact'],
+            'evidence_refs' => [['type' => 'note', 'value' => 'Evidence sentinel must never render']],
+            'source' => ['table' => 'reporting_facts'],
+            'approval_status' => 'reviewed',
+        ]],
+        'chapters' => [[
+            'title' => 'ESRS 2',
+            'sections' => [[
+                'dr_key' => 'BP-1',
+                'cross_refs' => [],
+                'cross_ref_sentences' => [],
+                'blocks' => [[
+                    'datapoint_id' => 'BP-1_01',
+                    'name' => 'Base general',
+                    'assertions' => ['Material'],
+                    'claims' => ['claim_bp1_01_rf_frozen'],
+                    'slots' => [[
+                        'node_id' => 'slot_BP-1_01_rf_frozen',
+                        'claim_id' => 'claim_bp1_01_rf_frozen',
+                        'fact_id' => 'rf_frozen',
+                        'label' => 'Base general',
+                        'xbrl_concept' => 'esrs:BasisForPreparation',
+                        'taggable_state' => 'mapped',
+                    ]],
+                    'guidance' => ['text' => 'Prepare...', 'provenance_tier' => 'certified_support_rule', 'authoritative' => true],
+                ]],
+            ]],
+        ]],
+    ];
+
+    $bytes = (new DocxRenderer())->render($ir);
+
+    expect(docxVisibleText($bytes))->toContain('Frozen approved fact');
+    expect(docxVisibleText($bytes))->not->toContain('Evidence sentinel must never render');
+    expect(docxEntry($bytes, 'word/document.xml'))->not->toContain('Evidence sentinel must never render');
+    expect($bytes)->not->toContain('Evidence sentinel must never render');
 });

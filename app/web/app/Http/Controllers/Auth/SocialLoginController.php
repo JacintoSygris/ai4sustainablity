@@ -60,7 +60,7 @@ class SocialLoginController extends Controller
         $this->abortUnknownProvider($provider);
 
         if (! $this->isConfigured($provider)) {
-            return redirect()->route('profile.edit')->with('status', 'El proveedor social no está disponible.');
+            return redirect()->route('profile.edit')->with('status', __('El proveedor social no está disponible.'));
         }
 
         $request->session()->put(self::INTENT_SESSION_KEY, [
@@ -76,7 +76,7 @@ class SocialLoginController extends Controller
         } catch (Throwable) {
             $request->session()->forget(self::INTENT_SESSION_KEY);
 
-            return redirect()->route('profile.edit')->with('status', 'No se ha podido iniciar la vinculación social.');
+            return redirect()->route('profile.edit')->with('status', __('No se ha podido iniciar la vinculación social.'));
         }
     }
 
@@ -90,7 +90,7 @@ class SocialLoginController extends Controller
 
         $intent = $request->session()->pull(self::INTENT_SESSION_KEY);
         if (! $this->validIntent($intent, $provider)) {
-            return $this->oauthFailure($request, 'No se ha podido validar la solicitud de inicio de sesión social.');
+            return $this->oauthFailure($request, __('No se ha podido validar la solicitud de inicio de sesión social.'));
         }
 
         try {
@@ -103,7 +103,7 @@ class SocialLoginController extends Controller
 
             return $this->completeLogin($request, $descriptor);
         } catch (Throwable) {
-            return $this->oauthFailure($request, 'No se ha podido completar el inicio de sesión social.');
+            return $this->oauthFailure($request, __('No se ha podido completar el inicio de sesión social.'));
         }
     }
 
@@ -118,7 +118,7 @@ class SocialLoginController extends Controller
             ->first();
 
         if (! $identity || ! $this->sameIdentity($identity, $descriptor)) {
-            return redirect()->route('login')->with('status', 'La identidad social no está vinculada a una cuenta.');
+            return redirect()->route('login')->with('status', __('La identidad social no está vinculada a una cuenta.'));
         }
 
         Auth::login($identity->user, remember: false);
@@ -145,7 +145,7 @@ class SocialLoginController extends Controller
             || ! is_int($intent['auth_version'] ?? null)
             || (int) $intent['auth_version'] !== (int) $request->session()->get('auth_version', -1)
             || $passwordConfirmedAt < now()->subSeconds(self::PASSWORD_CONFIRM_TTL_SECONDS)->timestamp) {
-            return redirect()->route('profile.edit')->with('status', 'La vinculación social ha caducado o no está autorizada.');
+            return redirect()->route('profile.edit')->with('status', __('La vinculación social ha caducado o no está autorizada.'));
         }
 
         $hash = OAuthIdentity::hashFor($descriptor->provider, $descriptor->issuer, $descriptor->subject);
@@ -185,11 +185,11 @@ class SocialLoginController extends Controller
         }
 
         if (! $identity) {
-            return redirect()->route('profile.edit')->with('status', 'La vinculación social ha caducado o no está autorizada.');
+            return redirect()->route('profile.edit')->with('status', __('La vinculación social ha caducado o no está autorizada.'));
         }
 
         if ((int) $identity->user_id !== (int) $user->id || ! $this->sameIdentity($identity, $descriptor)) {
-            return redirect()->route('profile.edit')->with('status', 'Esa identidad social ya está vinculada a otra cuenta.');
+            return redirect()->route('profile.edit')->with('status', __('Esa identidad social ya está vinculada a otra cuenta.'));
         }
 
         if ($updatedUser) {
@@ -198,7 +198,7 @@ class SocialLoginController extends Controller
             $request->session()->put('auth_version', (int) $updatedUser->auth_version);
         }
 
-        return redirect()->route('profile.edit')->with('status', 'Identidad social vinculada correctamente.');
+        return redirect()->route('profile.edit')->with('status', __('Identidad social vinculada correctamente.'));
     }
 
     /**
@@ -264,6 +264,6 @@ class SocialLoginController extends Controller
     {
         return redirect()
             ->route('login')
-            ->with('status', 'El inicio de sesión con '.self::PROVIDERS[$provider].' no está configurado en esta demo.');
+            ->with('status', __('El inicio de sesión con :provider no está configurado en esta demo.', ['provider' => self::PROVIDERS[$provider]]));
     }
 }

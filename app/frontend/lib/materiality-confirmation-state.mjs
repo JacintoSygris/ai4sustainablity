@@ -13,26 +13,26 @@ const changeReasonKeys = new Set(CHANGE_REASON_OPTIONS.map((reason) => reason.ke
 
 const DIMENSION_VALUES = new Set(["impact", "financial", "both"])
 
-export function localized(value) {
-  return value?.es || value?.en || ""
+export function localized(value, locale = "es") {
+  return value?.[locale === "en" ? "en" : "es"] || ""
 }
 
-export function topicTitle(topic) {
-  return localized(topic?.subtopic) || localized(topic?.subtheme) || localized(topic?.theme) || `Tema ${topic?.id ?? ""}`
+export function topicTitle(topic, locale = "es") {
+  return localized(topic?.subtopic, locale) || localized(topic?.subtheme, locale) || localized(topic?.theme, locale) || `${locale === "en" ? "Topic" : "Tema"} ${topic?.id ?? ""}`
 }
 
-export function topicSubtitle(topic) {
-  return [localized(topic?.theme), localized(topic?.subtheme)].filter(Boolean).join(" / ")
+export function topicSubtitle(topic, locale = "es") {
+  return [localized(topic?.theme, locale), localized(topic?.subtheme, locale)].filter(Boolean).join(" / ")
 }
 
-export function topicMatches(topic, query) {
+export function topicMatches(topic, query, locale = "es") {
   const normalizedQuery = query.trim().toLowerCase()
 
   if (!normalizedQuery) {
     return true
   }
 
-  return [topic.esrs_code, topicTitle(topic), localized(topic.theme), localized(topic.subtheme), localized(topic.subtopic)]
+  return [topic.esrs_code, topicTitle(topic, locale), localized(topic.theme, locale), localized(topic.subtheme, locale), localized(topic.subtopic, locale)]
     .join(" ")
     .toLowerCase()
     .includes(normalizedQuery)

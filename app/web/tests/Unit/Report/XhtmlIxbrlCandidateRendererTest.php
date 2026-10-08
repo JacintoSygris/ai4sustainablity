@@ -115,3 +115,52 @@ function xhtmlIxbrlRendererManifest(): array
         'taxonomy_package_path' => '/tmp/operator-package.zip',
     ];
 }
+
+it('localizes the visible candidate shell while preserving machine taxonomy and numeric values', function () {
+    $profile = (new ReportingProfileRepository)->load('esrs-2023-preparatory-v1');
+    $ir = xhtmlIxbrlRendererIr();
+    foreach (['es', 'en'] as $locale) {
+        $xhtml = app(XhtmlIxbrlCandidateRenderer::class)->render($ir, $profile, xhtmlIxbrlRendererManifest(), $locale);
+        expect($xhtml)->toContain('xml:lang="'.$locale.'"');
+        expect($xhtml)->toContain($locale === 'es' ? 'Candidato XHTML/iXBRL NEIS' : 'ESRS XHTML/iXBRL candidate');
+        expect($xhtml)->toMatch('/<ix:nonFraction[^>]*>123\.45<\/ix:nonFraction>/');
+        expect($xhtml)->toContain('https://xbrl.efrag.org/taxonomy/esrs/2023-12-22/esrs_all.xsd');
+    }
+});
+
+it('binds the mapped Revenue QName to the official ESRS core namespace', function () {
+    $officialNamespace = 'https://xbrl.efrag.org/taxonomy/esrs/2023-12-22';
+    $conceptMap = new XbrlConceptMap();
+    expect($conceptMap->conceptFor('SBM-1_06'))->toMatchArray([
+        'concept_id' => 'esrs:Revenue',
+        'taggable_state' => 'mapped',
+    ]);
+
+    $renderer = new XhtmlIxbrlCandidateRenderer($conceptMap);
+    $profile = (new ReportingProfileRepository())->load('esrs-2023-preparatory-v1');
+    // Synthetic monetary fact and existing safe context; this is not taxonomy validation.
+    $ir = xhtmlIxbrlRendererIr([
+        'claims' => [xhtmlIxbrlRendererClaim([
+            'datapoint_id' => 'SBM-1_06',
+            'value_type' => 'monetary',
+            'value' => ['value' => '1234.56'],
+            'unit' => 'EUR',
+            'decimals' => 2,
+        ])],
+    ]);
+
+    $doc = new DOMDocument();
+    expect($doc->loadXML($renderer->render($ir, $profile, xhtmlIxbrlRendererManifest())))->toBeTrue();
+    $facts = $doc->getElementsByTagNameNS('http://www.xbrl.org/2013/inlineXBRL', 'nonFraction');
+    expect($facts->length)->toBe(1);
+    $fact = $facts->item(0);
+    expect($fact)->toBeInstanceOf(DOMElement::class);
+    expect($fact->getAttribute('name'))->toBe('esrs:Revenue');
+    expect($fact->textContent)->toBe('1234.56');
+    expect($fact->getAttribute('unitRef'))->toBe('u_EUR');
+    expect($fact->getAttribute('decimals'))->toBe('2');
+
+    expect($doc->documentElement->lookupNamespaceURI('esrs'))->toBe($officialNamespace);
+    [$prefix, $localName] = explode(':', $fact->getAttribute('name'), 2);
+    expect([$fact->lookupNamespaceURI($prefix), $localName])->toBe([$officialNamespace, 'Revenue']);
+});

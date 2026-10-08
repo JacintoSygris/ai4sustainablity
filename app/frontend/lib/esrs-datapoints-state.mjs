@@ -1,6 +1,8 @@
+import { translateSystem } from "./i18n/messages.mjs"
+
 export const P9_EXPORT_LINKS = [
-  { key: "corpus", label: "Corpus CSV", path: "/esrs-datapoints/export.csv" },
-  { key: "responses", label: "Respuestas CSV", path: "/esrs-datapoints/responses/export.csv" },
+  { key: "corpus", label: "Corpus CSV", path: "/esrs-datapoints/export.localized.csv" },
+  { key: "responses", label: "Respuestas CSV", path: "/esrs-datapoints/responses/export.localized.csv" },
 ]
 
 export const RESPONSE_STATUS_LABELS = {
@@ -24,7 +26,7 @@ export const P9_COVERAGE_STATUS_LABELS = {
 export const P9_FILTER_LABELS = {
   mapped_disclosure_requirements: "Requisitos de divulgación mapeados",
   topical_blocked_until_dr_mapping: "Bloqueado hasta mapear AR16 a DR",
-  activated_esrs_standard: "Estándar ESRS activado",
+  activated_esrs_standard: "Estándar NEIS activado",
 }
 
 export const P9_GRANULARITY_LABELS = {
@@ -182,15 +184,15 @@ function hasContextDates(fact) {
   return Boolean(fact?.context?.start_date || fact?.context?.end_date || fact?.context?.instant_date)
 }
 
-export function responseLabel(status) {
+function responseLabelSpanish(status) {
   return RESPONSE_STATUS_LABELS[status] ?? status
 }
 
-export function p9ExportLinks() {
+function p9ExportLinksSpanish() {
   return P9_EXPORT_LINKS
 }
 
-export function p9MappingSummary(corpus) {
+function p9MappingSummarySpanish(corpus) {
   const generation = objectValue(corpus?.generation)
   const matterMapping = objectValue(corpus?.matter_mapping)
   const coverageStatus = stringValue(matterMapping.coverage_status ?? generation.coverage_status)
@@ -213,18 +215,18 @@ export function p9MappingSummary(corpus) {
   }
 }
 
-export function phaseInSummary(corpus, locale = "en") {
+function phaseInSummarySpanish(corpus) {
   const assessment = objectValue(corpus?.phase_in_assessment)
   const counts = objectValue(assessment.counts)
   const employeeCount = objectValue(assessment.employee_count)
 
   return {
     status: stringValue(assessment.status),
-    statusLabel: locale === "es" ? ({
+    statusLabel: ({
       eligible_less_than_750: "Empresa con menos de 750 empleados",
       not_eligible_750_or_more: "Empresa con 750 empleados o más: sin reducción por tamaño",
       unknown_employee_count: "Número de empleados pendiente de confirmar",
-    })[assessment.status] ?? "Aplicación gradual pendiente de confirmar" : stringValue(assessment.status_label),
+    })[assessment.status] ?? "Aplicación gradual pendiente de confirmar",
     source: stringValue(employeeCount.source),
     estimate: employeeCount.estimate ?? null,
     lessThan750: employeeCount.less_than_750,
@@ -235,42 +237,42 @@ export function phaseInSummary(corpus, locale = "en") {
   }
 }
 
-export function completionPlanItems(corpus, locale = "en") {
+function completionPlanItemsSpanish(corpus, locale = "es") {
   const phases = arrayValue(objectValue(corpus?.completion_plan).phases)
 
   return phases.map((phase) => ({
     key: stringValue(phase?.key),
-    title: locale === "es" ? (({
-      always_required: "Completa primero la información general de ESRS 2",
+    title: (corpus?.locale === locale ? phase?.title : null) ?? ({
+      always_required: "Completa primero la información general de NEIS 2",
       topical: "Completa los datos de los temas materiales vinculados a requisitos de divulgación",
-      minimum_disclosure_requirements: "Revisa los requisitos mínimos de información (MDR) de ESRS 2 para los temas materiales",
+      minimum_disclosure_requirements: "Revisa los requisitos mínimos de información (MDR) de NEIS 2 para los temas materiales",
       e1_not_material_explanation: "Completa la explicación de E1 no material cuando sea necesaria",
-    })[phase?.key] ?? stringValue(phase?.title)) : stringValue(phase?.title),
+    })[phase?.key] ?? "Revisa los datos normativos de esta fase",
     status: stringValue(phase?.status),
-    statusLabel: labelFor(COMPLETION_STATUS_LABELS, phase?.status),
+    statusLabel: phase?.status_label || labelFor(COMPLETION_STATUS_LABELS, phase?.status),
     datapointCount: numberValue(phase?.datapoint_count),
   }))
 }
 
-export function datapointApplicabilitySummary(datapoint, locale = "en") {
+function datapointApplicabilitySummarySpanish(datapoint) {
   const applicability = objectValue(datapoint?.applicability)
   const phaseIn = objectValue(datapoint?.phase_in)
 
   return {
-    reason: locale === "es" ? (({
-      always_required_esrs_2: "La información general de ESRS 2 constituye la base del estado de sostenibilidad.",
+    reason: datapoint?.display?.applicability_reason ?? ({
+      always_required_esrs_2: "La información general de NEIS 2 constituye la base del estado de sostenibilidad.",
       material_esrs_standard: applicability.mapping_basis === "mapped_disclosure_requirements"
         ? "Este dato pertenece a un requisito de divulgación vinculado al tema material confirmado."
         : "Este dato necesita un requisito de divulgación vinculado al tema material confirmado.",
-      conditional_esrs_2_mdr: "Los requisitos mínimos de información de ESRS 2 se revisan de forma condicional para los temas materiales confirmados.",
+      conditional_esrs_2_mdr: "Los requisitos mínimos de información de NEIS 2 se revisan de forma condicional para los temas materiales confirmados.",
       selected_datapoint: "Este dato está incluido en el listado normativo actual.",
-    })[applicability.reason_code] ?? stringValue(applicability.reason)) : stringValue(applicability.reason),
+    })[applicability.reason_code] ?? "",
     reasonCode: stringValue(applicability.reason_code),
     mappingBasis: stringValue(applicability.mapping_basis),
-    mappingBasisLabel: labelFor(APPLICABILITY_MAPPING_BASIS_LABELS, applicability.mapping_basis),
-    limitations: locale === "es" ? localizeLimitations(arrayValue(applicability.limitations)) : arrayValue(applicability.limitations),
-    phaseInLessThan750: stringValue(phaseIn.less_than_750),
-    phaseInAllUndertakings: stringValue(phaseIn.all_undertakings),
+    mappingBasisLabel: datapoint?.display?.mapping_basis || labelFor(APPLICABILITY_MAPPING_BASIS_LABELS, applicability.mapping_basis),
+    limitations: datapoint?.display?.limitations ?? localizeLimitations(arrayValue(applicability.limitations)),
+    phaseInLessThan750: stringValue(datapoint?.display?.phase_in?.less_than_750 ?? phaseIn.less_than_750),
+    phaseInAllUndertakings: stringValue(datapoint?.display?.phase_in?.all_undertakings ?? phaseIn.all_undertakings),
   }
 }
 
@@ -297,7 +299,7 @@ function numberValue(value) {
 function labelFor(labels, value) {
   const key = stringValue(value)
 
-  return key ? labels[key] ?? key : ""
+  return key ? labels[key] ?? "Pendiente de revisión" : ""
 }
 
 function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) {
@@ -312,7 +314,7 @@ function localizeMappingLimitations(limitations, coverageStatus, mappingStatus) 
   }
 
   return [
-    "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar ESRS.",
+    "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar NEIS.",
   ]
 }
 
@@ -469,7 +471,7 @@ function selectionReasonCodes(datapoint) {
 /**
  * @param {any} datapoint
  */
-export function obligationBadge(datapoint) {
+function obligationBadgeSpanish(datapoint) {
   const reasons = selectionReasonCodes(datapoint)
   const may = reasons.includes("voluntary_may_disclose") || !!(datapoint && datapoint.may_disclose)
   const deferred = reasons.includes("phase_in_less_than_750") || reasons.includes("phase_in_all_undertakings")
@@ -510,14 +512,16 @@ export function applyObligationFilter(rows, filter = DEFAULT_OBLIGATION_FILTER) 
 /**
  * @param {{total_datapoint_count?: number, voluntary_datapoint_count?: number, required_datapoint_count?: number, default_unselected_datapoint_count?: number}} summary
  */
-export function honestCountsLabel(summary) {
+export function honestCountsLabel(summary, locale = "es") {
   const s = summary || {}
   if (typeof s.required_datapoint_count === "number" && typeof s.default_unselected_datapoint_count === "number") {
+    if (locale === "en") return `${s.required_datapoint_count} required + ${s.default_unselected_datapoint_count} unselected by default (voluntary or deferred)`
     return `${s.required_datapoint_count} requeridos + ${s.default_unselected_datapoint_count} no seleccionados por defecto (voluntarios o aplazables)`
   }
   const total = typeof s.total_datapoint_count === "number" ? s.total_datapoint_count : 0
   const vol = typeof s.voluntary_datapoint_count === "number" ? s.voluntary_datapoint_count : 0
   const mand = Math.max(0, total - vol)
+  if (locale === "en") return `${mand} mandatory + ${vol} voluntary (optional)`
   return `${mand} obligatorios + ${vol} voluntarios (opcionales)`
 }
 
@@ -539,7 +543,7 @@ export function triageSummary(drafts) {
  * @param {any} datapoint
  * @param {boolean} lessThan750
  */
-export function phaseInBadgeLabel(datapoint, lessThan750) {
+function phaseInBadgeLabelSpanish(datapoint, lessThan750) {
   const ph = datapoint && datapoint.phase_in
   if (ph && ph.less_than_750 && lessThan750) {
     return "Menos de 750 empleados: puedes aplazar este dato"
@@ -550,12 +554,12 @@ export function phaseInBadgeLabel(datapoint, lessThan750) {
 /**
  * @param {{standard?: string, counts?: {total?: number}}} group
  */
-export function sectionProgressLabel(group) {
+export function sectionProgressLabel(group, locale = "es") {
   const std = (group && group.standard) || ""
   const total = (group && group.counts && typeof group.counts.total === "number") ? group.counts.total : 0
   // No recorded decisions means zero progress, even when rows exist.
   const decided = (group && group.counts && typeof group.counts.decided === "number") ? group.counts.decided : 0
-  return `${std} — ${decided} de ${total}`
+  return `${std} — ${decided} ${locale === "en" ? "of" : "de"} ${total}`
 }
 
 export function localStorageDraftKey(characterizationId) {
@@ -565,18 +569,18 @@ export function localStorageDraftKey(characterizationId) {
 
 function localizeLimitations(limitations) {
   const labels = {
-    "ESRS remains authoritative if it conflicts with EFRAG IG 3 implementation guidance.": "Los ESRS prevalecen en caso de conflicto con la guía de aplicación EFRAG IG 3.",
+    "ESRS remains authoritative if it conflicts with EFRAG IG 3 implementation guidance.": "Los NEIS prevalecen en caso de conflicto con la guía de aplicación EFRAG IG 3.",
     "Topical datapoints require a fully covering approved AR16 matter to Disclosure Requirement map.": "Los datos temáticos requieren un mapa aprobado que vincule todos los temas AR16 con sus requisitos de divulgación.",
   }
   return limitations.filter((value) => typeof value === "string" && value.trim()).map((value) => labels[value] ?? value)
 }
 
 /** Group within a standard; unassigned requirements retain their corpus block. */
-export function groupRowsByDisclosureRequirement(rows) {
+export function groupRowsByDisclosureRequirement(rows, locale = "es") {
   const groups = new Map()
   for (const row of rows) {
     const key = row.datapoint.dr?.trim() || row.blockKey || "other"
-    if (!groups.has(key)) groups.set(key, { key, label: row.datapoint.dr?.trim() || "Otros datos del bloque", rows: [] })
+    if (!groups.has(key)) groups.set(key, { key, label: row.datapoint.display?.locale === locale && row.datapoint.display?.disclosure_requirement_title ? `${row.datapoint.dr} · ${row.datapoint.display.disclosure_requirement_title}` : row.datapoint.dr?.trim() || translateSystem("Otros datos del bloque", locale), rows: [] })
     groups.get(key).rows.push(row)
   }
   return [...groups.values()]
@@ -672,4 +676,26 @@ export function validateDatapointWorkspace(snapshot) {
     seen.add(decision.datapoint_id)
   }
   return snapshot
+}
+
+export function responseLabel(status, locale = "es") { return translateSystem(responseLabelSpanish(status), locale) }
+
+export function p9ExportLinks(locale = "es") { return translateSystem(p9ExportLinksSpanish(), locale) }
+
+export function p9MappingSummary(corpus, locale = "es") { return translateSystem(p9MappingSummarySpanish(corpus), locale) }
+
+export function phaseInSummary(corpus, locale = "es") { return translateSystem(phaseInSummarySpanish(corpus), locale) }
+
+export function completionPlanItems(corpus, locale = "es") { return translateSystem(completionPlanItemsSpanish(corpus, locale), locale) }
+
+export function datapointApplicabilitySummary(datapoint, locale = "es") { return translateSystem(datapointApplicabilitySummarySpanish(datapoint), locale) }
+
+export function obligationBadge(datapoint, locale = "es") { return translateSystem(obligationBadgeSpanish(datapoint), locale) }
+
+export function phaseInBadgeLabel(datapoint, lessThan750, locale = "es") { return translateSystem(phaseInBadgeLabelSpanish(datapoint, lessThan750), locale) }
+
+export function triageOptions(locale = "es") { return translateSystem(TRIAGE_OPTIONS, locale) }
+export function datapointDisplayName(datapoint, locale = "es") {
+  if (datapoint?.display?.locale === locale) return datapoint.display.name || ""
+  return locale === "en" ? datapoint?.name || "" : ""
 }

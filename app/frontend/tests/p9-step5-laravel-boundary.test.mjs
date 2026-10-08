@@ -208,7 +208,7 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
             id: "BP-1_01",
             name: "General basis for preparation",
             applicability: {
-              reason: "ESRS 2 general disclosure datapoints are included as the baseline sustainability statement corpus.",
+              reason: "La información general de NEIS 2 constituye la base del estado de sostenibilidad.",
               mapping_basis: "always_required",
               reason_code: "always_required_esrs_2",
               limitations: [],
@@ -222,7 +222,7 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
 
   assert.deepEqual(
     p9ExportLinks().map((link) => link.path),
-    ["/esrs-datapoints/export.csv", "/esrs-datapoints/responses/export.csv"],
+    ["/esrs-datapoints/export.localized.csv", "/esrs-datapoints/responses/export.localized.csv"],
   )
   assert.deepEqual(flattenCorpus(corpus).map((row) => [row.blockTitle, row.datapoint.id]), [
     ["Topical datapoints", "BP-1_01"],
@@ -233,7 +233,7 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
     currentFilter: "topical_blocked_until_dr_mapping",
     currentFilterLabel: "Bloqueado hasta mapear AR16 a DR",
     limitations: [
-      "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar ESRS.",
+      "Falta el mapa aprobado AR16 a DR. No se incluirán datos normativos temáticos para evitar convertir un tema material en todo el estándar NEIS.",
     ],
     mappingGranularity: "disclosure_requirement_mapping_required",
     mappingGranularityLabel: "Requiere mapa a requisito de divulgación",
@@ -241,7 +241,7 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
     mappingStatusLabel: "Mapa pendiente",
   })
   assert.equal(phaseInSummary(corpus).applicablePhaseInCount, 3)
-  assert.equal(completionPlanItems(corpus)[0].title, "Complete ESRS 2 first")
+  assert.equal(completionPlanItems(corpus)[0].title, "Completa primero la información general de NEIS 2")
   assert.equal(completionPlanItems({ completion_plan: { phases: [{ key: "topical", status: "blocked" }] } })[0].statusLabel, "Bloqueado")
   assert.deepEqual(datapointApplicabilitySummary(corpus.blocks.topical.datapoints[0]), {
     limitations: [],
@@ -249,7 +249,7 @@ test("P9 helpers expose corpus transparency, applicability, and export decisions
     mappingBasisLabel: "Siempre requerido",
     phaseInAllUndertakings: "",
     phaseInLessThan750: "May phase in",
-    reason: "ESRS 2 general disclosure datapoints are included as the baseline sustainability statement corpus.",
+    reason: "La información general de NEIS 2 constituye la base del estado de sostenibilidad.",
     reasonCode: "always_required_esrs_2",
   })
 })
@@ -263,4 +263,34 @@ test("Laravel API client exposes typed P9 datapoint helpers", () => {
   assert.match(source, /getLaravelEsrsDatapointResponses/, "client must expose P9 response read helper")
   assert.match(source, /updateLaravelEsrsDatapointResponses/, "client must expose P9 response update helper")
   assert.match(source, /\/esrs-datapoints/, "client must call Laravel datapoint API")
+})
+
+test("P9 save-and-continue reaches Step 6 only after the latest queued save is acknowledged", () => {
+  const source = read("components/wizard/esrs-datapoints-form.tsx")
+  const buttons = Array.from(source.matchAll(/<Button\b[\s\S]*?<\/Button>/g), ([button]) => button)
+  const forward = buttons.find((button) => /Guardar y continuar/.test(button))
+  assert.ok(forward, "P9 must render an explicit Spanish Guardar y continuar control")
+  assert.match(forward, /onClick=\{\(\)\s*=>\s*handleSave\(true\)\}/, "continuation must use the existing manual serialized save path")
+  assert.match(forward, /disabled=\{[^}]*saving[^}]*\}/, "continuation must be disabled while saving")
+
+  const save = source.match(/const handleSave = async \((\w+)(?:\s*:\s*boolean)?\s*=\s*false\) => \{([\s\S]*?)\n {2}return \(/)
+  assert.ok(save, "manual save must remain the default; navigation requires an explicit continuation request")
+  const [, continuationFlag, handler] = save
+  assert.match(handler, /const saved = await enqueueCurrentSave\(\)\s+if \(saved\.discarded\) return/, "await the existing queue acknowledgement and reject discarded completions")
+  const latest = handler.match(/if \(saved\.isLatestEdit\) \{([\s\S]*?)\n {6}\}/)
+  assert.ok(latest, "an older save acknowledgement must not authorize continuation")
+  assert.match(
+    latest[1],
+    new RegExp(`if \\(${continuationFlag}\\) \\{\\s*router\\.push\\(["']/wizard/step-6["']\\)\\s*\\}`),
+    "only the acknowledged latest edit may fulfill the explicit continuation request",
+  )
+  assert.equal((handler.match(/router\.push\(["']\/wizard\/step-6["']\)/g) || []).length, 1, "Step 6 navigation must occur only inside the guarded success branch")
+  const failure = handler.slice(handler.indexOf("} catch (error)"))
+  assert.match(failure, /installConflictRecovery\(error\)\) return/, "conflicts must retain recovery without continuation")
+  assert.match(failure, /router\.replace\("\/login"\)/, "authentication failure must retain its login redirect")
+  assert.match(failure, /setErrorMessage\(/, "save failure must retain the error and editable drafts")
+  assert.doesNotMatch(failure, /\/wizard\/step-6/, "neither catch nor finally may navigate to Step 6")
+  const manual = buttons.find((button) => /Guardar respuestas/.test(button))
+  assert.ok(manual, "the existing manual save control must remain available")
+  assert.match(manual, /onClick=\{\(\)\s*=>\s*handleSave\(\)\}/, "manual save must not request continuation or pass a click event as the flag")
 })

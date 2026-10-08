@@ -151,7 +151,7 @@ test("consent/retention copy lives in one shared constant rendered above the upl
   assert.doesNotMatch(panelSource, /servicio de la plataforma/, "panel must not duplicate the consent copy inline")
 
   const uploadControlIndex = panelSource.indexOf("Subir documento")
-  const consentIndex = panelSource.indexOf("{P6_DOCUMENT_CONSENT_COPY}")
+  const consentIndex = panelSource.indexOf("{tr(P6_DOCUMENT_CONSENT_COPY)}")
 
   assert.ok(consentIndex >= 0 && uploadControlIndex > consentIndex, "consent copy must render above the upload control")
 })

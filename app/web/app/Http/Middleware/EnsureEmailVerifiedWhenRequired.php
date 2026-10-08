@@ -27,7 +27,7 @@ class EnsureEmailVerifiedWhenRequired
         if ($user && ! $user->hasVerifiedEmail()) {
             if ($request->expectsJson()) {
                 return response()->json([
-                    'message' => 'Confirma tu correo electrónico para continuar.',
+                    'message' => __('Confirma tu correo electrónico para continuar.'),
                     'code' => 'email_unverified',
                 ], 409);
             }

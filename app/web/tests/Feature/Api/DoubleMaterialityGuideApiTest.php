@@ -29,10 +29,10 @@ it('returns a structured P7 double materiality guide for the separate frontend',
         ->assertJsonPath('data.type', 'double_materiality_guide')
         ->assertJsonPath('data.phase', 'P7')
         ->assertJsonPath('data.content_format', 'structured_prose_v2')
-        ->assertJsonPath('data.warning.es', 'La guía acelera la ADM externa; no decide la materialidad.')
+        ->assertJsonPath('data.warning.es', 'La guía facilita el análisis externo de doble importancia relativa; no decide la materialidad.')
         ->assertJsonPath('data.next_step.next_api', '/api/materiality-confirmation')
         ->assertJsonPath('data.next_step.next_phase', 'P8')
-        ->assertJsonPath('data.next_step.note.es', 'Cuando termines el análisis, vuelve al paso 4 para confirmar tus temas materiales finales. El paso 5 derivará los datos a reportar de esa selección.');
+        ->assertJsonPath('data.next_step.note.es', 'Cuando termines el análisis, vuelve al paso 4 para confirmar tus temas materiales finales. El paso 5 derivará los datos que incluir en el informe de esa selección.');
 
     expect(collect($response->json('data.sections'))->pluck('key')->all())
         ->toBe([
@@ -88,7 +88,7 @@ it('downloads guide template CSVs with localized headers per locale', function (
     $spanish = $this->actingAs($user)
         ->get('/api/double-materiality-guide/templates/iro_register.csv')
         ->assertOk()
-        ->assertHeader('Content-Disposition', 'attachment; filename=iro-register-template-es.csv');
+        ->assertHeader('Content-Disposition', 'attachment; filename=plantilla-registro-impactos-riesgos-oportunidades.csv');
 
     expect($spanish->getContent())
         ->toContain('ID del tema AR16')

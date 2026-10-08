@@ -1,14 +1,21 @@
 "use client"
 
 import { useState } from "react"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import { useRouter } from "next/navigation"
 import { Mail, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { fetchLaravelCsrfToken, laravelAuthHeaders } from "@/lib/laravel-auth"
 
 export function VerifyEmailNotice({ email }: { email: string }) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const router = useRouter()
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [status, setStatus] = useState("idle")
 
   const resend = async () => {
     setStatus("sending")
@@ -40,39 +47,33 @@ export function VerifyEmailNotice({ email }: { email: string }) {
       </div>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">Confirma tu correo</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{tr("Confirma tu correo")}</h1>
         <p className="text-sm text-muted-foreground">
-          Hemos enviado un enlace de confirmación a <span className="font-medium text-foreground">{email}</span>. Abre ese
-          correo y pulsa el enlace para activar tu cuenta.
-        </p>
+          {" "}{tr("Hemos enviado un enlace de confirmación a")}{" "}<span className="font-medium text-foreground">{email}</span>{tr(". Abre ese correo y pulsa el enlace para activar tu cuenta.")}{" "}</p>
       </div>
 
       <div className="rounded-lg border border-border bg-muted/40 p-4 text-left text-sm text-muted-foreground">
         <p>
-          ¿No lo encuentras? Revisa la carpeta de correo no deseado o spam. El enlace puede tardar unos minutos en llegar.
-        </p>
+          {" "}{tr("¿No lo encuentras? Revisa la carpeta de correo no deseado o spam. El enlace puede tardar unos minutos en llegar.")}{" "}</p>
       </div>
 
       {status === "sent" ? (
         <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
-          Hemos vuelto a enviarte el correo de confirmación.
-        </div>
+          {" "}{tr("Hemos vuelto a enviarte el correo de confirmación.")}{" "}</div>
       ) : null}
 
       {status === "error" ? (
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          No hemos podido reenviar el correo. Inténtalo de nuevo en unos minutos.
-        </div>
+          {" "}{tr("No hemos podido reenviar el correo. Inténtalo de nuevo en unos minutos.")}{" "}</div>
       ) : null}
 
       <div className="space-y-3">
         <Button type="button" className="w-full" onClick={resend} disabled={status === "sending"}>
-          {status === "sending" ? "Enviando..." : "Reenviar correo"}
+          {status === "sending" ? tr("Enviando...") : tr("Reenviar correo")}
         </Button>
         <Button type="button" variant="outline" className="w-full" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
-          Ya lo he confirmado
-        </Button>
+          {" "}{tr("Ya lo he confirmado")}{" "}</Button>
       </div>
     </div>
   )

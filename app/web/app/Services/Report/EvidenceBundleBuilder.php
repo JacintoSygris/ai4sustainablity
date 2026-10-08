@@ -26,7 +26,7 @@ class EvidenceBundleBuilder
      *                                                  must never appear in the rendered DOCX.
      * @return array<string, mixed>
      */
-    public function build(array $ir, array $materialityTrace = []): array
+    public function build(array $ir, array $materialityTrace = [], string $locale = 'es'): array
     {
         $unmapped = [];
         $provenance = [];
@@ -66,6 +66,16 @@ class EvidenceBundleBuilder
             $bundle['fact_decisions'] = $ir['fact_decisions'] ?? [];
             $bundle['claim_evidence_index'] = $this->claimEvidenceIndex($bundle['claims']);
         }
+
+        $display = new ReportDisplayProjection($locale);
+        $bundle['display'] = [
+            'locale' => $display->locale,
+            'narrative' => $display->narrative($ir),
+            'claim_labels' => array_map(fn (array $claim) => [
+                'claim_id' => $claim['claim_id'] ?? null,
+                'label' => $display->claimLabel($claim['datapoint_id'] ?? null, $claim),
+            ], $ir['claims'] ?? []),
+        ];
 
         return $bundle;
     }

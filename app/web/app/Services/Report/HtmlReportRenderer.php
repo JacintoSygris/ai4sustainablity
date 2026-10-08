@@ -7,19 +7,21 @@ use RuntimeException;
 
 class HtmlReportRenderer
 {
-    public function render(array $ir): string
+    public function render(array $ir, string $locale = 'es'): string
     {
         if (($ir['schema_version'] ?? null) !== 'report_ir_v1') {
             throw new DomainException('HtmlReportRenderer requires report_ir_v1.');
         }
 
+        $display = new ReportDisplayProjection($locale);
+        $narrative = $display->narrative($ir);
         $claimsById = $this->claimsById($ir);
         $isFactual = ($ir['schema_version'] ?? null) === 'report_ir_v1';
-        $title = $this->text(($ir['company']['name'] ?? 'Informe ESRS').' - Ejercicio '.($ir['company']['reporting_year'] ?? '-'));
+        $title = $this->text(($ir['company']['name'] ?? $display->text('Informe NEIS')).' - '.$display->text('Ejercicio').' '.($ir['company']['reporting_year'] ?? '-'));
 
         $html = [];
         $html[] = '<!doctype html>';
-        $html[] = '<html lang="es">';
+        $html[] = '<html lang="'.$display->locale.'">';
         $html[] = '<head>';
         $html[] = '<meta charset="UTF-8">';
         $html[] = '<meta name="viewport" content="width=device-width, initial-scale=1">';
@@ -28,17 +30,17 @@ class HtmlReportRenderer
         $html[] = '</head>';
         $html[] = '<body>';
         $html[] = '<header>';
-        $html[] = '<p><strong>Borrador factual basado en una versión aprobada</strong></p>';
+        $html[] = '<p><strong>'.$this->text($display->text('Borrador factual basado en una versión aprobada')).'</strong></p>';
         $html[] = '<h1>'.$title.'</h1>';
         $html[] = '<div class="notice">';
-        $disclaimers = $ir['disclaimers'] ?? [];
+        $disclaimers = $narrative['disclaimers'] ?? [];
         if ($disclaimers === []) {
-            $disclaimers = ['No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.'];
+            $disclaimers = [$display->text('No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.')];
         }
 
         foreach (array_values(array_unique($disclaimers)) as $disclaimer) {
             if ($this->hasText($disclaimer)) {
-                $html[] = '<p>'.$this->text($disclaimer).'</p>';
+                $html[] = '<p>'.$this->text(ReportVisiblePresentation::controlledNarrative($disclaimer)).'</p>';
             }
         }
 
@@ -52,7 +54,7 @@ class HtmlReportRenderer
 
             $html[] = '<section>';
             $chapterTitle = $isFactual
-                ? ReportVisiblePresentation::chapterTitle($chapter['block_key'] ?? null)
+                ? $display->chapterTitle($chapter['block_key'] ?? null)
                 : ($chapter['title'] ?? 'Capítulo');
             $html[] = '<h2>'.$this->text($chapterTitle).'</h2>';
 
@@ -67,7 +69,7 @@ class HtmlReportRenderer
 
                 $html[] = '<section>';
                 $sectionTitle = $isFactual
-                    ? ReportVisiblePresentation::sectionTitle($section['dr_key'] ?? null)
+                    ? $display->sectionTitle($section['dr_key'] ?? null)
                     : ($section['dr_key'] ?? 'Sección');
                 $html[] = '<h3>'.$this->text($sectionTitle).'</h3>';
 
@@ -81,7 +83,7 @@ class HtmlReportRenderer
 
                 foreach ($section['blocks'] ?? [] as $block) {
                     if (is_array($block)) {
-                        $html[] = $this->renderBlock($block, $claimsById, $isFactual);
+                        $html[] = $this->renderBlock($block, $claimsById, $isFactual, $display);
                     }
                 }
 
@@ -91,7 +93,7 @@ class HtmlReportRenderer
             $html[] = '</section>';
         }
 
-        $html[] = $this->renderOmissionSection($ir['omission_section'] ?? null);
+        $html[] = $this->renderOmissionSection($narrative['omission_section'] ?? null, $display);
 
         $html[] = '</body>';
         $html[] = '</html>';
@@ -102,7 +104,7 @@ class HtmlReportRenderer
     /**
      * @param  array<string, mixed>|null  $omission
      */
-    private function renderOmissionSection(?array $omission): string
+    private function renderOmissionSection(?array $omission, ReportDisplayProjection $display): string
     {
         if ($omission === null) {
             return '';
@@ -120,7 +122,7 @@ class HtmlReportRenderer
         $html = [];
         $html[] = '<section class="appendix">';
         $title = ReportVisiblePresentation::controlledNarrative($omission['title'] ?? 'Omisiones');
-        $html[] = '<h2>'.$this->text('Anexo: '.$title).'</h2>';
+        $html[] = '<h2>'.$this->text($display->text('Anexo: ').$title).'</h2>';
 
         if ($this->hasText($omission['declaration'] ?? null)) {
             $html[] = '<p><em>'.$this->text(ReportVisiblePresentation::controlledNarrative($omission['declaration'])).'</em></p>';
@@ -145,12 +147,12 @@ class HtmlReportRenderer
      * @param  array<string, mixed>  $block
      * @param  array<string, array<string, mixed>>  $claimsById
      */
-    private function renderBlock(array $block, array $claimsById, bool $isFactual): string
+    private function renderBlock(array $block, array $claimsById, bool $isFactual, ReportDisplayProjection $display): string
     {
         $html = [];
         $html[] = '<section>';
         $blockTitle = $isFactual
-            ? ReportVisiblePresentation::claimLabel(
+            ? $display->claimLabel(
                 $block['datapoint_id'] ?? null,
                 $this->firstClaimForBlock($block, $claimsById),
             )
@@ -177,7 +179,7 @@ class HtmlReportRenderer
                 throw new RuntimeException("Factual block references missing claim.");
             }
 
-            $value = $this->claimValue($claim);
+            $value = $display->claimValue($claim);
             if ($value !== null) {
                 $html[] = '<p class="fact">'.$this->text($value).'</p>';
             }

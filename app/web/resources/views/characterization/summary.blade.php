@@ -25,7 +25,7 @@
         <h2>{{ __('Status Overview') }}</h2>
         <dl>
             <dt>{{ __('Status') }}</dt>
-            <dd>{{ __(ucfirst(str_replace('_', ' ', $characterization->status))) }}</dd>
+            <dd>{{ \App\Support\DisplayLabels::code($characterization->status) }}</dd>
             <dt>{{ __('Submitted at') }}</dt>
             <dd>{{ optional($characterization->submitted_at)->format('Y-m-d H:i') ?? '—' }}</dd>
             <dt>{{ __('Completed at') }}</dt>
@@ -36,7 +36,7 @@
             <dd>{{ optional($characterization->next_retry_at)->format('Y-m-d H:i') ?? '—' }}</dd>
             @if($characterization->last_error)
                 <dt>{{ __('Last error') }}</dt>
-                <dd>{{ $characterization->last_error }}</dd>
+                <dd>{{ __('No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.') }}</dd>
             @endif
         </dl>
     </div>
@@ -74,7 +74,7 @@
             <dt>{{ __('NACE Code') }}</dt>
             <dd>
                 @if ($selectedNace)
-                    {{ $selectedNace['code'] }} · {{ $selectedNace['title'][$locale] ?? $selectedNace['title']['en'] }}
+                    {{ $selectedNace['code'] }} · {{ $selectedNace['title'][$locale] ?? '—' }}
                 @else
                     —
                 @endif
@@ -130,9 +130,9 @@
                     @foreach ($selectedTopics as $topic)
                         <tr>
                             <td>{{ $topic['esrs_code'] }}</td>
-                            <td>{{ $topic['theme'][$locale] ?? $topic['theme']['en'] }}</td>
-                            <td>{{ $topic['subtheme'][$locale] ?? $topic['subtheme']['en'] }}</td>
-                            <td>{{ $topic['subtopic'][$locale] ?? $topic['subtopic']['en'] }}</td>
+                            <td>{{ $topic['theme'][$locale] ?? $topic['theme']['es'] ?? '—' }}</td>
+                            <td>{{ $topic['subtheme'][$locale] ?? $topic['subtheme']['es'] ?? '—' }}</td>
+                            <td>{{ $topic['subtopic'][$locale] ?? $topic['subtopic']['es'] ?? '—' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -142,9 +142,5 @@
         @endif
     </div>
 
-    <div class="section">
-        <h2>{{ __('Notes') }}</h2>
-        <p>{{ Arr::get($formData, 'notes', __('No additional notes provided.')) }}</p>
-    </div>
 </body>
 </html>

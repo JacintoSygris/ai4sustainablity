@@ -8,6 +8,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CharacterizationResource extends JsonResource
 {
     /**
+     * Preserve topic IDs in nested numeric maps; sequential lists remain JSON arrays.
+     */
+    public $preserveKeys = true;
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

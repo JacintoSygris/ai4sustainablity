@@ -1,15 +1,31 @@
 # Optional learning engine
 
-Local synthetic technical qualification of the public tree dated 2026-10-05: 96 optional learning tests and 498/498 Node tests, with no Node skips. The complete PHP suite records 1,941 cases: 1,935 passed, one timing failure and five skips. The sequential rerun of the failed case passed the original <6s assertion (1 case, 5 assertions); the full-suite failure is retained and concurrency is not proven. The five skips require separate native-platform qualification. Typecheck, lint and build passed before this documentation update; no new run is claimed. This pre-publication qualification does not establish business activation, model quality or deployment.
+## Scope
 
-The optional WP13 code records reviewed topic labels, independent disclosure relevance and answer-selection decisions, source revisions, authorization generations and case closure receipts. Unreviewed labels remain unobserved; missing labels are never converted to negative training examples. P9 review choices do not remove normative reporting obligations. Stale inputs, revocation and account deletion invalidate eligibility and dependent candidates.
+The module records reviewed materiality decisions and can prepare cases, train and evaluate model candidates, reload them and exercise explicit selection or rollback in a synthetic test environment. Candidates remain separate from the model serving application requests.
 
-The authenticated API exposes `GET/PUT /api/learning-case/draft` and `POST /api/learning-case/close` and `/withdraw`. The review and closure panels use the existing session and CSRF boundaries. Closure is a synthetic mechanism with a disabled default; the authorization authority binds to `DenyLearningAuthorizationAuthority`. The portable code includes no operational positive issuer. Do not set `APP_ENV=testing` to enable business use.
+An unanswered topic is not a negative training label. Disclosure relevance and answer-selection decisions do not remove reporting obligations. The workflow preserves source revisions and case authorization; source changes, withdrawal and account deletion invalidate eligibility.
 
-The optional Python modules are separate from `public_runtime`, `public_model_app.py`, the serving requirements and model assets. The public serving implementation remains unchanged. Offline candidate inference uses `learning_visible_filter.py`: raw-positive heads only, per-head thresholds, summary/non-candidate exclusions and stable score ordering. Unknown learning heads are omitted by the adapter; sector and CRC policy objects are refused at this boundary. No private serving package, trained candidate, corpus or policy JSON is supplied.
+## Operational boundary
 
-Install `ai-service/requirements-learning.txt` only into a dedicated optional environment; the existing serving environment must retain `requirements.public.txt`. The accompanying learning lockfile is a source input with pins and provenance fixed. Optional dependencies were installed in isolated local environments; this does not establish public production installation, licence acceptance or transitive review. See [dependency inventory](learning-dependencies.md).
+Learning is disabled by default. The included composition admits only synthetic test mode: it has no positive operational authorization issuer or complete business-data learning workflow. No environment variable turns that mechanism into a production feature. Do not set `APP_ENV=testing` on TEST or production to bypass this boundary.
 
-Local qualification covers synthetic Python, Laravel and frontend checks; it does not replace operational verification in the operator environment. From `app/ai-service`, use `PYTHONPATH=src` for learning tests. The native harness is opt-in: from `app/web`, `php tests/scripts/t11-native.php --allow-native-fixture --profile=<operator-owned-disposable-profile> --engines=mysql,pgsql --require-positive-discovery`. Existing native driver/version/loopback/database guards remain mandatory. Portable unit tests use synthetic inputs and do not read private qualification receipts or ignored native configuration. Native-only cases skip without explicit fixture inputs; skipped tests are not qualification evidence.
+Publishing, installing or updating this version does not activate learning or replace the serving model. Business use requires additional operational composition with verified identity and data rights, durable storage, applicable policies, authorized exports and candidate registration outside test profiles. Training and model promotion are separate operations.
 
-Machine-local browser/HTTP qualification harnesses are excluded. The public package lacks the private E2E harness and its 96 learning tests do not inherit that proof. Bounded component reviews and simulated validation qualify their aspects only, not the whole release, real Arelle or rights approval. Real pilots remain OPEN until exact data rights, policy and security approval and an operational issuer are established. Direct SQL/Mongo access is not implicitly authorized. Publication and deployment require actual remote and deployed-environment readback. Public deployment through Jenkins belongs to the user operator; no new publication, Jenkins run, activation or deployment is recorded here.
+## API and serving separation
+
+The authenticated API includes `GET/PUT /api/learning-case/draft` and `POST /api/learning-case/close` and `/withdraw`. It preserves the existing session and CSRF boundaries. Exposed routes do not imply that operational closure is enabled.
+
+Optional Python learning modules are independent of `public_runtime`, `public_model_app.py`, serving requirements and the four distributed model files. Do not replace the existing models with synthetic candidates. The package includes no training corpus, business data, trained candidate artifacts or private policies.
+
+## Dependencies and tests
+
+Install `app/ai-service/requirements-learning.txt` only in a separate optional environment. Keep `requirements.public.txt` for the existing service. Review the [dependency inventory](learning-dependencies.md) and accompanying lockfile before preparing a test environment.
+
+Python learning tests use `PYTHONPATH=src`. Portable tests supply synthetic inputs and require no private receipts. Platform- and database-specific tests require explicitly provisioned disposable resources; a skipped case is not a passed check.
+
+The optional native harness runs from `app/web`:
+
+    php tests/scripts/t11-native.php --allow-native-fixture --profile=<operator-owned-disposable-profile> --engines=mysql,pgsql --require-positive-discovery
+
+Prepare a disposable profile compatible with the harness driver, version, loopback and database-identity guards. Never run these tests against a real database. Machine-bound private harnesses are not part of this distribution.

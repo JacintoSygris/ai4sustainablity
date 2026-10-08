@@ -42,7 +42,7 @@ class ReportFactController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -108,46 +108,53 @@ class ReportFactController extends Controller
                 $canonicalDimensions = $this->canonicalDimensions($dimensions);
 
                 if (($fact['approval_status'] ?? null) === 'approved') {
-                    $validator->errors()->add("facts.$index.approval_status", 'Approved facts are not accepted by this endpoint.');
+                    $validator->errors()->add("facts.$index.approval_status", __('Approved facts are not accepted by this endpoint.'));
                 }
 
                 if (in_array($applicability, ['pending', 'blocked'], true) && ($fact['approval_status'] ?? null) === 'approved') {
-                    $validator->errors()->add("facts.$index.approval_status", 'Pending or blocked facts cannot be approved.');
+                    $validator->errors()->add("facts.$index.approval_status", __('Pending or blocked facts cannot be approved.'));
                 }
 
                 if ($nil) {
                     if ($valueType !== 'nil') {
-                        $validator->errors()->add("facts.$index.value_type", 'Nil facts must use value_type nil.');
+                        $validator->errors()->add("facts.$index.value_type", __('Nil facts must use value_type nil.'));
                     }
 
                     if (array_key_exists('value', $fact) && $fact['value'] !== null) {
-                        $validator->errors()->add("facts.$index.value", 'Nil facts must not carry a value.');
+                        $validator->errors()->add("facts.$index.value", __('Nil facts must not carry a value.'));
                     }
 
                     if (! filled($fact['nil_reason'] ?? null)) {
-                        $validator->errors()->add("facts.$index.nil_reason", 'Nil facts require a nil reason.');
+                        $validator->errors()->add("facts.$index.nil_reason", __('Nil facts require a nil reason.'));
                     }
                 } else {
                     if ($valueType === 'nil') {
-                        $validator->errors()->add("facts.$index.value_type", 'value_type nil requires nil=true.');
+                        $validator->errors()->add("facts.$index.value_type", __('value_type nil requires nil=true.'));
                     }
 
                     if (in_array($valueType, ['number', 'monetary', 'integer'], true)) {
                         if (! filled($fact['unit'] ?? null)) {
-                            $validator->errors()->add("facts.$index.unit", 'Numeric facts require a unit.');
+                            $validator->errors()->add("facts.$index.unit", __('Numeric facts require a unit.'));
                         }
 
                         if (! array_key_exists('decimals', $fact) || $fact['decimals'] === null) {
-                            $validator->errors()->add("facts.$index.decimals", 'Numeric facts require decimals.');
+                            $validator->errors()->add("facts.$index.decimals", __('Numeric facts require decimals.'));
                         }
                     }
 
                     if ($valueType === 'text' && ! filled($language)) {
-                        $validator->errors()->add("facts.$index.language", 'Text facts require a language.');
+                        $validator->errors()->add("facts.$index.language", __('Text facts require a language.'));
                     }
 
                     if (is_string($valueType)) {
                         try {
+                            // New writes must preserve the exact numeric lexeme. The shared
+                            // decoder still accepts historical persisted numbers for rendering.
+                            if (in_array($valueType, ['number', 'monetary', 'integer'], true)
+                                && ! is_string($fact['value'] ?? null)) {
+                                throw new \RuntimeException('New numeric facts require a string.');
+                            }
+
                             ReportFactValue::scalar([
                                 'value_type' => $valueType,
                                 'value' => $fact['value'] ?? null,
@@ -155,14 +162,14 @@ class ReportFactController extends Controller
                         } catch (\RuntimeException) {
                             $validator->errors()->add(
                                 "facts.$index.value",
-                                'The fact value does not match its declared value type.'
+                                __('The fact value does not match its declared value type.')
                             );
                         }
                     }
                 }
 
                 if (in_array($applicability, ['not_applicable', 'unavailable'], true) && count($evidenceRefs) === 0) {
-                    $validator->errors()->add("facts.$index.evidence_refs", 'Not applicable or unavailable facts require structured evidence.');
+                    $validator->errors()->add("facts.$index.evidence_refs", __('Not applicable or unavailable facts require structured evidence.'));
                 }
 
                 $seenAxes = [];
@@ -175,16 +182,16 @@ class ReportFactController extends Controller
                     $member = is_string($dimension['member'] ?? null) ? trim($dimension['member']) : '';
 
                     if ($axis === '') {
-                        $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.axis", 'Dimension axis is required.');
+                        $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.axis", __('Dimension axis is required.'));
                     }
 
                     if ($member === '') {
-                        $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.member", 'Dimension member is required.');
+                        $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.member", __('Dimension member is required.'));
                     }
 
                     if ($axis !== '') {
                         if (isset($seenAxes[$axis])) {
-                            $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.axis", 'Duplicate dimension axis.');
+                            $validator->errors()->add("facts.$index.dimensions.$dimensionIndex.axis", __('Duplicate dimension axis.'));
                         }
 
                         $seenAxes[$axis] = true;
@@ -202,7 +209,7 @@ class ReportFactController extends Controller
                     );
 
                     if (isset($seenFactIds[$factId])) {
-                        $validator->errors()->add("facts.$index.datapoint_id", 'Duplicate reporting fact identity.');
+                        $validator->errors()->add("facts.$index.datapoint_id", __('Duplicate reporting fact identity.'));
                     }
 
                     $seenFactIds[$factId] = true;
@@ -212,7 +219,7 @@ class ReportFactController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'The reporting fact payload is invalid.',
+                'message' => __('The reporting fact payload is invalid.'),
                 'code' => 'reporting_fact_invalid',
                 'errors' => $validator->errors(),
             ], 422);
@@ -233,7 +240,7 @@ class ReportFactController extends Controller
             foreach ($validatedFacts as $index => $fact) {
                 $datapointId = trim((string) $fact['datapoint_id']);
                 if ($datapointId !== '' && ! isset($allowedDatapointIds[$datapointId])) {
-                    $corpusErrors["facts.$index.datapoint_id"][] = 'The datapoint is not part of the current reporting corpus.';
+                    $corpusErrors["facts.$index.datapoint_id"][] = __('The datapoint is not part of the current reporting corpus.');
                 }
             }
 
@@ -302,7 +309,7 @@ class ReportFactController extends Controller
 
         if ($writeResult['errors'] !== []) {
             return response()->json([
-                'message' => 'The reporting fact payload is invalid.',
+                'message' => __('The reporting fact payload is invalid.'),
                 'code' => 'reporting_fact_invalid',
                 'errors' => $writeResult['errors'],
             ], 422);
@@ -316,7 +323,7 @@ class ReportFactController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $reportingFact = ReportingFact::query()
@@ -330,7 +337,7 @@ class ReportFactController extends Controller
 
         if ($validator->fails() || trim((string) $request->input('review_declaration', '')) === '') {
             return response()->json([
-                'message' => 'A fact review declaration is required.',
+                'message' => __('A fact review declaration is required.'),
                 'code' => 'report_fact_review_declaration_required',
                 'errors' => $validator->errors(),
             ], 422);
@@ -340,7 +347,7 @@ class ReportFactController extends Controller
 
         if (! $reviewability['reviewable']) {
             return response()->json([
-                'message' => 'The reporting fact is not reviewable.',
+                'message' => __('The reporting fact is not reviewable.'),
                 'code' => 'report_fact_not_reviewable',
                 'reasons' => $reviewability['reasons'],
             ], 409);
@@ -360,7 +367,7 @@ class ReportFactController extends Controller
 
             if (! $lockedReviewability['reviewable']) {
                 return ['response' => response()->json([
-                    'message' => 'The reporting fact is not reviewable.',
+                    'message' => __('The reporting fact is not reviewable.'),
                     'code' => 'report_fact_not_reviewable',
                     'reasons' => $lockedReviewability['reasons'],
                 ], 409)];

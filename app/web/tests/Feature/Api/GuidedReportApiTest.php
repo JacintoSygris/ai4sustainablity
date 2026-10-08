@@ -58,6 +58,34 @@ it('requires authentication for the factual html report', function () {
     $this->getJson('/api/report/html')->assertUnauthorized();
 });
 
+it('preserves an exact integer through fact submission review snapshot claims and localized report downloads', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    $value = '9007199254740993';
+    $this->actingAs($this->user)->putJson('/api/report/facts', ['facts' => [[
+        'datapoint_id' => 'BP-1_01', 'applicability' => 'applicable',
+        'value_type' => 'integer', 'value' => $value, 'unit' => 'pure', 'decimals' => 0,
+        'dimensions' => [], 'language' => null, 'nil' => false, 'nil_reason' => null,
+        'evidence_refs' => [['type' => 'note', 'value' => 'Exact integer regression evidence.']],
+        'provenance' => 'api', 'approval_status' => 'review_required', 'blocking_reasons' => [],
+    ]]])->assertOk()->assertJsonPath('data.persisted_facts.0.value', $value);
+    $fact = ReportingFact::where('characterization_id', $characterization->id)->sole();
+    expect($fact->value)->toBe($value);
+    $this->postJson('/api/report/facts/'.$fact->id.'/review', ['review_declaration' => 'Reviewed exact integer evidence.'])
+        ->assertOk()->assertJsonPath('data.approval_status', 'reviewed');
+    $snapshot = guidedReportApiApproveSnapshot($this->user, $characterization);
+    $frozen = $snapshot->fresh()->snapshot_json;
+    expect($frozen['facts'][0]['value'])->toBe($value);
+    foreach (['es' => '9.007.199.254.740.993', 'en' => '9,007,199,254,740,993'] as $locale => $display) {
+        $this->putJson('/api/locale', ['locale' => $locale])->assertOk();
+        $this->get('/api/report/html')->assertOk()->assertHeader('Content-Language', $locale)->assertSee($display);
+        $docx = $this->get('/api/guided-report/docx')->assertOk()->assertHeader('Content-Language', $locale);
+        expect(docxVisibleText($docx->getContent()))->toContain($display);
+        $this->getJson('/api/guided-report/evidence-bundle')->assertOk()->assertJsonPath('data.claims.0.value', $value);
+    }
+    expect($fact->fresh()->value)->toBe($value);
+    expect($snapshot->fresh()->snapshot_json)->toBe($frozen);
+});
+
 it('requires authentication for the xhtml ixbrl candidate endpoint', function () {
     $this->getJson('/api/report/xhtml-ixbrl-candidate')->assertUnauthorized();
 });
@@ -175,7 +203,7 @@ it('returns a validated xhtml ixbrl candidate attachment from a fresh approved s
 
     expect($response->headers->get('content-type'))->toContain('application/xhtml+xml; charset=UTF-8');
     expect($response->headers->get('content-disposition'))
-        ->toBe('attachment; filename="informe-esrs-candidato.xhtml"');
+        ->toBe('attachment; filename="informe-neis-candidato.xhtml"');
     expect($response->headers->get('X-Report-Publication-State'))->toBe('validated_candidate');
     expect($response->getContent())->toContain('<ix:nonFraction')
         ->and($response->getContent())->toContain('123.45')
@@ -249,7 +277,7 @@ it('returns factual html from a fresh approved snapshot without evidence or inte
 
     expect($response->headers->get('content-type'))->toContain('text/html; charset=UTF-8');
     expect($response->headers->get('content-disposition'))
-        ->toBe('attachment; filename="informe-esrs-borrador.html"');
+        ->toBe('attachment; filename="informe-neis-borrador.html"');
     expect($response->getContent())->toContain('Borrador factual basado en una versión aprobada');
     expect($response->getContent())->toContain('No constituye una presentación oficial ni un trabajo de aseguramiento');
     expect($response->getContent())->toContain('ni genera el formato electrónico regulatorio');

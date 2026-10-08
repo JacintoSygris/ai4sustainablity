@@ -1,5 +1,8 @@
-export function localized(value) {
-  return value?.es || value?.en || ""
+import { localizedText } from "./i18n/locale.mjs"
+import { translateSystem } from "./i18n/messages.mjs"
+
+export function localized(value, locale = "es") {
+  return localizedText(value, locale)
 }
 
 const GUIDE_TITLES = {
@@ -11,14 +14,14 @@ const GUIDE_TITLES = {
   return_to_p8: "Volver a la selección final de temas",
 }
 
-export function guideTitle(item) {
-  return GUIDE_TITLES[item?.key] ?? localized(item?.title)
+export function guideTitle(item, locale = "es") {
+  return GUIDE_TITLES[item?.key] ? translateSystem(GUIDE_TITLES[item.key], locale) : localized(item?.title, locale)
 }
 
 const GUIDE_CHECKS = {
   review_p5_p6: [
     "Confirma el perímetro de la empresa, el ejercicio de información, el sector, el rango de tamaño y los temas AR16 propuestos por la IA.",
-    "Anota los temas dudosos de la propuesta para resolverlos durante el taller de análisis de doble materialidad.",
+    "Anota los temas dudosos de la propuesta para resolverlos durante el taller de análisis de doble importancia relativa.",
   ],
   define_boundaries: [
     "Separa las operaciones propias de la cadena de valor anterior y posterior.",
@@ -50,8 +53,8 @@ const GUIDE_CHECKS = {
   ],
 }
 
-export function guideChecks(step) {
-  return GUIDE_CHECKS[step?.key] ?? []
+export function guideChecks(step, locale = "es") {
+  return translateSystem(GUIDE_CHECKS[step?.key] ?? [], locale)
 }
 
 export function checklistFlags(state) {
@@ -68,17 +71,14 @@ export const TEMPLATE_LOCALES = ["es", "en"]
 
 export const TEMPLATE_DOWNLOAD_LABELS = {
   es: "Descargar en español",
-  en: "Download in English",
+  en: "Descargar en inglés",
 }
 
 /**
  * @param {string} templateKey
- * @param {string} [locale]
  */
-export function templateDownloadPath(templateKey, locale = "es") {
-  const safeLocale = TEMPLATE_LOCALES.includes(locale) ? locale : "es"
-
-  return `/double-materiality-guide/templates/${templateKey}.csv?locale=${safeLocale}`
+export function templateDownloadPath(templateKey) {
+  return `/double-materiality-guide/templates/${encodeURIComponent(templateKey)}.csv`
 }
 
 export function canContinueFromGuideState({ guide, loadingInitial, errorMessage }) {
@@ -101,7 +101,7 @@ export function checklistComplete(state) {
   )
 }
 
-export function guideProgressLabel(state) {
+function spanishGuideProgressLabel(state) {
   if (!state) return "Sin empezar"
   // per frozen: ready when acta OR all 4 checklist; label surfaces "Análisis registrado" on either complete signal
   if (actaRegistered(state) || checklistComplete(state) || state.guide_status === "ready") return "Análisis registrado"
@@ -111,3 +111,5 @@ export function guideProgressLabel(state) {
   if (anySet) return "En curso"
   return "Sin empezar"
 }
+
+export function guideProgressLabel(state, locale = "es") { return translateSystem(spanishGuideProgressLabel(state), locale) }

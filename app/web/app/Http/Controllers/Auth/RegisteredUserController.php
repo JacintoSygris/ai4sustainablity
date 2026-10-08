@@ -84,7 +84,7 @@ class RegisteredUserController extends Controller
                 $authVersion = (int) ($user->auth_version ?? 0);
             }
 
-            SendRegistrationVerification::dispatch($userId, $email, $authVersion);
+            SendRegistrationVerification::dispatch($userId, $email, $authVersion, app()->getLocale());
         }, 350_000);
         // NB: do NOT clear the limiter on success — the cap is accounts-per-IP
         // per window, so a bot that successfully creates accounts stays limited.

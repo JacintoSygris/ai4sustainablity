@@ -23,15 +23,26 @@ class FloorProseComposer
     ];
 
     /** @param array<string, mixed> $topic one `NotMaterialTopicResolver` omitted_topics entry */
-    public function omissionStatement(array $topic): string
+    public function omissionStatement(array $topic, string $locale = 'es'): string
     {
         // `label`, not `theme_es`: the theme is the standard-level name and repeats
         // across a standard's topics (all 5 E3 topics share "Agua y recursos marinos").
         $label = (string) $topic['label'];
 
+        if ($locale === 'en') {
+            $sentence = $topic['evidence_grade'] === NotMaterialTopicResolver::GRADE_DIRECT
+                ? "{$label} was assessed and was not considered material."
+                : "{$label} was not confirmed as material following the double materiality assessment.";
+            $reasons = [];
+            foreach ($topic['change_reasons'] ?? [] as $key) {
+                if (isset(self::REASON_PHRASES[$key])) $reasons[] = (new ReportDisplayProjection('en'))->text(self::REASON_PHRASES[$key]);
+            }
+            return $sentence.($reasons !== [] ? ' Reason: '.implode('; ', $reasons).'.' : '');
+        }
+
         $sentence = $topic['evidence_grade'] === NotMaterialTopicResolver::GRADE_DIRECT
             ? "{$label} se evaluó y no se consideró material."
-            : "{$label} no fue confirmado como material tras la evaluación de doble materialidad.";
+            : "{$label} no fue confirmado como material tras la evaluación de doble importancia relativa.";
 
         $phrases = [];
         foreach ($topic['change_reasons'] ?? [] as $key) {
@@ -72,23 +83,32 @@ class FloorProseComposer
             return "Véase la sección {$resolvedEdge['target_dr']} ({$resolvedEdge['citation']}); no se repite aquí.";
         }
 
-        return "El tema relacionado ({$resolvedEdge['target_dr']}) se evaluó como no material; divulgación relacionada omitida.";
+        return "El tema relacionado ({$resolvedEdge['target_dr']}) se evaluó como no material; información relacionada omitida.";
     }
 
-    public function notDeterminableDeclaration(bool $hasDirectOmissions): string
+    public function notDeterminableDeclaration(bool $hasDirectOmissions, string $locale = 'es'): string
     {
+        if ($locale === 'en') {
+            $what = $hasDirectOmissions ? 'which other topics' : 'which topics';
+            return "There is no record of the initial topic proposal, so it is not possible to determine {$what} were assessed and excluded.";
+        }
         $what = $hasDirectOmissions ? 'qué otros temas' : 'qué temas';
 
         return "No consta registro de la propuesta inicial de temas, por lo que no puede determinarse {$what} se evaluaron y descartaron.";
     }
 
-    public function unresolvedLimitation(int $count): string
+    public function unresolvedLimitation(int $count, string $locale = 'es'): string
     {
-        return "{$count} tema(s) evaluado(s) no pudieron identificarse en el catálogo ESRS vigente; véase el paquete de evidencias.";
+        if ($locale === 'en') return "{$count} assessed topic(s) could not be identified in the current ESRS catalogue; see the evidence package.";
+        return "{$count} tema(s) evaluado(s) no pudieron identificarse en el catálogo NEIS vigente; véase el paquete de evidencias.";
     }
 
-    public function staleDisclaimer(?string $confirmedAt): string
+    public function staleDisclaimer(?string $confirmedAt, string $locale = 'es'): string
     {
+        if ($locale === 'en') {
+            $when = $confirmedAt !== null && $confirmedAt !== '' ? " dated {$confirmedAt}" : ' on record';
+            return "The automatic topic proposal changed after confirmation; this output reflects the confirmation{$when}.";
+        }
         $when = $confirmedAt !== null && $confirmedAt !== '' ? " de {$confirmedAt}" : ' registrada';
 
         return "La propuesta automática de temas cambió después de la confirmación; esta salida refleja la confirmación{$when}.";

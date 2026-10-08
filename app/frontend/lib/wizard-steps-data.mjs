@@ -18,7 +18,7 @@ export const WIZARD_STEPS = [
   },
   {
     id: 3,
-    title: "Doble materialidad",
+    title: "Doble importancia relativa",
     description: "Usa la guía para ordenar el análisis que realiza tu equipo.",
   },
   {
@@ -28,7 +28,7 @@ export const WIZARD_STEPS = [
   },
   {
     id: 5,
-    title: "Reúne indicadores/datos ESRS",
+    title: "Reúne datos normativos NEIS",
     description: "Registra respuestas, pendientes y no aplicables justificados.",
   },
   {

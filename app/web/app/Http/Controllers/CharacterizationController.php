@@ -91,7 +91,7 @@ class CharacterizationController extends Controller
         if ($format === 'pdf') {
             $pdf = Pdf::loadView('characterization.summary', $data);
 
-            return $pdf->download('characterization-summary.pdf');
+            return $pdf->download(app()->getLocale() === 'en' ? 'characterization-summary.pdf' : 'resumen-caracterizacion.pdf');
         }
 
         return view('characterization.summary', $data);

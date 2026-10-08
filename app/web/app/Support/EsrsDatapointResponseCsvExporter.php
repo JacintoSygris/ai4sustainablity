@@ -45,15 +45,19 @@ class EsrsDatapointResponseCsvExporter
      * @param  array<string, mixed>  $corpus
      * @param  array<string, mixed>  $responseState
      */
-    public function toCsv(array $corpus, array $responseState): string
+    public function toCsv(array $corpus, array $responseState, ?string $locale = null): string
     {
+        $catalogue = $locale === null ? null : new EsrsDisplayCatalogue;
+        if ($catalogue) {
+            $corpus = $catalogue->project($corpus, $locale);
+        }
         $handle = fopen('php://temp', 'r+');
 
         if ($handle === false) {
             return '';
         }
 
-        fputcsv($handle, self::COLUMNS);
+        fputcsv($handle, $catalogue ? $catalogue->headers([...self::COLUMNS, 'applicability_mapping_basis_label', 'response_status_label', 'selection_reason_labels'], $locale) : self::COLUMNS);
 
         $responses = is_array($responseState['responses'] ?? null)
             ? $responseState['responses']
@@ -81,7 +85,9 @@ class EsrsDatapointResponseCsvExporter
                     $datapoint,
                     $disclosureRequirementByDatapoint,
                     is_array($response) ? $response : [],
-                    $responseState
+                    $responseState,
+                    $locale,
+                    $catalogue,
                 ) as $row) {
                     fputcsv($handle, $row);
                 }
@@ -130,13 +136,15 @@ class EsrsDatapointResponseCsvExporter
         array $disclosureRequirementByDatapoint,
         array $response,
         array $responseState,
+        ?string $locale,
+        ?EsrsDisplayCatalogue $catalogue,
     ): array {
         $facts = is_array($response['facts'] ?? null) && $response['facts'] !== []
             ? array_values($response['facts'])
             : [null];
 
         return array_map(
-            fn ($fact): array => $this->row($block, $datapoint, $disclosureRequirementByDatapoint, $response, $responseState, is_array($fact) ? $fact : null),
+            fn ($fact): array => $this->row($block, $datapoint, $disclosureRequirementByDatapoint, $response, $responseState, is_array($fact) ? $fact : null, $locale, $catalogue),
             $facts
         );
     }
@@ -157,6 +165,8 @@ class EsrsDatapointResponseCsvExporter
         array $response,
         array $responseState,
         ?array $fact,
+        ?string $locale,
+        ?EsrsDisplayCatalogue $catalogue,
     ): array {
         $datapointId = (string) ($datapoint['id'] ?? '');
         $applicability = is_array($datapoint['applicability'] ?? null)
@@ -170,18 +180,21 @@ class EsrsDatapointResponseCsvExporter
         $unit = is_array($fact['unit'] ?? null) ? $fact['unit'] : [];
         $entity = is_array($responseState['reporting_entity'] ?? null) ? $responseState['reporting_entity'] : [];
 
+        $display = $datapoint['display'] ?? [];
+        $boolean = fn (bool $value) => $catalogue ? $catalogue->text($value ? 'true' : 'false', $locale) : ($value ? 'true' : 'false');
+
         return [
             (string) ($block['key'] ?? ''),
             $disclosureRequirementByDatapoint[$datapointId] ?? '',
             $datapointId,
             (string) ($datapoint['standard'] ?? ''),
             (string) ($datapoint['dr'] ?? ''),
-            (string) ($datapoint['name'] ?? ''),
+            (string) ($display['name'] ?? $datapoint['name'] ?? ''),
             (string) ($applicability['reason_code'] ?? ''),
-            (string) ($applicability['reason'] ?? ''),
+            (string) ($display['applicability_reason'] ?? $applicability['reason'] ?? ''),
             (string) ($applicability['mapping_basis'] ?? ''),
-            implode(' | ', array_map('strval', $applicability['limitations'] ?? [])),
-            ($selection['default_selected'] ?? true) ? 'true' : 'false',
+            implode(' | ', array_map('strval', $display['limitations'] ?? $applicability['limitations'] ?? [])),
+            $boolean((bool) ($selection['default_selected'] ?? true)),
             implode(' | ', array_map('strval', $selection['reason_codes'] ?? [])),
             (string) ($response['status'] ?? ''),
             self::neutralizeFormula((string) ($response['legacy_value'] ?? $response['value'] ?? '')),
@@ -196,7 +209,7 @@ class EsrsDatapointResponseCsvExporter
             (string) ($concept['reason_code'] ?? ''),
             (string) ($fact['fact_id'] ?? ''),
             (string) ($fact['value_kind'] ?? ''),
-            is_bool($fact['value'] ?? null) ? (($fact['value'] ?? false) ? 'true' : 'false') : self::neutralizeFormula((string) ($fact['value'] ?? '')),
+            is_bool($fact['value'] ?? null) ? $boolean($fact['value']) : self::neutralizeFormula((string) ($fact['value'] ?? '')),
             array_key_exists('decimals', $fact ?? []) && $fact['decimals'] !== null ? (string) $fact['decimals'] : '',
             (string) ($unit['measure'] ?? ''),
             (string) ($context['period_type'] ?? ''),
@@ -205,6 +218,11 @@ class EsrsDatapointResponseCsvExporter
             (string) ($context['instant_date'] ?? ''),
             $this->serializedDimensions($context['dimensions'] ?? []),
             self::neutralizeFormula((string) ($fact['evidence_reference'] ?? '')),
+            ...($catalogue ? [
+                (string) ($display['mapping_basis'] ?? ''),
+                $catalogue->text($response['status'] ?? '', $locale),
+                implode(' | ', array_map(fn ($code) => $catalogue->text($code, $locale), $selection['reason_codes'] ?? [])),
+            ] : []),
         ];
     }
 

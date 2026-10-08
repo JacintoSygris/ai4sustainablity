@@ -1,4 +1,8 @@
-'use client'
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 
 import { persistSidebar } from "@/lib/consent-storage"
 
@@ -164,6 +168,9 @@ function Sidebar({
   variant?: 'sidebar' | 'floating' | 'inset'
   collapsible?: 'offcanvas' | 'icon' | 'none'
 }) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   if (collapsible === 'none') {
@@ -197,8 +204,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Barra lateral</SheetTitle>
-            <SheetDescription>Muestra la navegación lateral móvil.</SheetDescription>
+            <SheetTitle>{tr("Barra lateral")}</SheetTitle>
+            <SheetDescription>{tr("Muestra la navegación lateral móvil.")}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -259,6 +266,9 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const { toggleSidebar } = useSidebar()
 
   return (
@@ -275,22 +285,25 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">Alternar barra lateral</span>
+      <span className="sr-only">{tr("Alternar barra lateral")}</span>
     </Button>
   )
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const { toggleSidebar } = useSidebar()
 
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Alternar barra lateral"
+      aria-label={tr("Alternar barra lateral")}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Alternar barra lateral"
+      title={tr("Alternar barra lateral")}
       className={cn(
         'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex',
         'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',

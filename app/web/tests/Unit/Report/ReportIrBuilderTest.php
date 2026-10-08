@@ -6,6 +6,7 @@ use App\Models\ReportApproval;
 use App\Models\ReportingFact;
 use App\Models\User;
 use App\Services\Report\DocxRenderer;
+use App\Services\Report\HtmlReportRenderer;
 use App\Services\Report\ReportIrBuilder;
 use App\Services\Report\ReportSnapshotBuilder;
 
@@ -134,24 +135,83 @@ it('still builds a valid IR when no material topics are confirmed', function () 
     expect($blockKeys)->not->toContain('topical');
 });
 
-it('carries an omission section with grade-correct statements', function () {
+it('carries an omission section with grade-correct statements', function (string $grade) {
     $e3 = EsrsTopic::where('esrs_code', 'E3')->firstOrFail();
+    $e4 = EsrsTopic::where('esrs_code', 'E4')->firstOrFail();
+    $isMixed = $grade === 'mixed';
+    $hasDirect = $grade !== 'inferred-only';
+    $omittedIds = $isMixed ? [$e3->id, $e4->id] : [$e3->id];
+    $privateNote = 'Synthetic internal change_reason_note must not appear in visible output.';
 
     $characterization = reportReadyCharacterization($this->user, $this->e2);
     $formData = $characterization->form_data;
     $formData['materiality_confirmation']['p6_snapshot'] = [
-        'topic_ids' => [$this->e2->id, $e3->id],
+        'topic_ids' => [$this->e2->id, ...$omittedIds],
         'captured_at' => '2026-01-01T00:00:00Z',
     ];
+    if ($hasDirect) {
+        // A recorded no_material verdict takes precedence over the snapshot delta.
+        $formData['materiality_confirmation']['guided_answers'] = [
+            (string) $e3->id => ['final_result' => 'no_material'],
+        ];
+    }
+    $formData['materiality_confirmation']['change_reason_notes'] = array_fill_keys($omittedIds, $privateNote);
     $characterization->update(['form_data' => $formData]);
 
-    $ir = app(ReportIrBuilder::class)->build($characterization->fresh());
-
-    expect($ir['omission_section']['title'])->toBe('Temas evaluados y no considerados materiales');
-    expect($ir['omission_section']['statements'])->toHaveCount(1);
-    expect($ir['omission_section']['statements'][0])->toContain('no fue confirmado como material');
+    $builder = app(ReportIrBuilder::class);
+    $ir = $builder->build($characterization->fresh());
+    $statements = $ir['omission_section']['statements'];
+    expect($statements)->not->toBeEmpty()->toHaveCount(count($omittedIds));
+    expect(collect($statements)->filter(fn ($text) => str_contains($text, 'se evaluó y no se consideró material.')))
+        ->toHaveCount($hasDirect ? 1 : 0);
+    expect(collect($statements)->filter(fn ($text) => str_contains($text, 'no fue confirmado como material')))
+        ->toHaveCount($grade === 'direct' ? 0 : 1);
     expect($ir['omission_section']['declaration'])->toBeNull();
-});
+
+    reportIrBuilderFrozenFact($characterization, [
+        'fact_id' => 'rf_omission_title',
+        'value' => ['text' => 'Synthetic approved disclosure for the omission-title regression.'],
+    ]);
+    $snapshot = app(ReportSnapshotBuilder::class)->create($characterization->fresh());
+    ReportApproval::create([
+        'report_snapshot_id' => $snapshot->id,
+        'user_id' => $this->user->id,
+        'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
+        'preparer_user_id' => $this->user->id,
+        'reviewer_user_id' => $this->user->id,
+        'approver_user_id' => $this->user->id,
+        'single_person_declaration' => true,
+        'snapshot_hash' => $snapshot->snapshot_hash,
+        'approved_at' => now(),
+    ]);
+    $frozenIr = $builder->buildFromApprovedSnapshot($snapshot->fresh());
+    expect($frozenIr['schema_version'])->toBe('report_ir_v1');
+    expect($frozenIr['claims'])->toHaveCount(1);
+    expect(collect($frozenIr['materiality_trace']['omitted_topics'])->pluck('evidence_grade')->all())->toBe(match ($grade) {
+        'inferred-only' => ['inferred_from_snapshot_delta'],
+        'direct' => ['direct_guided_answer'],
+        'mixed' => ['direct_guided_answer', 'inferred_from_snapshot_delta'],
+    });
+    expect($frozenIr['omission_section']['statements'])->toBe($statements);
+    expect($frozenIr['omission_section']['declaration'])->toBeNull();
+
+    $htmlText = html_entity_decode(strip_tags((new HtmlReportRenderer())->render($frozenIr)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $docxText = docxVisibleText((new DocxRenderer())->render($frozenIr));
+    foreach ([$htmlText, $docxText] as $visibleText) {
+        expect($visibleText)->not->toContain($privateNote);
+        foreach ($statements as $statement) {
+            expect(substr_count($visibleText, $statement))->toBe(1);
+        }
+    }
+
+    $neutralTitle = 'Temas no confirmados como materiales';
+    expect($ir['omission_section']['title'])->toBe($neutralTitle);
+    expect($frozenIr['omission_section']['title'])->toBe($neutralTitle);
+    foreach ([$htmlText, $docxText] as $visibleText) {
+        expect(substr_count($visibleText, $neutralTitle))->toBe(1);
+        expect($visibleText)->not->toContain('Temas evaluados y no considerados materiales');
+    }
+})->with(['inferred-only', 'direct', 'mixed']);
 
 it('declares the provenance gap when the p6 snapshot is absent', function () {
     // reportReadyCharacterization() stores no p6_snapshot.

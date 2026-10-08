@@ -13,6 +13,8 @@ class SendRegistrationVerification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
+    private string $locale = 'es';
+
     public int $tries = 3;
 
     public int $timeout = 30;
@@ -24,7 +26,10 @@ class SendRegistrationVerification implements ShouldBeEncrypted, ShouldQueue
         private readonly int $userId,
         private readonly string $email,
         private readonly int $authVersion,
-    ) {}
+        string $locale = 'es',
+    ) {
+        $this->locale = \App\Support\ApplicationLocale::normalize($locale);
+    }
 
     public function handle(): void
     {
@@ -43,7 +48,13 @@ class SendRegistrationVerification implements ShouldBeEncrypted, ShouldQueue
                 return;
             }
 
-            $user->sendEmailVerificationNotification();
+            $previousLocale = app()->getLocale();
+            app()->setLocale($this->locale);
+            try {
+                $user->sendEmailVerificationNotification();
+            } finally {
+                app()->setLocale($previousLocale);
+            }
         }, 3);
     }
 }

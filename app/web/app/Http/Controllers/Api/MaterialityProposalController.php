@@ -88,7 +88,7 @@ class MaterialityProposalController extends Controller
 
         if ($outcome['conflict']) {
             return response()->json([
-                'message' => 'La revisión ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.',
+                'message' => __('La revisión ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.'),
                 'code' => 'stale_materiality_state',
                 'data' => ['current_revision' => $outcome['current_revision']],
             ], 409);
@@ -284,7 +284,7 @@ class MaterialityProposalController extends Controller
                 $canonicalTopicId = $this->canonicalTopicKey($topicId);
 
                 if ($canonicalTopicId === null || ! in_array($canonicalTopicId, $validTopicIds, true)) {
-                    $messages[$field.'.'.$topicId] = 'The selected topic must be part of the current P6 proposal.';
+                    $messages[$field.'.'.$topicId] = __('The selected topic must be part of the current P6 proposal.');
                 }
             }
         }
@@ -304,7 +304,7 @@ class MaterialityProposalController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'topic_actions' => 'At least one P6 proposal topic action is required.',
+            'topic_actions' => __('At least one P6 proposal topic action is required.'),
         ]);
     }
 
@@ -319,12 +319,12 @@ class MaterialityProposalController extends Controller
 
         if ($characterization->status === Characterization::STATUS_COMPLETED) {
             throw ValidationException::withMessages([
-                'characterization' => 'The P6 materiality proposal has no topics to review. Add or confirm material topics before storing review actions.',
+                'characterization' => __('The P6 materiality proposal has no topics to review. Add or confirm material topics before storing review actions.'),
             ]);
         }
 
         throw ValidationException::withMessages([
-            'characterization' => 'The P6 materiality proposal must be completed before review actions can be stored.',
+            'characterization' => __('The P6 materiality proposal must be completed before review actions can be stored.'),
         ]);
     }
 

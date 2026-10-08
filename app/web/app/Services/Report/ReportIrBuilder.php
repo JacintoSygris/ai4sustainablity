@@ -362,7 +362,7 @@ class ReportIrBuilder
         $unresolvedCount = count($omissions['unresolved_omitted_topic_ids']);
 
         return [
-            'title' => 'Temas evaluados y no considerados materiales',
+            'title' => 'Temas no confirmados como materiales',
             'declaration' => $omissions['inferred_omissions_status'] === NotMaterialTopicResolver::STATUS_NOT_DETERMINABLE
                 ? $this->prose->notDeterminableDeclaration($hasDirect)
                 : null,

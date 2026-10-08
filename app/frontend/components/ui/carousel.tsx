@@ -1,4 +1,8 @@
-'use client'
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 
 import * as React from 'react'
 import useEmblaCarousel, {
@@ -51,10 +55,13 @@ function Carousel({
   children,
   ...props
 }: React.ComponentProps<'div'> & CarouselProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
-      axis: orientation === 'horizontal' ? 'x' : 'y',
+      axis: orientation === 'horizontal' ? 'x' : tr("y"),
     },
     plugins,
   )
@@ -177,6 +184,9 @@ function CarouselPrevious({
   size = 'icon',
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
   return (
@@ -196,7 +206,7 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">{tr("Diapositiva anterior")}</span>
     </Button>
   )
 }
@@ -207,6 +217,9 @@ function CarouselNext({
   size = 'icon',
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const { orientation, scrollNext, canScrollNext } = useCarousel()
 
   return (
@@ -226,7 +239,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">{tr("Diapositiva siguiente")}</span>
     </Button>
   )
 }

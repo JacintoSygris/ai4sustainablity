@@ -9,9 +9,9 @@ test("wizard step titles match the canonical six-step journey", () => {
     [
       "Describe la organización",
       "Revisa asuntos propuestos",
-      "Doble materialidad",
+      "Doble importancia relativa",
       "Confirma asuntos materiales",
-      "Reúne indicadores/datos ESRS",
+      "Reúne datos normativos NEIS",
       "Resultados",
     ],
   )

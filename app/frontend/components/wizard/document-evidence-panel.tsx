@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui, formatUi } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AlertTriangle, FileText, RefreshCw, Trash2, Upload } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -39,7 +44,7 @@ const documentStatusLabels: Record<LaravelCharacterizationDocumentStatus, string
 }
 
 function documentStatusLabel(status: LaravelCharacterizationDocumentStatus): string {
-  return documentStatusLabels[status] ?? status
+  return documentStatusLabels[status] ?? "No disponible"
 }
 
 function documentStatusVariant(
@@ -83,6 +88,9 @@ export function DocumentEvidencePanel({
   csrfToken?: string
   onDocumentsChanged: () => void
 }) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [documentsReloadCounter, setDocumentsReloadCounter] = useState(0)
   const [documents, setDocuments] = useState<LaravelCharacterizationDocument[]>([])
@@ -90,7 +98,7 @@ export function DocumentEvidencePanel({
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [pendingDeletion, setPendingDeletion] = useState<LaravelCharacterizationDocument | null>(null)
-  const [panelError, setPanelError] = useState<string | null>(null)
+  const [panelError, setPanelError] = useSystemMessage(null)
 
   useEffect(() => {
     let mounted = true
@@ -104,7 +112,7 @@ export function DocumentEvidencePanel({
         }
       } catch {
         if (mounted) {
-          setPanelError("No se ha podido cargar la lista de documentos.")
+          setPanelError(systemCopy("No se ha podido cargar la lista de documentos."))
         }
       } finally {
         if (mounted) {
@@ -133,13 +141,13 @@ export function DocumentEvidencePanel({
     }
 
     if (!hasAllowedExtension(file.name)) {
-      setPanelError("Solo se admiten archivos PDF o DOCX.")
+      setPanelError(systemCopy("Solo se admiten archivos PDF o DOCX."))
 
       return
     }
 
     if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
-      setPanelError("El archivo supera el límite de 50 MB.")
+      setPanelError(systemCopy("El archivo supera el límite de 50 MB."))
 
       return
     }
@@ -152,7 +160,7 @@ export function DocumentEvidencePanel({
       refreshDocuments()
       onDocumentsChanged()
     } catch {
-      setPanelError("No se ha podido subir el documento. Inténtalo de nuevo.")
+      setPanelError(systemCopy("No se ha podido subir el documento. Inténtalo de nuevo."))
     } finally {
       setUploading(false)
 
@@ -176,7 +184,7 @@ export function DocumentEvidencePanel({
       refreshDocuments()
       onDocumentsChanged()
     } catch {
-      setPanelError("No se ha podido eliminar el documento. Inténtalo de nuevo.")
+      setPanelError(systemCopy("No se ha podido eliminar el documento. Inténtalo de nuevo."))
     } finally {
       setDeletingId(null)
     }
@@ -190,23 +198,19 @@ export function DocumentEvidencePanel({
     <section className="mb-5 rounded-lg border border-border p-4">
       <div className="mb-1 flex items-center gap-2">
         <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        <h2 className="text-base font-semibold text-foreground">Documentos de tu empresa (opcional)</h2>
+        <h2 className="text-base font-semibold text-foreground">{tr("Documentos de tu empresa (opcional)")}</h2>
       </div>
 
       <p className="mb-3 text-sm text-muted-foreground">
-        Si tienes un informe de sostenibilidad anterior u otro documento propio, súbelo y la plataforma buscará
-        evidencias que apoyen tu revisión de asuntos ASG candidatos.
-      </p>
+        {" "}{tr("Si tienes un informe de sostenibilidad anterior u otro documento propio, súbelo y la plataforma buscará evidencias que apoyen tu revisión de asuntos ASG candidatos.")}{" "}</p>
 
-      <p className="mb-4 rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">{P6_DOCUMENT_CONSENT_COPY}</p>
+      <p className="mb-4 rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">{tr(P6_DOCUMENT_CONSENT_COPY)}</p>
 
       {staleDocumentList.length > 0 ? (
         <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-            Los datos de la empresa cambiaron después de analizar el documento. Vuelve a analizar si quieres
-            actualizar la evidencia.
-          </div>
+            {" "}{tr("Los datos de la empresa cambiaron después de analizar el documento. Vuelve a analizar si quieres actualizar la evidencia.")}{" "}</div>
         </div>
       ) : null}
 
@@ -222,24 +226,23 @@ export function DocumentEvidencePanel({
           type="file"
           accept=".pdf,.docx"
           className="sr-only"
-          aria-label="Seleccionar documento para subir"
+          aria-label={tr("Seleccionar documento para subir")}
           onChange={(event) => handleFileSelected(event.target.files)}
         />
         <Button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" aria-hidden="true" />
-          {uploading ? "Subiendo..." : "Subir documento"}
+          {uploading ? tr("Subiendo...") : tr("Subir documento")}
         </Button>
-        <span className="text-xs text-muted-foreground">PDF o DOCX, máximo 50 MB.</span>
+        <span className="text-xs text-muted-foreground">{tr("PDF o DOCX, máximo 50 MB.")}</span>
         <Button type="button" size="sm" variant="ghost" onClick={refreshDocuments} disabled={loadingDocuments}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Actualizar
-        </Button>
+          {" "}{tr("Actualizar")}{" "}</Button>
       </div>
 
       {loadingDocuments ? (
-        <p className="text-sm text-muted-foreground">Cargando documentos...</p>
+        <p className="text-sm text-muted-foreground">{tr("Cargando documentos...")}</p>
       ) : documents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Todavía no has subido ningún documento.</p>
+        <p className="text-sm text-muted-foreground">{tr("Todavía no has subido ningún documento.")}</p>
       ) : (
         <ul className="space-y-2">
           {documents.map((document) => (
@@ -249,7 +252,7 @@ export function DocumentEvidencePanel({
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium text-foreground">{document.original_filename}</span>
-                <Badge variant={documentStatusVariant(document.status)}>{documentStatusLabel(document.status)}</Badge>
+                <Badge variant={documentStatusVariant(document.status)}>{tr(documentStatusLabel(document.status))}</Badge>
                 <span className="text-xs text-muted-foreground">{formatSize(document.size_bytes)}</span>
               </div>
               <Button
@@ -258,11 +261,10 @@ export function DocumentEvidencePanel({
                 variant="ghost"
                 disabled={deletingId === document.id}
                 onClick={() => setPendingDeletion(document)}
-                aria-label={`Eliminar el documento ${document.original_filename}`}
+                aria-label={formatUi(locale, "Eliminar el documento {0}", [document.original_filename])}
               >
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
-                Eliminar
-              </Button>
+                {" "}{tr("Eliminar")}{" "}</Button>
             </li>
           ))}
         </ul>
@@ -272,9 +274,7 @@ export function DocumentEvidencePanel({
         <div className="mt-4 space-y-1">
           {deletedDocumentList.map((document: { id: number; original_filename: string }) => (
             <p key={document.id} className="text-sm text-amber-700">
-              Documento eliminado — revisar: las evidencias de &laquo;{document.original_filename}&raquo; ya no están
-              disponibles.
-            </p>
+              {" "}{tr("Documento eliminado — revisar: las evidencias de «")}{document.original_filename}{tr("» ya no están disponibles.")}{" "}</p>
           ))}
         </div>
       ) : null}
@@ -282,7 +282,7 @@ export function DocumentEvidencePanel({
       {standardLevelTopics.length > 0 ? (
         <details className="mt-4 rounded-md border border-border px-3 py-2">
           <summary className="cursor-pointer text-sm font-medium text-foreground">
-            Contexto adicional encontrado en tus documentos ({standardLevelTopics.length})
+            {" "}{tr("Contexto adicional encontrado en tus documentos (")}{standardLevelTopics.length})
           </summary>
           <ul className="mt-2 space-y-2">
             {standardLevelTopics.map(
@@ -298,10 +298,10 @@ export function DocumentEvidencePanel({
                   <Badge variant="outline" className="mr-2">
                     {topic.standard}
                   </Badge>
-                  {topic.kind === "negative" ? "El documento indica que podría no ser material. " : null}
+                  {topic.kind === "negative" ? tr("El documento indica que podría no ser material. ") : null}
                   {topic.evidence?.map((item, itemIndex) => (
                     <span key={itemIndex} className="block pl-1">
-                      &laquo;{item.snippet}&raquo;{item.page != null ? ` (página ${item.page})` : ""}
+                      {" "}{tr("«")}{item.snippet}{tr("»")}{item.page != null ? formatUi(locale, " (página {0})", [item.page]) : ""}
                     </span>
                   ))}
                 </li>
@@ -316,18 +316,15 @@ export function DocumentEvidencePanel({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
-              Eliminar documento
-            </DialogTitle>
+              {" "}{tr("Eliminar documento")}{" "}</DialogTitle>
             <DialogDescription>
-              Se eliminará el archivo y todas las evidencias extraídas de él. Esta acción no se puede deshacer.
-            </DialogDescription>
+              {" "}{tr("Se eliminará el archivo y todas las evidencias extraídas de él. Esta acción no se puede deshacer.")}{" "}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row justify-end gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setPendingDeletion(null)}>
-              Cancelar
-            </Button>
+              {" "}{tr("Cancelar")}{" "}</Button>
             <Button variant="destructive" disabled={deletingId !== null} onClick={handleConfirmDeletion}>
-              {deletingId !== null ? "Eliminando..." : "Eliminar"}
+              {deletingId !== null ? tr("Eliminando...") : tr("Eliminar")}
             </Button>
           </DialogFooter>
         </DialogContent>

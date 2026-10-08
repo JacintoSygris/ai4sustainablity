@@ -92,12 +92,24 @@ it('returns corpus and response state from one captured normalized mapping read'
         return ['version'=>'synthetic-'.$calls,'source'=>['name'=>'Synthetic','status'=>'approved','approved_at'=>null],'by_topic_id'=>[999=>['ar16_topic_id'=>999,'esrs_code'=>'E1','disclosure_requirements'=>['E1-1']]],'duplicate_topic_ids'=>[]];
     });
     app()->instance(\App\Services\Ar16MatterDrMappingRepository::class,$repo);
+    $canonicalCorpus=null;
+    $builder=app(\App\Services\EsrsDatapointCorpusBuilder::class);
+    $capture=Mockery::mock(\App\Services\EsrsDatapointCorpusBuilder::class);
+    $capture->shouldReceive('build')->once()->andReturnUsing(function (Characterization $characterization) use ($builder,&$canonicalCorpus) {
+        return $canonicalCorpus=$builder->build($characterization);
+    });
+    app()->instance(\App\Services\EsrsDatapointCorpusBuilder::class,$capture);
     $snapshot=$this->getJson('/api/esrs-datapoints')->assertOk()->json();
     expect($calls)->toBe(1);
     expect($snapshot['snapshot_version'] ?? null)->toBe('p9-workspace-v1');
     expect($snapshot['response_state']['revision'])->toBe(0);
-    $corpus=$snapshot['data'];
-    expect($snapshot['response_state']['learning_authority_digest'])->toBe(app(\App\Services\EsrsDatapointResponseState::class)->learningAuthorityDigest($corpus));
+    expect($canonicalCorpus)->toBeArray();
+    expect($canonicalCorpus)->not->toHaveKey('locale');
+    $authority=app(\App\Services\EsrsDatapointResponseState::class)->learningAuthorityDigest($canonicalCorpus);
+    expect($snapshot['data']['learning_authority_digest'])->toBe($authority);
+    expect($snapshot['response_state']['learning_authority_digest'])->toBe($authority);
+    expect($snapshot['data']['mapping_snapshot_digest'])->toBe($canonicalCorpus['mapping_snapshot_digest']);
+    expect($snapshot['data']['locale'])->toBe('es');
     expect($calls)->toBe(1);
 });
 it('renews a coherent namespace under phase-in drift without erasing stored negatives', function () {

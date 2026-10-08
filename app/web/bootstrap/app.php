@@ -35,10 +35,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             App\Http\Middleware\RemoveLegacyRememberCookie::class,
         ], append: [
+            App\Http\Middleware\ResolveApplicationLocale::class,
             App\Http\Middleware\EnforceTrustedHost::class,
             App\Http\Middleware\EnsureCurrentAuthVersion::class,
             App\Http\Middleware\SecurityHeaders::class,
         ]);
+
+        $middleware->appendToPriorityList(
+            after: Illuminate\Session\Middleware\StartSession::class,
+            append: App\Http\Middleware\ResolveApplicationLocale::class,
+        );
 
         $middleware->prependToPriorityList(
             before: Illuminate\Cookie\Middleware\EncryptCookies::class,
@@ -51,6 +57,9 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Change only known framework display messages; status, headers, cookies and redirects remain authoritative.
+        $exceptions->respond(fn (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception) =>
+            \App\Support\LocalizedExceptionResponse::apply($response, $exception));
         $exceptions->dontFlash([
             'current_password',
             'password',

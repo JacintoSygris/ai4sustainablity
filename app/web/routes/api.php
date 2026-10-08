@@ -17,6 +17,12 @@ use App\Http\Controllers\Api\WorkflowController;
 use App\Support\RegistrationGuard;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['web'])->group(function () {
+    Route::get('locale', [\App\Http\Controllers\Api\LocaleController::class, 'show'])->name('api.locale.show');
+    Route::match(['put', 'post'], 'locale', [\App\Http\Controllers\Api\LocaleController::class, 'update'])
+        ->middleware('throttle:30,1,locale')->name('api.locale.update');
+});
+
 // Public (no-auth) config for the pre-login register page: Turnstile site key
 // (public by design) + whether email verification is enforced. Lets the Next
 // register form render the widget only when configured.
@@ -126,6 +132,10 @@ Route::middleware(['web', 'private-dev-user', 'auth', 'verified.required'])->gro
         ->name('api.guided-report.docx');
     Route::get('guided-report/evidence-bundle', [GuidedReportController::class, 'evidenceBundle'])
         ->name('api.guided-report.evidence-bundle');
+    Route::get('esrs-datapoints/export.localized.csv', [EsrsDatapointController::class, 'exportLocalizedCsv'])
+        ->name('api.esrs-datapoints.export.localized.csv');
+    Route::get('esrs-datapoints/responses/export.localized.csv', [EsrsDatapointController::class, 'exportLocalizedResponsesCsv'])
+        ->name('api.esrs-datapoints.responses.export.localized.csv');
     Route::get('esrs-datapoints/responses/export.csv', [EsrsDatapointController::class, 'exportResponsesCsv'])
         ->name('api.esrs-datapoints.responses.export.csv');
     Route::get('esrs-datapoints/responses', [EsrsDatapointController::class, 'responses'])

@@ -60,7 +60,7 @@ it('returns progressive disclosure options for the frontend', function () {
         ->assertJsonPath('data.levels.core.company_profile.headquarters_countries.Spain', 'España')
         ->assertJsonPath('data.levels.core.company_profile.reporting_scopes.consolidated_group', 'Grupo consolidado')
         ->assertJsonPath('data.levels.core.company_profile.reporting_currencies.EUR', 'EUR')
-        ->assertJsonPath('data.levels.core.company_profile.product_service_types.software_digital_services', 'Software/SaaS/servicios digitales')
+        ->assertJsonPath('data.levels.core.company_profile.product_service_types.software_digital_services', 'Programas informáticos y servicios digitales')
         ->assertJsonPath('data.levels.core.operations.regions.eu', 'Unión Europea')
         ->assertJsonPath('data.levels.core.operations.value_chain.direct_operations', 'Operaciones directas')
         ->assertJsonPath('data.levels.core.operations.employee_count_ranges.50_249', '50-249')
@@ -300,6 +300,182 @@ it('stores a draft characterization through the json api', function () {
     expect($characterization->esrs_topic_ids)->toBe([$topicId]);
 
     Bus::assertNotDispatched(SubmitCharacterizationJob::class);
+});
+
+// Synthetic identifiers exercise the public request boundary, not issuer authority.
+it('roundtrips the optional entity identifier through authenticated characterization HTTP', function (string $input) {
+    Bus::fake();
+
+    $identifier = 'TEST0000000000000001';
+    $scheme = 'https://standards.iso.org/iso/17442';
+    $topicId = EsrsTopic::first()->id;
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', validApiCharacterizationPayload($topicId, [
+            'form_data' => [
+                'company_profile' => ['entity_identifier' => $input],
+            ],
+        ]))
+        ->assertOk();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', $identifier)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier_scheme', $scheme);
+
+    $characterization = Characterization::where('user_id', $this->user->id)->firstOrFail();
+    expect(data_get($characterization->form_data, 'company_profile.entity_identifier'))->toBe($identifier);
+    expect(data_get($characterization->form_data, 'company_profile.entity_identifier_scheme'))->toBe($scheme);
+
+    Bus::assertNotDispatched(SubmitCharacterizationJob::class);
+})->with([
+    'canonical synthetic identifier' => ['TEST0000000000000001'],
+    'trimmed and uppercased synthetic identifier' => ['  test0000000000000001  '],
+]);
+
+it('rejects an invalid entity identifier through authenticated characterization HTTP without changing the draft', function (string $input) {
+    Bus::fake();
+
+    $topicId = EsrsTopic::first()->id;
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', validApiCharacterizationPayload($topicId))
+        ->assertOk();
+
+    $characterization = Characterization::where('user_id', $this->user->id)->firstOrFail();
+    $originalFormData = $characterization->form_data;
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', validApiCharacterizationPayload($topicId, [
+            'form_data' => [
+                'company_profile' => ['entity_identifier' => $input],
+                'notes' => 'Rejected identifier edit',
+            ],
+        ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('form_data.company_profile.entity_identifier');
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.id', $characterization->id)
+        ->assertJsonPath('data.form_data', $originalFormData);
+
+    expect($characterization->refresh()->form_data)->toBe($originalFormData);
+    Bus::assertNotDispatched(SubmitCharacterizationJob::class);
+})->with([
+    'too short' => ['TEST000000000000001'],
+    'non alphanumeric at the correct length' => ['TEST000000000000000!'],
+]);
+
+it('explicitly clears the entity identifier and derived scheme through authenticated characterization HTTP', function (?string $input) {
+    Bus::fake();
+
+    $topicId = EsrsTopic::first()->id;
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', validApiCharacterizationPayload($topicId, [
+            'form_data' => [
+                'company_profile' => ['entity_identifier' => 'TEST0000000000000001'],
+            ],
+        ]))
+        ->assertOk();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', 'TEST0000000000000001');
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', [
+            'action' => 'save_draft',
+            'form_data' => [
+                'company_profile' => ['entity_identifier' => $input],
+            ],
+        ])
+        ->assertOk();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonStructure(['data' => ['form_data' => ['company_profile' => [
+            'entity_identifier', 'entity_identifier_scheme',
+        ]]]])
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', null)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier_scheme', null)
+        ->assertJsonPath('data.form_data.company_profile.company_name', 'Entidad API');
+
+    $characterization = Characterization::where('user_id', $this->user->id)->firstOrFail();
+    $profile = $characterization->form_data['company_profile'];
+    expect($profile)->toHaveKeys(['entity_identifier', 'entity_identifier_scheme']);
+    expect($profile['entity_identifier'])->toBeNull();
+    expect($profile['entity_identifier_scheme'])->toBeNull();
+    Bus::assertNotDispatched(SubmitCharacterizationJob::class);
+})->with([
+    'explicit null' => [null],
+    'empty form field' => [''],
+]);
+
+it('preserves the entity identifier on subsequent authenticated characterization save and submit when omitted', function () {
+    Bus::fake();
+
+    $identifier = 'TEST0000000000000001';
+    $scheme = 'https://standards.iso.org/iso/17442';
+    $topicId = EsrsTopic::first()->id;
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', validApiCharacterizationPayload($topicId, [
+            'form_data' => [
+                'company_profile' => ['entity_identifier' => $identifier],
+            ],
+        ]))
+        ->assertOk();
+
+    $initial = $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', $identifier);
+    $characterizationId = $initial->json('data.id');
+
+    // The ordinary payload deliberately omits the optional identifier.
+    $ordinaryPayload = validApiCharacterizationPayload($topicId, [
+        'form_data' => ['notes' => 'Ordinary subsequent save'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->putJson('/api/characterization', $ordinaryPayload)
+        ->assertOk();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.id', $characterizationId)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', $identifier)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier_scheme', $scheme)
+        ->assertJsonPath('data.form_data.notes', 'Ordinary subsequent save');
+
+    Bus::assertNotDispatched(SubmitCharacterizationJob::class);
+
+    $this->actingAs($this->user)
+        ->postJson('/api/characterization/submit', $ordinaryPayload)
+        ->assertAccepted();
+
+    $this->actingAs($this->user)
+        ->getJson('/api/characterization')
+        ->assertOk()
+        ->assertJsonPath('data.id', $characterizationId)
+        ->assertJsonPath('data.status', Characterization::STATUS_SUBMITTED)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier', $identifier)
+        ->assertJsonPath('data.form_data.company_profile.entity_identifier_scheme', $scheme);
+
+    $characterization = Characterization::where('user_id', $this->user->id)->firstOrFail();
+    expect(Characterization::where('user_id', $this->user->id)->count())->toBe(1);
+    expect(data_get($characterization->form_data, 'company_profile.entity_identifier'))->toBe($identifier);
+    expect(data_get($characterization->form_data, 'company_profile.entity_identifier_scheme'))->toBe($scheme);
+    Bus::assertDispatched(SubmitCharacterizationJob::class, function ($job) use ($characterization) {
+        return $job->characterization->is($characterization);
+    });
 });
 
 it('preserves explicit null values for nullable draft booleans', function () {

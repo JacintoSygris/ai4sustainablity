@@ -37,6 +37,13 @@ class CharacterizationRequest extends FormRequest
                 ->all();
         }
 
+        $identifier = $this->input('form_data.company_profile.entity_identifier');
+        if (is_string($identifier)) {
+            $identifier = strtoupper(trim($identifier));
+            $normalized['form_data'] = $this->input('form_data');
+            $normalized['form_data']['company_profile']['entity_identifier'] = $identifier === '' ? null : $identifier;
+        }
+
         $this->merge($normalized);
     }
 
@@ -115,6 +122,8 @@ class CharacterizationRequest extends FormRequest
         $rules['form_data.company_profile.stock_listed'] = [$companyRule, 'boolean'];
         $rules['form_data.company_profile.reporting_currency'] = [$companyRule, 'string', Rule::in(array_keys($this->reportingCurrencyOptions()))];
         $rules['form_data.company_profile.product_service_type'] = [$companyRule, 'string', Rule::in(array_keys($this->productServiceTypeOptions()))];
+        $rules['form_data.company_profile.entity_identifier'] = ['sometimes', 'nullable', 'string', 'regex:/\A[A-Z0-9]{20}\z/'];
+        $rules['form_data.company_profile.entity_identifier_scheme'] = ['prohibited'];
 
         $regionRule = $requiresOperations ? 'required' : 'sometimes';
         $valueChainRule = $requiresOperations ? 'required' : 'sometimes';
@@ -156,6 +165,14 @@ class CharacterizationRequest extends FormRequest
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return [
+            'form_data.company_profile.entity_identifier.regex' => __('El LEI debe tener 20 caracteres alfanuméricos.'),
+            'form_data.company_profile.entity_identifier_scheme.prohibited' => __('El esquema del LEI lo asigna la plataforma y no debe enviarse desde el navegador.'),
+        ];
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
@@ -171,7 +188,7 @@ class CharacterizationRequest extends FormRequest
                 if (! in_array($itemKey, $allowedItems, true)) {
                     $validator->errors()->add(
                         "form_data.data_readiness.items.{$itemKey}",
-                        'The selected data readiness item is invalid.'
+                        __('The selected data readiness item is invalid.')
                     );
                 }
             }

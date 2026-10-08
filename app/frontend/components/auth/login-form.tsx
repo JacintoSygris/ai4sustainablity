@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import type React from "react"
 
 import { useState } from "react"
@@ -12,11 +17,14 @@ import { Label } from "@/components/ui/label"
 import { fetchLaravelCsrfToken, laravelAuthHeaders, laravelValidationMessage } from "@/lib/laravel-auth"
 
 export function LoginForm() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useSystemMessage("")
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,14 +47,14 @@ export function LoginForm() {
       })
 
       if (!(response.ok || response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400))) {
-        setError(await laravelValidationMessage(response, "Error al iniciar sesión"))
+        setError(await laravelValidationMessage(response, tr("Error al iniciar sesión"), locale))
         return
       }
 
       router.push("/dashboard")
       router.refresh()
     } catch {
-      setError("Error al iniciar sesión. Verifica tus credenciales.")
+      setError(systemCopy("Error al iniciar sesión. Verifica tus credenciales."))
     } finally {
       setLoading(false)
     }
@@ -55,18 +63,18 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Iniciar sesión</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{tr("Iniciar sesión")}</h1>
       </div>
 
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{tr("Email")}</Label>
           <Input
             id="email"
             type="email"
-            placeholder="nombre@empresa.com"
+            placeholder={tr("nombre@empresa.com")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -74,7 +82,7 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="password">{tr("Contraseña")}</Label>
           <div className="relative">
             <Input
               id="password"
@@ -96,20 +104,18 @@ export function LoginForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+        {loading ? tr("Iniciando sesión...") : tr("Iniciar sesión")}
       </Button>
 
       <div className="text-center">
         <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-          ¿Has olvidado la contraseña?
-        </Link>
+          {" "}{tr("¿Has olvidado la contraseña?")}{" "}</Link>
       </div>
 
       <div className="text-center text-sm text-muted-foreground">
-        ¿No tienes cuenta?{" "}
+        {" "}{tr("¿No tienes cuenta?")}{" "}
         <Link href="/register" className="text-primary hover:underline">
-          Regístrate
-        </Link>
+          {" "}{tr("Regístrate")}{" "}</Link>
       </div>
     </form>
   )

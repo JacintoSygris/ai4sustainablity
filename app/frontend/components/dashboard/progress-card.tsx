@@ -1,3 +1,8 @@
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,15 +14,18 @@ interface ProgressCardProps {
 }
 
 export function ProgressCard({ currentStep, totalSteps, hasStarted }: ProgressCardProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 md:p-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex-1">
-          <h2 className="text-xl font-semibold text-primary">Continúa tu preparación ESRS</h2>
+          <h2 className="text-xl font-semibold text-primary">{tr("Continúa tu preparación NEIS")}</h2>
           <p className="mt-2 text-muted-foreground">
             {hasStarted
-              ? "Retoma el recorrido desde el último punto guardado."
-              : "Empieza describiendo la organización y revisando las propuestas automáticas."}
+              ? tr("Retoma el recorrido desde el último punto guardado.")
+              : tr("Empieza describiendo la organización y revisando las propuestas automáticas.")}
           </p>
 
           {hasStarted ? (
@@ -52,12 +60,12 @@ export function ProgressCard({ currentStep, totalSteps, hasStarted }: ProgressCa
                 })}
               </div>
               <Button className="mt-6" asChild>
-                <Link href={`/wizard/step-${currentStep}`}>Continuar el recorrido</Link>
+                <Link href={`/wizard/step-${currentStep}`}>{tr("Continuar el recorrido")}</Link>
               </Button>
             </>
           ) : (
             <Button className="mt-6" asChild>
-              <Link href="/wizard/step-1">Empezar la preparación</Link>
+              <Link href="/wizard/step-1">{tr("Empezar la preparación")}</Link>
             </Button>
           )}
         </div>
@@ -65,7 +73,7 @@ export function ProgressCard({ currentStep, totalSteps, hasStarted }: ProgressCa
         <div className="hidden md:block">
           <img
             src="/esg-globe-illustration.png"
-            alt="Ilustración de preparación de sostenibilidad"
+            alt={tr("Ilustración de preparación de sostenibilidad")}
             className="h-40 w-auto object-contain"
           />
         </div>

@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale } from "@/components/locale-provider"
+import { ui } from "@/lib/i18n/messages.mjs"
 import { useOptionalStorage } from "@/lib/consent-storage"
 
 import { useEffect, useState } from "react"
@@ -13,7 +15,7 @@ const copy = {
   es: {
     title: "Qué vas a hacer aquí",
     intro:
-      "Este asistente te lleva por el proceso de materialidad del estándar europeo ESRS en 6 pasos. No necesitas conocimientos previos: cada paso explica lo que tienes que hacer.",
+      "Este asistente te lleva por el proceso de materialidad del estándar europeo NEIS en 6 pasos. No necesitas conocimientos previos: cada paso explica lo que tienes que hacer.",
     steps: [
       "cuéntanos cómo es tu empresa (10-15 min)",
       "revisa los temas que la inteligencia artificial propone para tu sector (15-30 min)",
@@ -53,6 +55,7 @@ const copy = {
 }
 
 export function WizardExpectations() {
+  const { locale } = useLocale()
   const preferenceStorage = useOptionalStorage("preferences")
   const [visible, setVisible] = useState(true)
 
@@ -73,20 +76,20 @@ export function WizardExpectations() {
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">{copy.es.title}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{copy.es.intro}</p>
+          <h2 className="text-lg font-semibold text-foreground">{copy[locale].title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{copy[locale].intro}</p>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={dismiss} aria-label={copy.es.dismiss}>
+        <Button type="button" variant="ghost" size="sm" onClick={dismiss} aria-label={copy[locale].dismiss}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
       <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
-        {copy.es.steps.map((description, index) => (
+        {copy[locale].steps.map((description, index) => (
           <li key={WIZARD_STEPS[index].id} className="flex gap-2">
-            <span className="font-medium text-foreground">Paso {WIZARD_STEPS[index].id}:</span>
+            <span className="font-medium text-foreground">{locale === "es" ? "Paso" : "Step"} {WIZARD_STEPS[index].id}:</span>
             <span>
-              <span className="font-medium text-foreground">{WIZARD_STEPS[index].title}</span> - {description}
+              <span className="font-medium text-foreground">{ui(locale, WIZARD_STEPS[index].title)}</span> - {description}
             </span>
           </li>
         ))}
@@ -94,12 +97,12 @@ export function WizardExpectations() {
 
       <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <div className="rounded-lg bg-muted/50 p-3">
-          <h3 className="font-medium text-foreground">{copy.es.needsTitle}</h3>
-          <p className="mt-1 text-muted-foreground">{copy.es.needs}</p>
+          <h3 className="font-medium text-foreground">{copy[locale].needsTitle}</h3>
+          <p className="mt-1 text-muted-foreground">{copy[locale].needs}</p>
         </div>
         <div className="rounded-lg bg-muted/50 p-3">
-          <h3 className="font-medium text-foreground">{copy.es.outcomeTitle}</h3>
-          <p className="mt-1 text-muted-foreground">{copy.es.outcome}</p>
+          <h3 className="font-medium text-foreground">{copy[locale].outcomeTitle}</h3>
+          <p className="mt-1 text-muted-foreground">{copy[locale].outcome}</p>
         </div>
       </div>
     </section>

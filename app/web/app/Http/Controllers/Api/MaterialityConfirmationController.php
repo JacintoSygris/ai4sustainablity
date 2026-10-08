@@ -102,7 +102,7 @@ class MaterialityConfirmationController extends Controller
         $rawContent = $request->getContent();
         if (strlen($rawContent) > self::MAX_P8_REQUEST_BYTES) {
             return response()->json([
-                'message' => 'The P8 materiality confirmation request exceeds the 1048576-byte limit.',
+                'message' => __('The P8 materiality confirmation request exceeds the 1048576-byte limit.'),
                 'code' => 'materiality_confirmation_request_too_large',
             ], 413);
         }
@@ -121,7 +121,7 @@ class MaterialityConfirmationController extends Controller
             'universe_attestation.mode' => ['required_with:universe_attestation', 'string', Rule::in(self::REVIEW_MODES)],
             'change_reasons' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
             'change_reasons.*' => ['array', 'list', 'max:'.self::MAX_REASON_COUNT],
-            'change_reasons.*.*' => ['string', 'distinct:strict', Rule::in(self::REASON_KEYS)],
+            'change_reasons.*.*' => ['string', Rule::in(self::REASON_KEYS)],
             'change_reason_notes' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
             'change_reason_notes.*' => ['nullable', 'string', 'max:300'],
             'dimensions' => ['sometimes', 'array', 'max:'.self::MAX_TOPIC_COUNT],
@@ -138,14 +138,27 @@ class MaterialityConfirmationController extends Controller
             'guided_answers.*.note' => ['sometimes', 'nullable', 'string', 'max:300'],
             'e1_not_material_explanation' => ['nullable', 'string', 'max:2000'],
         ], [
-            'confirmed_topic_ids.max' => 'The confirmed_topic_ids field may not contain more than 89 topics.',
-            'reviewed_topic_ids.max' => 'The reviewed_topic_ids field may not contain more than 89 topics.',
-            'change_reasons.max' => 'The change_reasons field may not contain more than 89 topics.',
-            'change_reasons.*.max' => 'A topic may not contain more than 6 change reasons.',
-            'change_reason_notes.max' => 'The change_reason_notes field may not contain more than 89 topics.',
-            'dimensions.max' => 'The dimensions field may not contain more than 89 topics.',
-            'guided_answers.max' => 'The guided_answers field may not contain more than 89 topics.',
+            'confirmed_topic_ids.max' => __('The confirmed_topic_ids field may not contain more than 89 topics.'),
+            'reviewed_topic_ids.max' => __('The reviewed_topic_ids field may not contain more than 89 topics.'),
+            'change_reasons.max' => __('The change_reasons field may not contain more than 89 topics.'),
+            'change_reasons.*.max' => __('A topic may not contain more than 6 change reasons.'),
+            'change_reason_notes.max' => __('The change_reason_notes field may not contain more than 89 topics.'),
+            'dimensions.max' => __('The dimensions field may not contain more than 89 topics.'),
+            'guided_answers.max' => __('The guided_answers field may not contain more than 89 topics.'),
         ]);
+
+        // Laravel's generic nested distinct wildcard compares reasons across topics.
+        $reasonErrors = [];
+        foreach ($validated['change_reasons'] ?? [] as $topicId => $reasons) {
+            foreach ($reasons as $index => $reason) {
+                if (count(array_keys($reasons, $reason, true)) > 1) {
+                    $reasonErrors['change_reasons.'.$topicId.'.'.$index] = __('A topic may not contain duplicate change reasons.');
+                }
+            }
+        }
+        if ($reasonErrors !== []) {
+            throw ValidationException::withMessages($reasonErrors);
+        }
 
         $this->validateStrictTopicIdList($request->input('confirmed_topic_ids'), 'confirmed_topic_ids');
         if ($request->has('reviewed_topic_ids')) {
@@ -153,19 +166,19 @@ class MaterialityConfirmationController extends Controller
         }
         if ($request->has('universe_attestation') !== $request->has('reviewed_topic_ids')) {
             throw ValidationException::withMessages([
-                'reviewed_topic_ids' => 'The reviewed topic universe and its attestation must be submitted together.',
+                'reviewed_topic_ids' => __('The reviewed topic universe and its attestation must be submitted together.'),
             ]);
         }
         if ($request->has('universe_attestation')) {
             $attestation = $request->input('universe_attestation');
             if (! is_int($attestation['version'] ?? null)) {
                 throw ValidationException::withMessages([
-                    'universe_attestation.version' => 'The attestation version must be a JSON integer without coercion.',
+                    'universe_attestation.version' => __('The attestation version must be a JSON integer without coercion.'),
                 ]);
             }
             if (! is_bool($attestation['reviewed_universe'] ?? null)) {
                 throw ValidationException::withMessages([
-                    'universe_attestation.reviewed_universe' => 'The reviewed universe flag must be a JSON boolean without coercion.',
+                    'universe_attestation.reviewed_universe' => __('The reviewed universe flag must be a JSON boolean without coercion.'),
                 ]);
             }
         }
@@ -181,7 +194,7 @@ class MaterialityConfirmationController extends Controller
             $p6TopicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
             if ($characterization->status !== Characterization::STATUS_COMPLETED || $p6TopicIds === []) {
                 throw ValidationException::withMessages([
-                    'characterization' => 'A completed P6 materiality proposal is required before final confirmation.',
+                    'characterization' => __('A completed P6 materiality proposal is required before final confirmation.'),
                 ]);
             }
 
@@ -196,8 +209,11 @@ class MaterialityConfirmationController extends Controller
                 $storedConfirmation,
                 $p6TopicIds,
                 $previousStoredConfirmedTopicIds,
-                $this->topicMapIds(array_values($storedEvidence)),
             )['topic_ids'];
+            // Map keys are evidence only; membership must be established independently.
+            foreach ($storedEvidence as $field => $map) {
+                $storedEvidence[$field] = $this->filterKeyedMap($map, $previousReviewedTopicIds);
+            }
             $hasLearningPair = array_key_exists('reviewed_topic_ids', $validated);
             $reviewedTopicIds = $hasLearningPair
                 ? $this->topicIds($validated['reviewed_topic_ids'])
@@ -232,7 +248,7 @@ class MaterialityConfirmationController extends Controller
             if ($this->removesE1($characterization, $confirmedTopicIds)
                 && blank($validated['e1_not_material_explanation'] ?? null)) {
                 throw ValidationException::withMessages([
-                    'e1_not_material_explanation' => 'An explanation is required when E1 is removed from final materiality.',
+                    'e1_not_material_explanation' => __('An explanation is required when E1 is removed from final materiality.'),
                 ]);
             }
 
@@ -294,7 +310,7 @@ class MaterialityConfirmationController extends Controller
 
         if ($outcome['conflict']) {
             return response()->json([
-                'message' => 'La confirmación ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.',
+                'message' => __('La confirmación ha cambiado desde que se abrió. Recargue el estado actual antes de volver a guardar.'),
                 'code' => 'stale_materiality_state',
                 'data' => ['current_revision' => $outcome['current_revision']],
             ], 409);
@@ -340,7 +356,8 @@ class MaterialityConfirmationController extends Controller
 
         $state = $this->confirmationState($characterization, $datapoints);
 
-        return response()->json(['data' => $this->decisionSheetState($characterization, $state)]);
+        return response()->json(['data' => $this->decisionSheetState($characterization, $state)])
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'materiality-decision-sheet.json' : 'hoja-decision-materialidad.json').'"');
     }
 
     /**
@@ -362,14 +379,18 @@ class MaterialityConfirmationController extends Controller
             $confirmation,
             $p6TopicIds,
             $storedConfirmedTopicIds ?? [],
-            $this->topicMapIds(array_values($storedEvidence)),
         );
         $reviewedTopicIds = $reviewedTopicState['topic_ids'];
-        $currentTopicIds = $reviewedTopicIds;
+        // A valid frozen P6 snapshot permits historical display, never learning
+        // authority or additional membership at the current PUT boundary.
+        $historicalSnapshotTopicIds = $this->strictStoredExistingTopicIds(
+            Arr::get($confirmation, 'p6_snapshot.topic_ids')
+        ) ?? [];
+        $projectedTopicIds = $this->mergeTopicIds($reviewedTopicIds, $historicalSnapshotTopicIds);
         $delta = $this->delta($p6TopicIds, $confirmedTopicIds);
         $preview = $this->datapointPreview($characterization, $datapoints);
-        $guidedAnswers = $this->filterKeyedMap($storedEvidence['guided_answers'], $currentTopicIds);
-        $decisionBasis = $this->storedDecisionBasis($confirmation)
+        $guidedAnswers = $this->filterKeyedMap($storedEvidence['guided_answers'], $projectedTopicIds);
+        $decisionBasis = $this->storedDecisionBasis($confirmation, $guidedAnswers)
             ?? $this->deriveDecisionBasis($guidedAnswers, $admState);
         $p6Snapshot = $this->p6Snapshot(Arr::get($confirmation, 'p6_snapshot'));
         $storedUniverseAttestation = $this->storedUniverseAttestation(Arr::get($confirmation, 'universe_attestation'));
@@ -395,7 +416,7 @@ class MaterialityConfirmationController extends Controller
                 'acta_registered' => $admState['acta_registered'],
                 'acta' => $admState['acta'],
             ],
-            'exposicion_defaults' => $this->exposicionDefaults($characterization, $currentTopicIds),
+            'exposicion_defaults' => $this->exposicionDefaults($characterization, $reviewedTopicIds),
             'p6_anchor_date' => $characterization->submitted_at?->toJSON() ?? $characterization->updated_at?->toJSON(),
             'p6_topic_ids' => $p6TopicIds,
             'confirmed_topic_ids' => $confirmedTopicIds,
@@ -406,9 +427,9 @@ class MaterialityConfirmationController extends Controller
                 'revision' => $this->confirmationRevision($characterization),
                 'reviewed_topic_ids' => $reviewedTopicIds,
                 'universe_attestation' => $universeAttestation,
-                'change_reasons' => $this->filterKeyedMap($storedEvidence['change_reasons'], $currentTopicIds),
-                'change_reason_notes' => $this->filterKeyedMap($storedEvidence['change_reason_notes'], $currentTopicIds),
-                'dimensions' => $this->filterKeyedMap($storedEvidence['dimensions'], $currentTopicIds),
+                'change_reasons' => $this->filterKeyedMap($storedEvidence['change_reasons'], $projectedTopicIds),
+                'change_reason_notes' => $this->filterKeyedMap($storedEvidence['change_reason_notes'], $projectedTopicIds),
+                'dimensions' => $this->filterKeyedMap($storedEvidence['dimensions'], $projectedTopicIds),
                 'guided_answers' => $guidedAnswers,
                 'e1_not_material_explanation' => Arr::get($confirmation, 'e1_not_material_explanation'),
                 'confirmed_at' => Arr::get($confirmation, 'confirmed_at'),
@@ -480,12 +501,12 @@ class MaterialityConfirmationController extends Controller
                 'removed' => $this->decisionSheetTopicRows($delta['removed'], $topicsById, $confirmation),
                 'unchanged' => $this->decisionSheetTopicRows($delta['unchanged'], $topicsById, $confirmation),
             ],
-            'observation_resolutions' => $this->observationResolutions($confirmation),
+            'observation_resolutions' => $this->observationResolutions($confirmation['guided_answers']),
             'p9_preview' => $preview,
             'e1_not_material_explanation' => $confirmation['e1_not_material_explanation'],
             'note' => $state['is_confirmed']
-                ? 'These selections reflect the external double materiality assessment. Evidence remains outside the application.'
-                : 'No final P8 confirmation has been stored yet. Values are defaulted from the P6 proposal for preview only.',
+                ? __('These selections reflect the external double materiality assessment. Evidence remains outside the application.')
+                : __('No final P8 confirmation has been stored yet. Values are defaulted from the P6 proposal for preview only.'),
         ];
     }
 
@@ -545,7 +566,8 @@ class MaterialityConfirmationController extends Controller
             }
 
             throw ValidationException::withMessages([
-                'guided_answers.'.$topicId.'.final_result' => 'The guided final result must match the final confirmed topic set.',
+                'guided_answers.'.$topicId.'.final_result' =>
+                    __('The guided final result must match the final confirmed topic set.'),
             ]);
         }
     }
@@ -560,7 +582,7 @@ class MaterialityConfirmationController extends Controller
         foreach ($values as $value) {
             if (! is_int($value) || $value <= 0 || isset($seen[$value])) {
                 throw ValidationException::withMessages([
-                    $field => 'Topic IDs must be unique positive JSON integers without coercion.',
+                    $field => __('Topic IDs must be unique positive JSON integers without coercion.'),
                 ]);
             }
 
@@ -583,7 +605,7 @@ class MaterialityConfirmationController extends Controller
             }
         } catch (\InvalidArgumentException) {
             throw ValidationException::withMessages([
-                'json' => 'The JSON request must not contain duplicate object member names.',
+                'json' => __('The JSON request must not contain duplicate object member names.'),
             ]);
         }
     }
@@ -752,7 +774,7 @@ class MaterialityConfirmationController extends Controller
 
         if (array_diff($requiredTopicIds, $reviewedTopicIds) !== []) {
             throw ValidationException::withMessages([
-                'reviewed_topic_ids' => 'The reviewed topic universe is monotonic and must contain every previously reviewed, presented, and confirmed topic.',
+                'reviewed_topic_ids' => __('The reviewed topic universe is monotonic and must contain every previously reviewed, presented, and confirmed topic.'),
             ]);
         }
     }
@@ -774,14 +796,14 @@ class MaterialityConfirmationController extends Controller
                 || in_array($answer['financiero'] ?? null, ['no_lo_se'], true)
                 || ($answer['suggested_result'] ?? null) === 'en_observacion') {
                 throw ValidationException::withMessages([
-                    'universe_attestation.reviewed_universe' => 'A complete guided universe requires one terminal non-observational binary answer for every reviewed topic.',
+                    'universe_attestation.reviewed_universe' => __('A complete guided universe requires one terminal non-observational binary answer for every reviewed topic.'),
                 ]);
             }
 
             $expectedResult = in_array($topicId, $confirmedTopicIds, true) ? 'material' : 'no_material';
             if (($answer['final_result'] ?? null) !== $expectedResult) {
                 throw ValidationException::withMessages([
-                    'guided_answers.'.$topicId.'.final_result' => 'The guided final result must match the final confirmed topic set.',
+                    'guided_answers.'.$topicId.'.final_result' => __('The guided final result must match the final confirmed topic set.'),
                 ]);
             }
         }
@@ -851,7 +873,7 @@ class MaterialityConfirmationController extends Controller
             if (! preg_match('/^[1-9][0-9]*$/', $topicKey)
                 || ! in_array($topicKey, $validTopicKeys, true)) {
                 throw ValidationException::withMessages([
-                    $field => 'Keys must be canonical topic IDs inside the reviewed topic universe.',
+                    $field => __('Keys must be canonical topic IDs inside the reviewed topic universe.'),
                 ]);
             }
         }
@@ -859,7 +881,7 @@ class MaterialityConfirmationController extends Controller
         if ($this->existingTopicIds(array_map('intval', array_keys($values)))
             !== array_values(array_map('intval', array_keys($values)))) {
             throw ValidationException::withMessages([
-                $field => 'Keys must be canonical catalog topic IDs inside the reviewed topic universe.',
+                $field => __('Keys must be canonical catalog topic IDs inside the reviewed topic universe.'),
             ]);
         }
     }
@@ -902,14 +924,12 @@ class MaterialityConfirmationController extends Controller
     }
 
     /**
-     * @param  array<int, int>  $evidenceTopicIds
      * @return array{topic_ids: array<int, int>, authoritative: bool}
      */
     private function reviewedTopicState(
         array $confirmation,
         array $p6TopicIds,
         array $confirmedTopicIds,
-        array $evidenceTopicIds = [],
     ): array {
         $stored = Arr::get($confirmation, 'reviewed_topic_ids');
         if ($this->isStrictStoredTopicIdList($stored)) {
@@ -933,13 +953,10 @@ class MaterialityConfirmationController extends Controller
                 }
             }
         }
-        $hasSalvagedStoredTopicIds = $salvagedStoredTopicIds !== [];
         $salvagedStoredTopicIds = $this->existingTopicIds(
-            $this->mergeTopicIds($salvagedStoredTopicIds, $evidenceTopicIds)
+            $this->mergeTopicIds($salvagedStoredTopicIds)
         );
-        $legacy = ! $hasSalvagedStoredTopicIds
-            ? $this->mergeTopicIds($p6TopicIds, $confirmedTopicIds, $evidenceTopicIds)
-            : $this->mergeTopicIds($salvagedStoredTopicIds, $p6TopicIds, $confirmedTopicIds);
+        $legacy = $this->mergeTopicIds($salvagedStoredTopicIds, $p6TopicIds, $confirmedTopicIds);
 
         return ['topic_ids' => $this->existingTopicIds($legacy), 'authoritative' => false];
     }
@@ -1388,7 +1405,8 @@ class MaterialityConfirmationController extends Controller
         $validTopicKeys = array_flip(array_map('strval', $validTopicIds));
 
         return collect($values)
-            ->filter(fn ($value, string|int $key) => isset($validTopicKeys[(string) $key]))
+            ->filter(fn ($value, string|int $key) => preg_match('/^[1-9][0-9]*$/', (string) $key)
+                && isset($validTopicKeys[(string) $key]))
             ->all();
     }
 
@@ -1433,9 +1451,13 @@ class MaterialityConfirmationController extends Controller
     /**
      * @param  array<string, mixed>  $confirmation
      */
-    private function storedDecisionBasis(array $confirmation): ?string
+    private function storedDecisionBasis(array $confirmation, array $guidedAnswers): ?string
     {
         $decisionBasis = Arr::get($confirmation, 'decision_basis');
+
+        if ($decisionBasis === 'guided_questionnaire' && $guidedAnswers === []) {
+            return null;
+        }
 
         return in_array($decisionBasis, ['guided_questionnaire', 'adm_registered', 'none'], true)
             ? $decisionBasis
@@ -1509,17 +1531,11 @@ class MaterialityConfirmationController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $confirmation
+     * @param  array<string|int, mixed>  $guidedAnswers  Filtered confirmation-state answers.
      * @return array<int, array<string, mixed>>
      */
-    private function observationResolutions(array $confirmation): array
+    private function observationResolutions(array $guidedAnswers): array
     {
-        $guidedAnswers = Arr::get($confirmation, 'guided_answers', []);
-
-        if (! is_array($guidedAnswers)) {
-            return [];
-        }
-
         return collect($guidedAnswers)
             ->filter(fn ($answer): bool => is_array($answer)
                 && ($answer['suggested_result'] ?? null) === 'en_observacion')
@@ -1574,7 +1590,7 @@ class MaterialityConfirmationController extends Controller
             'material_topic_count' => count($corpus['material_topic_ids']),
             'activated_esrs_standards' => $corpus['activated_esrs_standards'],
             'datapoint_estimate' => [
-                'label' => 'Materiality-filtered P9 corpus estimate',
+                'label' => __('Materiality-filtered P9 corpus estimate'),
                 'always_required_datapoint_count' => $summary['always_required_datapoint_count'],
                 'topical_datapoint_count' => $summary['topical_datapoint_count'],
                 'minimum_disclosure_requirement_datapoint_count' => $summary['minimum_disclosure_requirement_datapoint_count'],

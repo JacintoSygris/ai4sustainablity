@@ -15,6 +15,7 @@ class FrontendSessionController extends Controller
         return response()->json([
             'data' => [
                 'authenticated' => true,
+                'locale' => app()->getLocale(),
                 'csrf_header' => 'X-XSRF-TOKEN',
                 'csrf_token' => csrf_token(),
                 'user' => [

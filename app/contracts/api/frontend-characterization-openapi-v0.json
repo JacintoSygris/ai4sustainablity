@@ -862,7 +862,7 @@
           "Datapoints"
         ],
         "summary": "Download editable P9 datapoint responses CSV",
-        "description": "Returns the current P9 corpus plus frontend-entered response state as a flattened CSV attachment. The export includes every currently applicable datapoint, response fields when present, and applicability why fields. The endpoint does not call Python.",
+        "description": "Returns the current P9 corpus plus frontend-entered response state as a flattened CSV attachment. The export includes every currently applicable datapoint, response fields when present, and applicability why fields. The endpoint does not call Python. A separate authenticated localized export preserves the same fact rows and structural columns while translating presentation headers and labels.",
         "security": [
           {
             "laravelSession": []
@@ -929,7 +929,7 @@
           "Datapoints"
         ],
         "summary": "Download deterministic ESRS datapoint corpus CSV",
-        "description": "Returns the current P9 datapoint corpus as a flattened CSV attachment. It uses the same deterministic builder as GET /api/esrs-datapoints, does not call Python, and shares the same current mapping granularity.",
+        "description": "Returns the current P9 datapoint corpus as a flattened CSV attachment. It uses the same deterministic builder as GET /api/esrs-datapoints, does not call Python, and shares the same current mapping granularity. A separate authenticated localized export preserves the same fact rows and structural columns while translating presentation headers and labels.",
         "security": [
           {
             "laravelSession": []
@@ -1294,6 +1294,306 @@
           }
         }
       }
+    },
+    "/api/locale": {
+      "get": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Get browser locale and CSRF context",
+        "description": "Guest-capable and authenticated browser protocol; no authenticated user is required. Resolves session app_locale first, then the encrypted app_locale cookie when the session preference is absent; missing or invalid preferences resolve to Spanish (es). Only es/en are supported. Accept-Language and arbitrary locale query parameters never override this resolution. Authenticated requests use the same browser/session preference; there is no account database preference or cross-device synchronization. User-authored text, evidence, facts and drafts remain untouched. Successful responses include Content-Language, Vary: Cookie and Cache-Control: private, no-store. The csrf_token bootstraps same-origin locale updates, including before login. Send it as X-CSRF-TOKEN with the same session credentials. This JSON response is also used by SSR and the locale provider.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Current browser locale context.",
+            "headers": {
+              "Content-Language": {
+                "description": "Active server-resolved locale.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "es",
+                    "en"
+                  ]
+                }
+              },
+              "Vary": {
+                "description": "Includes Cookie; other existing variation headers are preserved.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Cookie"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocaleEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Workflow"
+        ],
+        "summary": "Persist an explicit browser locale selection",
+        "description": "Guest-capable and authenticated browser protocol; no authenticated user is required. Resolves session app_locale first, then the encrypted app_locale cookie when the session preference is absent; missing or invalid preferences resolve to Spanish (es). Only es/en are supported. Accept-Language and arbitrary locale query parameters never override this resolution. Authenticated requests use the same browser/session preference; there is no account database preference or cross-device synchronization. User-authored text, evidence, facts and drafts remain untouched. Successful responses include Content-Language, Vary: Cookie and Cache-Control: private, no-store. Send Accept: application/json, same-origin session credentials and X-CSRF-TOKEN from GET /api/locale; normal web CSRF protection applies. A valid selection updates the session and returns the same envelope with the new locale, also issuing an encrypted HttpOnly SameSite=Lax app_locale cookie for 365 days (Secure follows session configuration). The cookie retains the browser preference through session rotation/logout. Missing or invalid locale input returns 422 validation errors and does not change the preference. Updates are throttled to 30 per minute. POST is an alias used by native forms; non-JSON requests redirect to an allowed local route.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Session CSRF token returned by GET /api/locale; the browser client uses this header. Laravel web middleware also supports its standard CSRF transports.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocaleUpdateRequest"
+              },
+              "example": {
+                "locale": "en"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current browser locale context.",
+            "headers": {
+              "Content-Language": {
+                "description": "Active server-resolved locale.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "es",
+                    "en"
+                  ]
+                }
+              },
+              "Vary": {
+                "description": "Includes Cookie; other existing variation headers are preserved.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Cookie"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocaleEnvelope"
+                }
+              }
+            }
+          },
+          "419": {
+            "description": "Web CSRF/session token mismatch; preference is not changed."
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "description": "Locale update rate limit exceeded; preference is not changed."
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints/export.localized.csv": {
+      "get": {
+        "tags": [
+          "Datapoints"
+        ],
+        "summary": "Download localized browser corpus CSV",
+        "description": "Browser presentation export using the active Laravel session/cookie locale (es or en), with the same authentication and email verification boundary as the machine route. Localized human headers and labels; canonical codes and verbatim user content with CSV formula neutralization. Spanish filename: datos-esrs.csv; English filename: esrs-datapoints.csv.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Localized browser CSV attachment.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Attachment filename: datos-esrs.csv (es), esrs-datapoints.csv (en)."
+              },
+              "Content-Language": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "es",
+                    "en"
+                  ]
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Private, no-store."
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Includes Cookie."
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "es": {
+                    "value": "Código del bloque,Título del bloque,Código del requisito de divulgación,ID del dato,Código del estándar,Código del requisito de divulgación específico,Párrafo,Referencia AR relacionada,Nombre del dato,Tipo de dato,Condicional o alternativo,Divulgación voluntaria,Referencias del apéndice B,Aplicación gradual: menos de 750 empleados,Aplicación gradual: todas las empresas,Seleccionado por defecto,Códigos de motivo de selección,Motivos de selección\n"
+                  },
+                  "en": {
+                    "value": "Block code,Block title,Disclosure requirement code,Datapoint ID,Standard code,Specific disclosure requirement code,Paragraph,Related AR reference,Datapoint name,Data type,Conditional or alternative,Voluntary disclosure,Appendix B references,Phase-in: fewer than 750 employees,Phase-in: all undertakings,Selected by default,Selection reason codes,Selection reasons\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No characterization exists for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailUnverified"
+          }
+        }
+      }
+    },
+    "/api/esrs-datapoints/responses/export.localized.csv": {
+      "get": {
+        "tags": [
+          "Datapoints"
+        ],
+        "summary": "Download localized browser response CSV",
+        "description": "Localized response CSV with one row per structured fact, all 34 public machine-export columns (including reporting entity, concept, typed fact, context, dimensions and legacy response value), and three additional display-label columns. Canonical identifiers, units and user text are preserved. Requires the existing authenticated session.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Localized browser CSV attachment.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Attachment filename: respuestas-datos-esrs.csv (es), esrs-datapoint-responses.csv (en)."
+              },
+              "Content-Language": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "es",
+                    "en"
+                  ]
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Private, no-store."
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Includes Cookie."
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "es": {
+                    "value": "Código del bloque,Código del requisito de divulgación,ID del dato,Código del estándar,Código del requisito de divulgación específico,Nombre del dato,Código de aplicabilidad,Motivo de aplicabilidad,Código de la base de aplicabilidad,Limitaciones de aplicabilidad,Seleccionado por defecto,Códigos de motivo de selección,Código del estado de la respuesta,Valor de la respuesta,Referencia de evidencia,Nota,Fecha de actualización,Descripción de la base de aplicabilidad,Descripción del estado de la respuesta,Motivos de selección\n"
+                  },
+                  "en": {
+                    "value": "Block code,Disclosure requirement code,Datapoint ID,Standard code,Specific disclosure requirement code,Datapoint name,Applicability reason code,Applicability reason,Applicability mapping basis code,Applicability limitations,Selected by default,Selection reason codes,Response status code,Response value,Evidence reference,Note,Response updated at,Applicability mapping basis label,Response status label,Selection reasons\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No characterization exists for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailUnverified"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1615,7 +1915,14 @@
           "sections",
           "downloads",
           "next_actions",
-          "limitations"
+          "limitations",
+          "locale",
+          "workflow_status",
+          "workflow_complete",
+          "report_content_status",
+          "report_content_ready",
+          "coverage_mode",
+          "status_label"
         ],
         "properties": {
           "type": {
@@ -1637,13 +1944,338 @@
             "type": "string",
             "enum": [
               "incomplete",
-              "generation_pending"
+              "ready"
             ]
           },
           "sections": {
             "type": "object",
-            "description": "Readiness sections keyed by workflow step. materiality_proposal.status is ready only when the current P6 topic list is non-empty. materiality_confirmation.status is ready when confirmed_topic_ids is explicitly present, even if it is an empty array.",
-            "additionalProperties": true
+            "required": [
+              "characterization",
+              "materiality_proposal",
+              "double_materiality_guide",
+              "materiality_confirmation",
+              "esrs_datapoints",
+              "datapoint_responses",
+              "report_content",
+              "final_report_generation"
+            ],
+            "properties": {
+              "characterization": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "incomplete"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/characterization"
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              },
+              "materiality_proposal": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "topic_count"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "missing"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/materiality-proposal"
+                    ]
+                  },
+                  "topic_count": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "double_materiality_guide": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "missing",
+                      "in_progress"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/double-materiality-guide"
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              },
+              "materiality_confirmation": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "is_confirmed",
+                  "is_stale",
+                  "confirmation_status",
+                  "confirmed_topic_count"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "missing"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/materiality-confirmation"
+                    ]
+                  },
+                  "is_confirmed": {
+                    "type": "boolean"
+                  },
+                  "is_stale": {
+                    "type": "boolean"
+                  },
+                  "confirmation_status": {
+                    "type": "string",
+                    "enum": [
+                      "confirmed",
+                      "missing"
+                    ]
+                  },
+                  "confirmed_topic_count": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "esrs_datapoints": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "total_datapoint_count",
+                  "coverage_status",
+                  "matter_to_dr_mapping_status",
+                  "coverage_mode"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "missing"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/esrs-datapoints"
+                    ]
+                  },
+                  "total_datapoint_count": {
+                    "type": "integer"
+                  },
+                  "coverage_status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "matter_to_dr_mapping_status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "coverage_mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "scoping_only"
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              },
+              "datapoint_responses": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "response_count",
+                  "completed_count",
+                  "not_applicable_count",
+                  "decided_count",
+                  "orphaned_response_count",
+                  "total_datapoint_count",
+                  "effective_required_datapoint_count",
+                  "completion_ratio"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "not_started",
+                      "in_progress",
+                      "complete"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/esrs-datapoints/responses"
+                    ]
+                  },
+                  "response_count": {
+                    "type": "integer"
+                  },
+                  "completed_count": {
+                    "type": "integer"
+                  },
+                  "not_applicable_count": {
+                    "type": "integer"
+                  },
+                  "decided_count": {
+                    "type": "integer"
+                  },
+                  "orphaned_response_count": {
+                    "type": "integer"
+                  },
+                  "total_datapoint_count": {
+                    "type": "integer"
+                  },
+                  "effective_required_datapoint_count": {
+                    "type": "integer"
+                  },
+                  "completion_ratio": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "report_content": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "claimable_count",
+                  "required_count",
+                  "resolved_required_count",
+                  "missing_datapoint_count",
+                  "reason_code",
+                  "reasons"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "incomplete"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/report/facts"
+                    ]
+                  },
+                  "claimable_count": {
+                    "type": "integer"
+                  },
+                  "required_count": {
+                    "type": "integer"
+                  },
+                  "resolved_required_count": {
+                    "type": "integer"
+                  },
+                  "missing_datapoint_count": {
+                    "type": "integer"
+                  },
+                  "reason_code": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "reasons": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": true
+              },
+              "final_report_generation": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "endpoint",
+                  "generation_status",
+                  "reason_code"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "blocked"
+                    ]
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/report/html"
+                    ]
+                  },
+                  "generation_status": {
+                    "type": "string",
+                    "enum": [
+                      "factual_report_ready",
+                      "blocked_by_incomplete_inputs"
+                    ]
+                  },
+                  "reason_code": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true,
+            "description": "P5-P9 workflow readiness is distinct from factual report content readiness. These fields describe prerequisites, not snapshot approval or permission to download factual outputs."
           },
           "downloads": {
             "type": "object",
@@ -1653,7 +2285,7 @@
           },
           "next_actions": {
             "type": "array",
-            "description": "Ordered endpoints for incomplete upstream workflow sections. When all inputs are ready and final generation is still pending, this returns /api/report/draft.",
+            "description": "Ordered endpoints for incomplete workflow or report-content sections, including /api/report/facts when factual content is incomplete. Empty when every required section is ready.",
             "items": {
               "type": "string"
             }
@@ -1661,8 +2293,45 @@
           "limitations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WorkflowLimitation"
+              "$ref": "#/components/schemas/ReportLimitation"
             }
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "workflow_status": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "ready"
+            ]
+          },
+          "workflow_complete": {
+            "type": "boolean"
+          },
+          "report_content_status": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "ready"
+            ]
+          },
+          "report_content_ready": {
+            "type": "boolean"
+          },
+          "coverage_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "scoping_only"
+            ]
+          },
+          "status_label": {
+            "type": "string"
           }
         },
         "additionalProperties": true
@@ -1797,7 +2466,13 @@
           "materiality",
           "datapoints",
           "exports",
-          "limitations"
+          "limitations",
+          "locale",
+          "workflow_status",
+          "workflow_complete",
+          "report_content_status",
+          "report_content_ready",
+          "coverage_mode"
         ],
         "properties": {
           "type": {
@@ -1818,24 +2493,175 @@
           "generation_status": {
             "type": "string",
             "enum": [
-              "frontend_rendered_draft"
+              "frontend_rendered_draft",
+              "report_preparation_package_ready"
             ]
           },
           "readiness_status": {
             "type": "string",
             "enum": [
               "incomplete",
-              "generation_pending"
+              "ready"
             ]
           },
           "company": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/ReportDraftCompany"
           },
           "materiality": {
             "type": "object",
             "description": "Materiality summary including is_confirmed and confirmation_status. confirmed_topic_count may be 0 for an explicit confirmed no-topical-materiality outcome.",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "required": [
+              "proposal_source",
+              "is_confirmed",
+              "confirmation_status",
+              "proposed_topic_count",
+              "confirmed_topic_count",
+              "confirmed_theme_count",
+              "confirmed_at",
+              "confirmed_topics",
+              "confirmed_themes"
+            ],
+            "properties": {
+              "proposal_source": {
+                "type": "string",
+                "enum": [
+                  "p6_ai_candidate_topics"
+                ]
+              },
+              "is_confirmed": {
+                "type": "boolean"
+              },
+              "confirmation_status": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "missing"
+                ]
+              },
+              "proposed_topic_count": {
+                "type": "integer"
+              },
+              "confirmed_topic_count": {
+                "type": "integer"
+              },
+              "confirmed_theme_count": {
+                "type": "integer"
+              },
+              "confirmed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confirmed_topics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "esrs_code",
+                    "theme",
+                    "subtheme",
+                    "subtopic"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "esrs_code": {
+                      "type": "string"
+                    },
+                    "theme": {
+                      "type": "object",
+                      "required": [
+                        "en",
+                        "es"
+                      ],
+                      "properties": {
+                        "en": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "es": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "subtheme": {
+                      "type": "object",
+                      "required": [
+                        "en",
+                        "es"
+                      ],
+                      "properties": {
+                        "en": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "es": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "subtopic": {
+                      "type": "object",
+                      "required": [
+                        "en",
+                        "es"
+                      ],
+                      "properties": {
+                        "en": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "es": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "confirmed_themes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "esrs_code",
+                    "label"
+                  ],
+                  "properties": {
+                    "esrs_code": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           },
           "datapoints": {
             "type": "object",
@@ -1849,7 +2675,9 @@
               "completion_ratio",
               "coverage_status",
               "matter_to_dr_mapping_status",
-              "blocks"
+              "blocks",
+              "orphaned_response_count",
+              "coverage_mode"
             ],
             "properties": {
               "total_datapoint_count": {
@@ -1879,7 +2707,7 @@
               },
               "completion_ratio": {
                 "type": "number",
-                "description": "decided_count divided by total_datapoint_count, rounded to 4 decimals."
+                "description": "Decided required datapoints divided by the effective required datapoint count, rounded to 4 decimals; the same completion calculation as P9."
               },
               "coverage_status": {
                 "type": [
@@ -1898,6 +2726,16 @@
                 "items": {
                   "$ref": "#/components/schemas/ReportDraftDatapointBlock"
                 }
+              },
+              "orphaned_response_count": {
+                "type": "integer"
+              },
+              "coverage_mode": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "scoping_only"
+                ]
               }
             },
             "additionalProperties": true
@@ -1911,8 +2749,42 @@
           "limitations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WorkflowLimitation"
+              "$ref": "#/components/schemas/ReportLimitation"
             }
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "workflow_status": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "ready"
+            ]
+          },
+          "workflow_complete": {
+            "type": "boolean"
+          },
+          "report_content_status": {
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "ready"
+            ]
+          },
+          "report_content_ready": {
+            "type": "boolean"
+          },
+          "coverage_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "scoping_only"
+            ]
           }
         },
         "additionalProperties": true
@@ -2079,34 +2951,81 @@
               },
               "p6": {
                 "type": "object",
-                "additionalProperties": true
+                "required": [
+                  "submit_without_preselected_topics",
+                  "review_traceability"
+                ],
+                "properties": {
+                  "submit_without_preselected_topics": {
+                    "type": "boolean"
+                  },
+                  "review_traceability": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               },
               "p7": {
                 "type": "object",
-                "additionalProperties": true
+                "required": [
+                  "content_format"
+                ],
+                "properties": {
+                  "content_format": {
+                    "type": "string",
+                    "enum": [
+                      "structured_prose_v2"
+                    ]
+                  }
+                },
+                "additionalProperties": false
               },
               "p8": {
                 "type": "object",
-                "additionalProperties": true
+                "required": [
+                  "decision_sheet_json",
+                  "e1_non_material_explanation_required_when_removed"
+                ],
+                "properties": {
+                  "decision_sheet_json": {
+                    "type": "boolean"
+                  },
+                  "e1_non_material_explanation_required_when_removed": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               },
               "p9": {
                 "type": "object",
                 "required": [
                   "granularity",
-                  "matter_mapping_status"
+                  "matter_mapping_status",
+                  "disclosure_requirement_grouping",
+                  "completion_plan",
+                  "phase_in_assessment"
                 ],
                 "properties": {
                   "granularity": {
                     "type": "string",
                     "enum": [
-                      "standard_level_partial"
+                      "disclosure_requirement_mapping_required"
                     ]
                   },
                   "matter_mapping_status": {
                     "type": "string",
                     "enum": [
-                      "pending"
+                      "approved_loaded"
                     ]
+                  },
+                  "disclosure_requirement_grouping": {
+                    "type": "boolean"
+                  },
+                  "completion_plan": {
+                    "type": "boolean"
+                  },
+                  "phase_in_assessment": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": true
@@ -2116,7 +3035,14 @@
                 "required": [
                   "readiness_endpoint",
                   "draft_endpoint",
-                  "generation_status"
+                  "generation_status",
+                  "available_downloads",
+                  "finish_line",
+                  "package_endpoint",
+                  "evidence_bundle_endpoint",
+                  "xhtml_ixbrl_generation",
+                  "native_pdf_generation",
+                  "contract_document"
                 ],
                 "properties": {
                   "readiness_endpoint": {
@@ -2134,7 +3060,7 @@
                   "generation_status": {
                     "type": "string",
                     "enum": [
-                      "not_implemented"
+                      "report_preparation_package_ready"
                     ]
                   },
                   "available_downloads": {
@@ -2142,6 +3068,33 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "finish_line": {
+                    "type": "string",
+                    "enum": [
+                      "report_preparation_package"
+                    ]
+                  },
+                  "package_endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/report/package"
+                    ]
+                  },
+                  "evidence_bundle_endpoint": {
+                    "type": "string",
+                    "enum": [
+                      "/api/report/evidence-bundle"
+                    ]
+                  },
+                  "xhtml_ixbrl_generation": {
+                    "type": "boolean"
+                  },
+                  "native_pdf_generation": {
+                    "type": "boolean"
+                  },
+                  "contract_document": {
+                    "type": "string"
                   }
                 },
                 "additionalProperties": true
@@ -2213,11 +3166,15 @@
             "properties": {
               "framework": {
                 "type": "string",
-                "enum": ["Next 16.3.5"]
+                "enum": [
+                  "Next 16.3.5"
+                ]
               },
               "auth": {
                 "type": "string",
-                "enum": ["Laravel web session"]
+                "enum": [
+                  "Laravel web session"
+                ]
               },
               "database": {
                 "type": "string",
@@ -2258,7 +3215,9 @@
               },
               "deployment_secret_delivery": {
                 "type": "string",
-                "enum": ["deployer_supplied_environment"]
+                "enum": [
+                  "deployer_supplied_environment"
+                ]
               },
               "required_private_values": {
                 "type": "array",
@@ -2316,7 +3275,7 @@
             "type": "string",
             "enum": [
               "pass_smoke",
-              "failing"
+              "pass_with_baseline_warnings"
             ]
           },
           "notes": {
@@ -2379,9 +3338,8 @@
             "type": "string",
             "enum": [
               "historical_imported_frontend_source_state",
-              "exact_ar16_matter_to_dr_mapping_pending",
-              "final_report_generation_pending",
-              "private_dev_only"
+              "final_report_package_scope",
+              "auth_boundary"
             ]
           },
           "message": {
@@ -3439,7 +4397,8 @@
           "warning",
           "sections",
           "templates",
-          "handoff"
+          "next_step",
+          "locale"
         ],
         "properties": {
           "type": {
@@ -3457,7 +4416,7 @@
           "content_format": {
             "type": "string",
             "enum": [
-              "structured_json"
+              "structured_prose_v2"
             ]
           },
           "warning": {
@@ -3475,8 +4434,15 @@
               "$ref": "#/components/schemas/DoubleMaterialityGuideTemplate"
             }
           },
-          "handoff": {
+          "next_step": {
             "$ref": "#/components/schemas/DoubleMaterialityGuideHandoff"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
           }
         },
         "additionalProperties": false
@@ -3516,7 +4482,8 @@
         "required": [
           "key",
           "title",
-          "checks"
+          "checks",
+          "body"
         ],
         "properties": {
           "key": {
@@ -3530,6 +4497,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "body": {
+            "$ref": "#/components/schemas/LocalizedText"
           }
         },
         "additionalProperties": false
@@ -7107,6 +8077,201 @@
             "type": "string"
           }
         }
+      },
+      "Locale": {
+        "type": "object",
+        "required": [
+          "locale",
+          "supported_locales",
+          "csrf_token"
+        ],
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "default": "es"
+          },
+          "supported_locales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "es",
+                "en"
+              ]
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "example": [
+              "es",
+              "en"
+            ]
+          },
+          "csrf_token": {
+            "type": "string",
+            "description": "Session CSRF token for same-origin updates; not an authentication credential."
+          }
+        }
+      },
+      "LocaleEnvelope": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Locale"
+          }
+        }
+      },
+      "LocaleUpdateRequest": {
+        "type": "object",
+        "required": [
+          "locale"
+        ],
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          }
+        }
+      },
+      "ReportDraftCompany": {
+        "type": "object",
+        "required": [
+          "name",
+          "nace_code",
+          "status",
+          "reporting_year",
+          "product_service_type",
+          "employee_count_range",
+          "revenue_range",
+          "regions"
+        ],
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "nace_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "status": {
+            "$ref": "#/components/schemas/CharacterizationStatus"
+          },
+          "reporting_year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "product_service_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "physical_product_manufacturing",
+              "physical_product_retail",
+              "professional_services",
+              "technical_services",
+              "software_digital_services",
+              "construction_installations",
+              "logistics_transport_storage",
+              "finance_insurance",
+              "energy_utilities",
+              "agrifood",
+              "health_life_sciences",
+              "education_training",
+              "hospitality_tourism",
+              "mixed",
+              "not_sure",
+              null
+            ]
+          },
+          "employee_count_range": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "1_9",
+              "10_49",
+              "50_249",
+              "250_499",
+              "500_999",
+              "1000_plus",
+              "not_sure",
+              null
+            ]
+          },
+          "revenue_range": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "lte_2m",
+              "2m_to_10m",
+              "10m_to_40m",
+              "40m_to_50m",
+              "50m_to_250m",
+              "gt_250m",
+              "not_sure",
+              null
+            ]
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "eu",
+                "north_america",
+                "latin_america",
+                "asia",
+                "middle_east_africa",
+                "oceania"
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportLimitation": {
+        "type": "object",
+        "required": [
+          "key",
+          "message"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "report_package_scope",
+              "exact_ar16_matter_to_dr_mapping_pending",
+              "orphaned_datapoint_responses",
+              "materiality_confirmation_stale"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       }
     }
   }

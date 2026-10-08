@@ -1,8 +1,15 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui, formatUi } from "@/lib/i18n/messages.mjs"
+
+import { useLocale } from "@/components/locale-provider"
+import { topicTitle, topicSubtitle, topicMatches } from "@/lib/materiality-confirmation-state.mjs"
+
 import type React from "react"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, HelpCircle, Loader2, Info, RefreshCw, Search, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -61,7 +68,7 @@ const actionLabels: Record<LaravelTopicAction, string> = {
 const actionDescriptions: Record<LaravelTopicAction, string> = {
   accepted: "Mantener en la propuesta del paso 2",
   rejected: "Descartar de la propuesta del paso 2",
-  unsure: "Revisar en doble materialidad",
+  unsure: "Revisar en doble importancia relativa",
 }
 
 const PREDICTION_REFRESH_SECONDS = 10
@@ -71,53 +78,24 @@ const reasonLabels: Record<string, string> = {
   not_relevant: "No relevante",
   threshold: "No supera el umbral de importancia",
   stakeholder_input: "Aportación de grupos de interés",
-  needs_adm: "Revisar en el análisis de doble materialidad",
+  needs_adm: "Revisar en el análisis de doble importancia relativa",
   other: "Otro",
 }
 
-function p6StatusLabel(status: string): string {
+function p6StatusLabel(status: string, locale: "es" | "en" = "es"): string {
+  const tr = (message: string) => ui(locale, message)
+
   return (
     {
-      draft: "Borrador de la encuesta inicial",
-      submitted: "Preparando propuesta de temas",
-      processing: "Generando propuesta de temas",
-      waiting: "Esperando reintento",
-      failed: "No se pudo generar la propuesta",
-      timed_out: "Tiempo agotado",
-      completed: "Propuesta completada",
-    }[status] ?? "Estado pendiente de revisión"
+      draft: tr("Borrador de la encuesta inicial"),
+      submitted: tr("Preparando propuesta de temas"),
+      processing: tr("Generando propuesta de temas"),
+      waiting: tr("Esperando reintento"),
+      failed: tr("No se pudo generar la propuesta"),
+      timed_out: tr("Tiempo agotado"),
+      completed: tr("Propuesta completada"),
+    }[status] ?? tr("Estado pendiente de revisión")
   )
-}
-
-function localized(value: { es: string | null; en: string | null } | undefined): string {
-  return value?.es || value?.en || ""
-}
-
-function topicTitle(topic: LaravelMaterialityTopic): string {
-  return localized(topic.subtopic) || localized(topic.subtheme) || localized(topic.theme) || `Tema ${topic.id}`
-}
-
-function topicSubtitle(topic: LaravelMaterialityTopic): string {
-  return [localized(topic.theme), localized(topic.subtheme)].filter(Boolean).join(" / ")
-}
-
-function topicMatches(topic: LaravelMaterialityTopic, query: string): boolean {
-  const normalizedQuery = query.trim().toLowerCase()
-
-  if (!normalizedQuery) {
-    return true
-  }
-
-  return [
-    topic.esrs_code,
-    topicTitle(topic),
-    localized(topic.theme),
-    localized(topic.subtheme),
-    localized(topic.subtopic),
-  ]
-    .join(" ")
-    .toLowerCase()
-    .includes(normalizedQuery)
 }
 
 function p5IsComplete(characterization: LaravelCharacterization | null): boolean {
@@ -158,6 +136,9 @@ function buildSubmitPayload(characterization: LaravelCharacterization) {
 }
 
 export function MaterialTopicsForm() {
+  const tr = (message: string) => ui(locale, message)
+
+  const { locale } = useLocale()
   const router = useRouter()
   const [reloadCounter, setReloadCounter] = useState(0)
   const [loadingInitial, setLoadingInitial] = useState(true)
@@ -174,8 +155,8 @@ export function MaterialTopicsForm() {
   const [topicActions, setTopicActions] = useState<TopicActions>({})
   const [actionReasons, setActionReasons] = useState<ActionReasons>({})
   const [actionNotes, setActionNotes] = useState<ActionNotes>({})
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  const [saveMessage, setSaveMessage] = useSystemMessage(null)
   const reviewEditVersion = useRef(0)
 
   useEffect(() => {
@@ -213,7 +194,7 @@ export function MaterialTopicsForm() {
           return
         }
 
-        setErrorMessage("No se ha podido cargar la propuesta del paso 2 desde la plataforma.")
+        setErrorMessage(systemCopy("No se ha podido cargar la propuesta del paso 2 desde la plataforma."))
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -228,9 +209,7 @@ export function MaterialTopicsForm() {
     }
   }, [reloadCounter, router])
 
-  const filteredTopics = useMemo(() => {
-    return proposal?.proposal_topics.filter((topic) => topicMatches(topic, searchQuery)) ?? []
-  }, [proposal, searchQuery])
+  const filteredTopics = proposal?.proposal_topics.filter((topic) => topicMatches(topic, searchQuery, locale)) ?? []
 
   const missingTopicIds = proposal ? missingReviewTopicIds(proposal.proposal_topic_ids, topicActions) : []
   const reviewedCount = Math.max((proposal?.proposal_topic_ids.length ?? 0) - missingTopicIds.length, 0)
@@ -296,7 +275,7 @@ export function MaterialTopicsForm() {
 
   const handleSubmitPrediction = async () => {
     if (!characterization || !p5Complete) {
-      setErrorMessage("Completa primero la encuesta inicial antes de generar la propuesta del paso 2.")
+      setErrorMessage(systemCopy("Completa primero la encuesta inicial antes de generar la propuesta del paso 2."))
 
       return
     }
@@ -314,7 +293,7 @@ export function MaterialTopicsForm() {
         return
       }
 
-      setErrorMessage("La plataforma no ha podido enviar la caracterización a predicción.")
+      setErrorMessage(systemCopy("La plataforma no ha podido enviar la caracterización a predicción."))
     } finally {
       setSubmittingPrediction(false)
     }
@@ -335,7 +314,7 @@ export function MaterialTopicsForm() {
       })
 
       if (!reviewPayload.ok) {
-        setErrorMessage(`Marca una decisión explícita en ${reviewPayload.missingTopicIds.length} tema(s) antes de continuar.`)
+        setErrorMessage(systemCopy("Marca una decisión explícita en {0} tema(s) antes de continuar.",[reviewPayload.missingTopicIds.length]))
 
         return
       }
@@ -348,7 +327,7 @@ export function MaterialTopicsForm() {
         actionNotes,
       })
       if (Object.keys(reviewPayloadData.topic_actions).length === 0) {
-        setErrorMessage("Marca al menos una decisión antes de guardar el borrador.")
+        setErrorMessage(systemCopy("Marca al menos una decisión antes de guardar el borrador."))
 
         return
       }
@@ -369,7 +348,7 @@ export function MaterialTopicsForm() {
         { csrfToken },
       )
       if (!saveCompletionMatchesEditVersion(savedEditVersion, reviewEditVersion.current)) {
-        setSaveMessage("Se guardó la versión anterior. Conservamos tus cambios más recientes para el siguiente guardado.")
+        setSaveMessage(systemCopy("Se guardó la versión anterior. Conservamos tus cambios más recientes para el siguiente guardado."))
 
         return
       }
@@ -377,7 +356,7 @@ export function MaterialTopicsForm() {
         router.push("/wizard/step-3")
         router.refresh()
       } else {
-        setSaveMessage("Borrador guardado.")
+        setSaveMessage(systemCopy("Borrador guardado."))
         reload()
       }
     } catch (error) {
@@ -388,12 +367,12 @@ export function MaterialTopicsForm() {
       }
 
       if (error instanceof LaravelApiError && error.status === 409) {
-        setErrorMessage("La revisión ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar.")
+        setErrorMessage(systemCopy("La revisión ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar."))
 
         return
       }
 
-      setErrorMessage("La plataforma no ha podido guardar la revisión del paso 2.")
+      setErrorMessage(systemCopy("La plataforma no ha podido guardar la revisión del paso 2."))
     } finally {
       setSavingReview(false)
     }
@@ -403,22 +382,19 @@ export function MaterialTopicsForm() {
     <TooltipProvider>
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-start justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Revisión de temas materiales</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{tr("Revisión de temas materiales")}</h1>
           <button
             type="button"
-            aria-label="Abrir información sobre la revisión de temas materiales"
+            aria-label={tr("Abrir información sobre la revisión de temas materiales")}
             onClick={() => setIsInfoModalOpen(true)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <Info className="h-4 w-4" />
-            Info
-          </button>
+            {" "}{tr("Info")}{" "}</button>
         </div>
 
         <p className="mb-6 text-muted-foreground">
-          Revisa la propuesta de <Term k="materialidad">temas materiales</Term> generada desde la encuesta inicial y
-          deja trazada tu decisión por cada tema.
-        </p>
+          {" "}{tr("Revisa la propuesta de")}{" "}<Term k="materialidad">{tr("temas materiales")}</Term> {" "}{tr("generada desde la encuesta inicial y deja trazada tu decisión por cada tema.")}{" "}</p>
 
         {errorMessage ? (
           <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -433,55 +409,51 @@ export function MaterialTopicsForm() {
 
         {loadingInitial ? (
           <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
-            Cargando propuesta del paso 2...
-          </div>
+            {" "}{tr("Cargando propuesta del paso 2...")}{" "}</div>
         ) : !characterization ? (
           <StatePanel
             icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-            title="No hay encuesta inicial"
-            description="Vuelve al paso 1 para crear la encuesta inicial que alimenta la propuesta del paso 2."
+            title={tr("No hay encuesta inicial")}
+            description={tr("Vuelve al paso 1 para crear la encuesta inicial que alimenta la propuesta del paso 2.")}
             action={
               <Button type="button" onClick={() => router.push("/wizard/step-1")}>
-                Volver a la encuesta inicial
-              </Button>
+                {" "}{tr("Volver a la encuesta inicial")}{" "}</Button>
             }
           />
         ) : characterization.status !== "completed" ? (
           <StatePanel
             icon={predictionPending ? <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none text-primary" aria-hidden="true" /> : <AlertCircle className="h-5 w-5 text-primary" />}
-            title={p6StatusLabel(characterization.status)}
+            title={p6StatusLabel(characterization.status, locale)}
             description={
               characterization.status === "draft"
-                ? "La encuesta inicial está guardada, pero todavía no se ha enviado a predicción."
+                ? tr("La encuesta inicial está guardada, pero todavía no se ha enviado a predicción.")
                 : predictionPending
-                  ? `Estamos preparando la propuesta de temas materiales. Puede tardar unos minutos. Comprobamos el estado automáticamente cada ${PREDICTION_REFRESH_SECONDS} segundos; también puedes pulsar Actualizar.`
-                  : "La propuesta no se ha completado. Puedes volver a generar la propuesta."
+                  ? formatUi(locale, "Estamos preparando la propuesta de temas materiales. Puede tardar unos minutos. Comprobamos el estado automáticamente cada {0} segundos; también puedes pulsar Actualizar.", [PREDICTION_REFRESH_SECONDS])
+                  : tr("La propuesta no se ha completado. Puedes volver a generar la propuesta.")
             }
             progress={predictionPending ? <PredictionProgressIndicator /> : null}
             action={
               <div className="flex flex-wrap gap-2">
                 {characterization.status === "draft" || characterization.status === "failed" || characterization.status === "timed_out" ? (
                   <Button type="button" onClick={handleSubmitPrediction} disabled={!p5Complete || submittingPrediction}>
-                    {submittingPrediction ? "Generando..." : "Generar propuesta con inteligencia artificial"}
+                    {submittingPrediction ? tr("Generando...") : tr("Generar propuesta con inteligencia artificial")}
                   </Button>
                 ) : null}
                 <Button type="button" variant="outline" onClick={reload}>
                   <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </Button>
+                  {" "}{tr("Actualizar")}{" "}</Button>
               </div>
             }
           />
         ) : !proposal || proposal.proposal_topics.length === 0 ? (
           <StatePanel
             icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-            title="Propuesta del paso 2 vacía"
-            description="La plataforma no ha devuelto temas propuestos para revisar."
+            title={tr("Propuesta del paso 2 vacía")}
+            description={tr("La plataforma no ha devuelto temas propuestos para revisar.")}
             action={
               <Button type="button" variant="outline" onClick={reload}>
                 <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
+                {" "}{tr("Actualizar")}{" "}</Button>
             }
           />
         ) : (
@@ -498,8 +470,7 @@ export function MaterialTopicsForm() {
               <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <div className="mb-2 flex items-center gap-2 font-medium">
                   <AlertTriangle className="h-4 w-4" />
-                  Claves de predicción pendientes de revisión manual
-                </div>
+                  {" "}{tr("Claves de predicción pendientes de revisión manual")}{" "}</div>
                 <div className="flex flex-wrap gap-2">
                   {proposal.ai.review_required_prediction_keys.map((key) => (
                     <Badge key={key} variant="outline" className="border-amber-400 bg-white text-amber-900">
@@ -514,41 +485,40 @@ export function MaterialTopicsForm() {
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={proposal.source === "ai_prediction" ? "default" : "secondary"}>
-                    {proposal.source === "ai_prediction" ? "IA" : "Temas guardados"}
+                    {proposal.source === "ai_prediction" ? tr("IA") : tr("Temas guardados")}
                   </Badge>
-                  <Badge variant="outline">{p6StatusLabel(proposal.status)}</Badge>
+                  <Badge variant="outline">{p6StatusLabel(proposal.status, locale)}</Badge>
                   <span className="text-sm text-muted-foreground">
-                    {reviewedCount}/{totalTopics} temas con acción
-                  </span>
+                    {reviewedCount}/{totalTopics} {" "}{tr("temas con acción")}{" "}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{proposal.source === "ai_prediction" ? `La IA ha propuesto ${totalTopics} temas ESRS candidatos.` : `${totalTopics} temas ESRS para revisar.`}</p>
+                <p className="text-sm text-muted-foreground">{proposal.source === "ai_prediction" ? formatUi(locale, "La IA ha propuesto {0} temas NEIS candidatos.", [totalTopics]) : formatUi(locale, "{0} temas NEIS para revisar.", [totalTopics])}</p>
               </div>
               <Button type="button" variant="outline" onClick={reload}>
                 <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
+                {" "}{tr("Actualizar")}{" "}</Button>
             </div>
 
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  aria-label="Buscar tema ESRS"
-                  placeholder="Buscar tema ESRS..."
+                  aria-label={tr("Buscar tema NEIS")}
+                  placeholder={tr("Buscar tema NEIS...")}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setExpandedTopics(proposal.proposal_topics.map((topic) => topic.id))}>Expandir todo</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedTopics([])}>Colapsar todo</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setExpandedTopics(proposal.proposal_topics.map((topic) => topic.id))}>{tr("Expandir todo")}</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedTopics([])}>{tr("Colapsar todo")}</Button>
               </div>
             </div>
 
             <div className="space-y-3">
               {filteredTopics.map((topic) => (
                 <TopicReviewCard
+                  locale={locale}
                   key={topic.id}
                   topic={topic}
                   expanded={expandedTopics.includes(topic.id)}
@@ -570,16 +540,14 @@ export function MaterialTopicsForm() {
                 <div className="flex items-center gap-3">
                   <Badge variant="secondary" className="gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Revisión guardada
-                  </Badge>
+                    {" "}{tr("Revisión guardada")}{" "}</Badge>
                   <Button type="button" variant="outline" onClick={() => setShowEditConfirmDialog(true)}>
-                    Editar este paso
-                  </Button>
+                    {" "}{tr("Editar este paso")}{" "}</Button>
                 </div>
               ) : (
                 <div className="flex flex-col items-end gap-2">
                   {!reviewReady ? (
-                    <p className="text-sm text-muted-foreground">Marca una acción explícita en todos los temas.</p>
+                    <p className="text-sm text-muted-foreground">{tr("Marca una acción explícita en todos los temas.")}</p>
                   ) : null}
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button
@@ -588,10 +556,9 @@ export function MaterialTopicsForm() {
                       onClick={() => handleSaveReview(false)}
                       disabled={savingReview || reviewedCount === 0}
                     >
-                      Guardar borrador
-                    </Button>
+                      {" "}{tr("Guardar borrador")}{" "}</Button>
                     <Button type="button" onClick={() => handleSaveReview(true)} disabled={savingReview || !reviewReady}>
-                      {savingReview ? "Guardando..." : "Guardar y continuar"}
+                      {savingReview ? tr("Guardando...") : tr("Guardar y continuar")}
                     </Button>
                   </div>
                 </div>
@@ -607,20 +574,15 @@ export function MaterialTopicsForm() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
                   2
                 </div>
-                Revisión de temas materiales
-              </DialogTitle>
+                {" "}{tr("Revisión de temas materiales")}{" "}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-sm text-muted-foreground">
               <p>
-                La propuesta del paso 2 procede del estado de la encuesta inicial en la plataforma. Si está completada,
-                puedes confirmar tema por tema antes de pasar a la doble materialidad.
-              </p>
+                {" "}{tr("La propuesta del paso 2 procede del estado de la encuesta inicial en la plataforma. Si está completada, puedes confirmar tema por tema antes de pasar a la doble importancia relativa.")}{" "}</p>
               <div className="rounded-lg bg-muted/50 p-3">
-                <h4 className="mb-1 font-medium text-foreground">Nota importante</h4>
+                <h4 className="mb-1 font-medium text-foreground">{tr("Nota importante")}</h4>
                 <p>
-                  Esta revisión no sustituye a la confirmación final del paso 4; deja una trazabilidad previa para el
-                  análisis de doble materialidad.
-                </p>
+                  {" "}{tr("Esta revisión no sustituye a la confirmación final del paso 4; deja una trazabilidad previa para el análisis de doble importancia relativa.")}{" "}</p>
               </div>
             </div>
           </DialogContent>
@@ -631,24 +593,20 @@ export function MaterialTopicsForm() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Editar este paso
-              </DialogTitle>
+                {" "}{tr("Editar este paso")}{" "}</DialogTitle>
               <DialogDescription>
-                Cambiar la revisión del paso 2 puede afectar a los pasos posteriores que dependan de esta propuesta.
-              </DialogDescription>
+                {" "}{tr("Cambiar la revisión del paso 2 puede afectar a los pasos posteriores que dependan de esta propuesta.")}{" "}</DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-row justify-end gap-2 sm:gap-0">
               <Button variant="ghost" onClick={() => setShowEditConfirmDialog(false)}>
-                Cancelar
-              </Button>
+                {" "}{tr("Cancelar")}{" "}</Button>
               <Button
                 onClick={() => {
                   setShowEditConfirmDialog(false)
                   setIsEditMode(true)
                 }}
               >
-                Editar la revisión
-              </Button>
+                {" "}{tr("Editar la revisión")}{" "}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -688,14 +646,16 @@ function StatePanel({
 }
 
 function PredictionProgressIndicator() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
-    <div className="space-y-2" aria-label="Seguimiento de la generación de la propuesta de temas">
-      <div className="h-2 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-label="Generando propuesta de temas materiales">
+    <div className="space-y-2" aria-label={tr("Seguimiento de la generación de la propuesta de temas")}>
+      <div className="h-2 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-label={tr("Generando propuesta de temas materiales")}>
         <div className="h-full w-1/2 rounded-full bg-primary motion-safe:animate-pulse" />
       </div>
       <p className="text-xs text-muted-foreground">
-        La página se actualiza automáticamente; no hace falta repetir la acción mientras la barra siga activa.
-      </p>
+        {" "}{tr("La página se actualiza automáticamente; no hace falta repetir la acción mientras la barra siga activa.")}{" "}</p>
     </div>
   )
 }
@@ -711,6 +671,7 @@ type TopicDocumentEvidenceItem = {
 }
 
 function TopicReviewCard({
+  locale = "es",
   topic,
   expanded,
   onExpandedChange,
@@ -723,6 +684,7 @@ function TopicReviewCard({
   onReasonChange,
   onNoteChange,
 }: {
+  locale?: "es" | "en"
   topic: LaravelMaterialityTopic
   expanded: boolean
   onExpandedChange: (open: boolean) => void
@@ -735,6 +697,8 @@ function TopicReviewCard({
   onReasonChange: (reasonKey: string, checked: boolean) => void
   onNoteChange: (note: string) => void
 }) {
+  const tr = (message: string) => ui(locale, message)
+
   // Document evidence is reviewer context only: it never drives, suggests, or
   // disables the accept/reject/unsure controls below (ADD-only invariant).
   const provenance = documentEvidence ? topicDocumentProvenance(topic.esrs_code, documentEvidence) : null
@@ -752,13 +716,13 @@ function TopicReviewCard({
         <CollapsibleTrigger className="group flex min-w-0 flex-1 items-start gap-3 text-left">
           <Badge variant="outline" className="mt-0.5 shrink-0 bg-background">{topic.esrs_code}</Badge>
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-primary [overflow-wrap:anywhere]">{topicTitle(topic)}</h3>
-            <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{topicSubtitle(topic)}</p>
+            <h3 className="text-base font-semibold text-primary [overflow-wrap:anywhere]">{topicTitle(topic, locale)}</h3>
+            <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{topicSubtitle(topic, locale)}</p>
           </div>
           <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-primary transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
-          <span className="sr-only">{expanded ? "Colapsar" : "Expandir"} detalles del tema</span>
+          <span className="sr-only">{expanded ? tr("Colapsar") : tr("Expandir")} {" "}{tr("detalles del tema")}</span>
         </CollapsibleTrigger>
-        <div role="group" aria-label={`Revisar ${topicTitle(topic)}`} className="flex shrink-0 flex-nowrap items-center gap-1 self-start">
+        <div role="group" aria-label={formatUi(locale, "Revisar {0}", [topicTitle(topic, locale)])} className="flex shrink-0 flex-nowrap items-center gap-1 self-start">
           {(["accepted", "unsure", "rejected"] as LaravelTopicAction[]).map((candidateAction) => (
             <Tooltip key={candidateAction}>
               <TooltipTrigger asChild>
@@ -778,11 +742,11 @@ function TopicReviewCard({
                   ) : (
                     <XCircle className="hidden h-4 w-4 sm:block" />
                   )}
-                  {actionLabels[candidateAction]}
+                  {tr(actionLabels[candidateAction])}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{actionDescriptions[candidateAction]}</p>
+                <p>{tr(actionDescriptions[candidateAction])}</p>
               </TooltipContent>
             </Tooltip>
           ))}
@@ -791,32 +755,29 @@ function TopicReviewCard({
 
       <CollapsibleContent className="p-4">
         <div className="mb-3 flex flex-wrap gap-2">
-          {!action ? <Badge variant="secondary">Sin revisar</Badge> : null}
-          {provenance ? <Badge variant="secondary">Perfil de empresa</Badge> : null}
-          {provenance?.document ? <Badge variant="secondary">Documento subido</Badge> : null}
-          {needsDocumentReview ? <Badge variant="outline" className="border-amber-400 text-amber-900">Revisar en el documento</Badge> : null}
+          {!action ? <Badge variant="secondary">{tr("Sin revisar")}</Badge> : null}
+          {provenance ? <Badge variant="secondary">{tr("Perfil de empresa")}</Badge> : null}
+          {provenance?.document ? <Badge variant="secondary">{tr("Documento subido")}</Badge> : null}
+          {needsDocumentReview ? <Badge variant="outline" className="border-amber-400 text-amber-900">{tr("Revisar en el documento")}</Badge> : null}
         </div>
         {hasNegativeEvidence ? (
           <p className="text-sm text-muted-foreground">
-            El documento indica que podría no ser material. Tenlo en cuenta al revisar; la decisión sigue siendo
-            tuya.
-          </p>
+            {" "}{tr("El documento indica que podría no ser material. Tenlo en cuenta al revisar; la decisión sigue siendo tuya.")}{" "}</p>
         ) : null}
         {evidenceItems.length > 0 ? (
           <details className="rounded-md border border-border px-3 py-2">
             <summary className="cursor-pointer text-sm font-medium text-foreground">
-              Evidencias del documento ({evidenceItems.length})
+              {" "}{tr("Evidencias del documento (")}{evidenceItems.length})
             </summary>
             <ul className="mt-2 space-y-2">
               {evidenceItems.map((item, index) => (
                 <li key={index} className="text-sm text-muted-foreground">
                   {item.documentDeleted ? (
-                    <span className="text-amber-700">Documento eliminado — revisar</span>
+                    <span className="text-amber-700">{tr("Documento eliminado — revisar")}</span>
                   ) : (
                     <>
-                      &laquo;{item.snippet}&raquo;
-                      {item.page != null ? ` (página ${item.page})` : ""}
-                      {item.confidence != null ? ` · confianza ${Math.round(item.confidence * 100)} %` : ""}
+                      {" "}{tr("«")}{item.snippet}{tr("»")}{" "}{item.page != null ? formatUi(locale, " (página {0})", [item.page]) : ""}
+                      {item.confidence != null ? formatUi(locale, " · confianza {0} %", [Math.round(item.confidence * 100)]) : ""}
                     </>
                   )}
                 </li>
@@ -835,14 +796,14 @@ function TopicReviewCard({
                 disabled={disabled}
                 onCheckedChange={(checked) => onReasonChange(reasonKey, checked === true)}
               />
-              <span>{reasonLabels[reasonKey] ?? reasonKey}</span>
+              <span>{tr(reasonLabels[reasonKey] ?? "Otro")}</span>
             </label>
           ))}
         </div>
 
         <div className="mt-4">
           <Textarea
-            placeholder="Nota de revisión opcional"
+            placeholder={tr("Nota de revisión opcional")}
             value={note}
             disabled={disabled}
             onChange={(event) => onNoteChange(event.target.value)}

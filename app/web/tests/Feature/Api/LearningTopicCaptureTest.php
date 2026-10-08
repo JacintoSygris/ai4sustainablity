@@ -768,26 +768,34 @@ it('preserves historical reviewed evidence when a legacy PUT omits the T03 pair'
 });
 
 it('salvages only valid historical IDs and evidence from a malformed legacy universe without granting authority', function () {
+    $foreign = EsrsTopic::whereKeyNot([$this->e1Topic->id, $this->e2Topic->id, $this->s1Topic->id])->firstOrFail();
     $characterization = createStoredLearningConfirmation($this->user, [$this->e2Topic->id], [
         'revision' => 17,
         'confirmed_topic_ids' => [$this->e2Topic->id],
-        'reviewed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id, $this->s1Topic->id, 'invalid', 999999],
+        'reviewed_topic_ids' => [$this->e2Topic->id, $this->s1Topic->id, $this->s1Topic->id, 'invalid', 999999, $this->e1Topic->id],
         'universe_attestation' => learningStoredAttestation(),
-        'change_reasons' => [(string) $this->s1Topic->id => ['scope_change']],
+        'change_reasons' => [(string) $this->s1Topic->id => ['scope_change'], (string) $foreign->id => ['other']],
         'change_reason_notes' => [
             (string) $this->e2Topic->id => 7,
             (string) $this->s1Topic->id => 'Valid historical note.',
             (string) $this->e1Topic->id => 'Valid evidence key outside the malformed list.',
+            (string) $foreign->id => 'Unreviewed foreign evidence.',
         ],
         'dimensions' => [
             (string) $this->s1Topic->id => 'impact',
             (string) $this->e1Topic->id => 'financial',
+            (string) $foreign->id => 'both',
         ],
         'guided_answers' => [(string) $this->s1Topic->id => learningGuidedAnswer([
             'suggested_result' => 'no_material',
             'final_result' => 'no_material',
+        ]), (string) $foreign->id => learningGuidedAnswer([
+            'suggested_result' => 'no_material',
+            'final_result' => 'no_material',
         ])],
     ]);
+    $before = $characterization->getRawOriginal('form_data');
+    $clockBefore = \Illuminate\Support\Facades\DB::table('learning_p8_source_revisions')->get()->toJson();
 
     $get = $this->actingAs($this->user)
         ->getJson('/api/materiality-confirmation')
@@ -801,6 +809,11 @@ it('salvages only valid historical IDs and evidence from a malformed legacy univ
         ->assertJsonPath('data.confirmation.dimensions.'.$this->e1Topic->id, 'financial')
         ->assertJsonPath('data.confirmation.guided_answers.'.$this->s1Topic->id.'.final_result', 'no_material');
     expect($get->json('data.confirmation.change_reason_notes.'.$this->e2Topic->id))->toBeNull();
+    foreach (['change_reasons', 'change_reason_notes', 'dimensions', 'guided_answers'] as $field) {
+        expect($get->json('data.confirmation.'.$field))->not->toHaveKey((string) $foreign->id);
+    }
+    expect($characterization->fresh()->getRawOriginal('form_data'))->toBe($before);
+    expect(\Illuminate\Support\Facades\DB::table('learning_p8_source_revisions')->get()->toJson())->toBe($clockBefore);
 
     $this->actingAs($this->user)
         ->putJson('/api/materiality-confirmation', [
@@ -823,6 +836,9 @@ it('salvages only valid historical IDs and evidence from a malformed legacy univ
 
     expect(data_get(Characterization::query()->findOrFail($characterization->id)->form_data, 'materiality_confirmation.universe_attestation'))
         ->toBeNull();
+    foreach (['change_reasons', 'change_reason_notes', 'dimensions', 'guided_answers'] as $field) {
+        expect(data_get($characterization->fresh()->form_data, 'materiality_confirmation.'.$field))->not->toHaveKey((string) $foreign->id);
+    }
 });
 
 it('rejects duplicate raw JSON members before validation without mutating P8', function (string $case) {

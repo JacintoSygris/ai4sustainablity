@@ -43,6 +43,44 @@ it('rejects oversized reporting fact batches before corpus projection work', fun
         ->assertJsonValidationErrors('facts');
 });
 
+it('requires exact strings for new numeric facts without changing user evidence', function (string $valueType, mixed $literal, string $exact, int $decimals) {
+    $characterization = reportingFactApiCharacterization($this->user, $this->e2Topic);
+    $original = $characterization->form_data;
+    $fact = reportingFactApiPayload([
+        'value_type' => $valueType,
+        'value' => $literal,
+        'unit' => $valueType === 'monetary' ? 'EUR' : 'pure',
+        'decimals' => $decimals,
+        'language' => null,
+        'evidence_refs' => [['type' => 'note', 'value' => 'Texto libre unchanged =1+1']],
+    ]);
+
+    $this->actingAs($this->user)->putJson('/api/report/facts', ['facts' => [$fact]])
+        ->assertUnprocessable()
+        ->assertJsonPath('code', 'reporting_fact_invalid')
+        ->assertJsonValidationErrors('facts.0.value');
+    expect(ReportingFact::where('characterization_id', $characterization->id)->count())->toBe(0);
+
+    $fact['value'] = $exact;
+    $this->putJson('/api/report/facts', ['facts' => [$fact]])
+        ->assertOk()
+        ->assertJsonPath('data.persisted_facts.0.value', $exact)
+        ->assertJsonPath('data.persisted_facts.0.evidence_refs', $fact['evidence_refs']);
+    expect(ReportingFact::where('characterization_id', $characterization->id)->sole()->value)->toBe($exact);
+    expect($characterization->fresh()->form_data)->toBe($original);
+})->with([
+    'decimal literal' => ['number', 9007199254740993.125, '9007199254740993.125', 3],
+    'monetary literal' => ['monetary', 9007199254740993.125, '+0009007199254740993.125', 3],
+    'integer literal' => ['integer', 9007199254740993, '9007199254740993', 0],
+    'integer as number' => ['number', 42, '42', 0],
+    'integer as monetary' => ['monetary', 42, '42', 0],
+    'float as integer' => ['integer', 42.0, '42', 0],
+    'missing numeric value' => ['number', null, '.125', 3],
+    'numeric envelope' => ['number', ['value' => 42], '42', 0],
+    'invalid decimal string' => ['number', '1e3', '1000', 0],
+    'invalid integer string' => ['integer', '42.5', '42', 0],
+]);
+
 it('returns null when the current user has no characterization', function () {
     $this->actingAs($this->user)
         ->getJson('/api/report/facts')

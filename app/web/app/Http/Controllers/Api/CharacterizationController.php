@@ -59,9 +59,9 @@ class CharacterizationController extends Controller
                     'csrd_orientation' => [
                         'enabled_field' => 'form_data.csrd_orientation.enabled',
                         'fields' => [
-                            'listed_entity' => 'Listed entity',
-                            'public_interest_entity' => 'Public interest entity',
-                            'reports_as_group' => 'Reports as group',
+                            'listed_entity' => __('Listed entity'),
+                            'public_interest_entity' => __('Public interest entity'),
+                            'reports_as_group' => __('Reports as group'),
                         ],
                         'values' => CharacterizationOptions::yesNoUnknown(),
                         'disclaimer' => CharacterizationOptions::csrdOrientationDisclaimer(),

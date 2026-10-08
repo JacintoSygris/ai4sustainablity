@@ -138,7 +138,7 @@ final class EsrsDatapointResponseState
     public function validateLearningFeedback(mixed $feedback, array $corpus): array
     {
         $reject = static function (): never {
-            throw \Illuminate\Validation\ValidationException::withMessages(['learning_feedback' => 'Explicit binary decisions must exactly cover reviewed current catalog ids and the current authority.']);
+            throw \Illuminate\Validation\ValidationException::withMessages(['learning_feedback' => __('Explicit binary decisions must exactly cover reviewed current catalog ids and the current authority.')]);
         };
         $exact = static function (array $value, array $keys): bool {
             $actual = array_keys($value); sort($actual); sort($keys); return $actual === $keys;

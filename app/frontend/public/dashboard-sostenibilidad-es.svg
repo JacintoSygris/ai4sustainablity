@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="titulo descripcion">
+  <title id="titulo">Panel de sostenibilidad</title>
+  <desc id="descripcion">Ilustración de la interfaz; no representa datos de una empresa. Tarjetas decorativas de temas, datos y evidencias.</desc>
+  <defs>
+    <linearGradient id="fondo" x2="1" y2="1"><stop stop-color="#111e30"/><stop offset="1" stop-color="#030a14"/></linearGradient>
+    <linearGradient id="verde" x2="0" y2="1"><stop stop-color="#65d7ab"/><stop offset="1" stop-color="#1c8664"/></linearGradient>
+    <filter id="sombra" x="-25%" y="-25%" width="150%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-opacity=".45"/></filter>
+  </defs>
+  <rect width="1024" height="1024" rx="28" fill="url(#fondo)"/>
+  <circle cx="800" cy="250" r="200" fill="#17443f" opacity=".25"/>
+  <g transform="translate(102 130) rotate(-5 410 355)" filter="url(#sombra)" font-family="Arial, sans-serif">
+    <rect width="820" height="710" rx="20" fill="#f5f8f7"/>
+    <path d="M20 0h780a20 20 0 0 1 20 20v80H0V20A20 20 0 0 1 20 0" fill="#183c36"/>
+    <text x="34" y="62" font-size="32" font-weight="bold" fill="white">Panel de sostenibilidad</text>
+    <text x="34" y="140" font-size="22" fill="#425b54">Organizar · Revisar · Preparar</text>
+    <g fill="white" stroke="#d6e3de" stroke-width="2">
+      <rect x="30" y="170" width="238" height="175" rx="12"/><rect x="291" y="170" width="238" height="175" rx="12"/><rect x="552" y="170" width="238" height="175" rx="12"/>
+      <rect x="30" y="370" width="460" height="285" rx="12"/><rect x="515" y="370" width="275" height="285" rx="12"/>
+    </g>
+    <g fill="#244c40" font-size="23" font-weight="bold"><text x="50" y="210">Temas</text><text x="311" y="210">Datos</text><text x="572" y="210">Evidencias</text><text x="50" y="410">Preparación del informe</text><text x="535" y="410">Revisión</text></g>
+    <g fill="#b7dbcb"><rect x="50" y="238" width="180" height="14" rx="7"/><rect x="50" y="270" width="145" height="14" rx="7"/><rect x="50" y="302" width="160" height="14" rx="7"/><rect x="572" y="238" width="175" height="14" rx="7"/><rect x="572" y="270" width="155" height="14" rx="7"/><rect x="572" y="302" width="165" height="14" rx="7"/></g>
+    <g fill="url(#verde)"><rect x="320" y="285" width="36" height="30" rx="4"/><rect x="371" y="258" width="36" height="57" rx="4"/><rect x="422" y="236" width="36" height="79" rx="4"/><rect x="50" y="465" width="395" height="18" rx="9"/><rect x="50" y="512" width="315" height="18" rx="9"/><rect x="50" y="559" width="355" height="18" rx="9"/></g>
+    <circle cx="651" cy="521" r="67" fill="none" stroke="#d9e9e2" stroke-width="25"/><path d="M651 454a67 67 0 0 1 67 67" fill="none" stroke="#339878" stroke-width="25" stroke-linecap="round"/>
+    <text x="535" y="626" font-size="17" fill="#425b54">Representación ilustrativa</text>
+  </g>
+  <text x="512" y="946" text-anchor="middle" font-family="Arial, sans-serif" font-size="23" fill="#cde5dc">Ilustración de la interfaz; no representa datos de una empresa</text>
+</svg>

@@ -19,7 +19,7 @@ class EmailVerificationNotificationController extends Controller
         }
 
         $user = $request->user();
-        SendRegistrationVerification::dispatch($user->getKey(), $user->email, (int) $user->auth_version);
+        SendRegistrationVerification::dispatch($user->getKey(), $user->email, (int) $user->auth_version, app()->getLocale());
 
         return back()->with('status', 'verification-link-sent');
     }

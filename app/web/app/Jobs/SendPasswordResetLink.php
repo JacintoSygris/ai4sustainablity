@@ -13,6 +13,8 @@ class SendPasswordResetLink implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
+    private string $locale = 'es';
+
     public int $tries = 3;
 
     public int $timeout = 30;
@@ -25,7 +27,10 @@ class SendPasswordResetLink implements ShouldBeEncrypted, ShouldQueue
         private readonly string $email,
         private readonly int $authVersion,
         private readonly string $generation,
-    ) {}
+        string $locale = 'es',
+    ) {
+        $this->locale = \App\Support\ApplicationLocale::normalize($locale);
+    }
 
     public function handle(): void
     {
@@ -67,7 +72,13 @@ class SendPasswordResetLink implements ShouldBeEncrypted, ShouldQueue
         }
 
         [$user, $token] = $issued;
-        $user->sendPasswordResetNotification($token);
+        $previousLocale = app()->getLocale();
+        app()->setLocale($this->locale);
+        try {
+            $user->sendPasswordResetNotification($token);
+        } finally {
+            app()->setLocale($previousLocale);
+        }
         User::query()
             ->whereKey($this->userId)
             ->where('auth_version', $this->authVersion)

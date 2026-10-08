@@ -22,6 +22,7 @@ export type LaravelApiEnvelope<T> = {
 }
 
 export type LaravelFrontendSession = {
+  locale: "es" | "en"
   authenticated: true
   csrf_header: "X-XSRF-TOKEN"
   csrf_token: string
@@ -299,10 +300,7 @@ export type LaravelDoubleMaterialityGuide = {
   warning: LaravelLocalizedText
   sections: LaravelDoubleMaterialityGuideSection[]
   templates?: LaravelDoubleMaterialityGuideTemplate[]
-  next_step?: {
-    note: LaravelLocalizedText
-  }
-  handoff: {
+  next_step: {
     next_phase: "P8"
     next_api: string
     note: LaravelLocalizedText
@@ -462,6 +460,7 @@ export type LaravelMaterialityConfirmation = {
 }
 
 export type LaravelEsrsDatapoint = {
+  display?: { locale: "es" | "en"; name: string; data_type: string; disclosure_requirement_title?: string | null; qualification?: string | null; conditional_or_alternative: string; phase_in: Record<string, string>; applicability_reason: string; mapping_basis: string; limitations: string[] }
   id: string
   name: string
   standard?: string
@@ -483,6 +482,7 @@ export type LaravelEsrsDatapointBlock = {
 }
 
 export type LaravelEsrsDatapointCorpus = {
+  locale: "es" | "en"
   characterization_id: number
   material_topic_ids: number[]
   activated_esrs_standards: string[]
@@ -703,6 +703,7 @@ export type LaravelReportLimitation = {
 }
 
 export type LaravelReportReadiness = {
+  locale: "es" | "en"
   type: "report_package_readiness"
   version: string
   characterization_id: number
@@ -779,6 +780,7 @@ export type LaravelReportDraftDatapoints = {
 }
 
 export type LaravelReportDraft = {
+  locale: "es" | "en"
   type: "report_draft"
   version: string
   characterization_id: number
@@ -795,7 +797,9 @@ export type LaravelReportDraft = {
   limitations: LaravelReportLimitation[]
 }
 
-export type LaravelReportingFactValue = string | number | boolean | null | Record<string, string>
+export type LaravelReportingFactValue = string | boolean | null | Record<string, string>
+// Historical persisted facts may still carry native JSON numbers.
+export type LaravelReportingFactDisplayValue = LaravelReportingFactValue | number
 
 export type LaravelReportingFactDimension = {
   axis: string
@@ -835,7 +839,7 @@ export type LaravelReportingFact = {
   datapoint_id: string
   applicability: LaravelReportingFactApplicability
   value_type: LaravelReportingFactValueType
-  value: LaravelReportingFactValue
+  value: LaravelReportingFactDisplayValue
   unit: string | null
   decimals: number | null
   dimensions: LaravelReportingFactDimension[]
@@ -1304,8 +1308,8 @@ export function getLaravelReportTaxonomyStatus(
   options: Omit<LaravelApiOptions, "body" | "method"> = {},
 ): Promise<LaravelApiEnvelope<LaravelReportTaxonomyStatus>> {
   return laravelApi<LaravelApiEnvelope<LaravelReportTaxonomyStatus>>("/report/taxonomy", {
-    cache: "no-store",
     ...options,
+    cache: "no-store",
     method: "GET",
   })
 }
@@ -1466,4 +1470,12 @@ export function closeLaravelLearningCase(body: LaravelLearningClosureCommand, op
 }
 export function withdrawLaravelLearningCase(body: Pick<LaravelLearningClosureCommand, "expected_authorization_generation" | "idempotency_key">, options: Omit<LaravelApiOptions, "body" | "method"> = {}) {
   return laravelApi<LaravelApiEnvelope<LaravelLearningClosureDraft>>("/learning-case/withdraw", { ...options, method: "POST", body })
+}
+
+export type LaravelLocaleContext = { locale: "es" | "en"; supported_locales: string[]; csrf_token: string }
+export function getLaravelLocale() {
+  return laravelApi<LaravelApiEnvelope<LaravelLocaleContext>>("/locale", { cache: "no-store" })
+}
+export function updateLaravelLocale(locale: "es" | "en", csrfToken: string) {
+  return laravelApi<LaravelApiEnvelope<LaravelLocaleContext>>("/locale", { method: "PUT", body: { locale }, csrfToken })
 }

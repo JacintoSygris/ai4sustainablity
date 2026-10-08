@@ -25,7 +25,7 @@ class ReportSnapshotController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
-            return response()->json(['message' => 'No characterization found.'], 404);
+            return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $result = $builder->createOrFind($characterization);
@@ -71,7 +71,7 @@ class ReportSnapshotController extends Controller
 
         if ($staleness['is_stale']) {
             return response()->json([
-                'message' => 'The report snapshot is stale.',
+                'message' => __('The report snapshot is stale.'),
                 'code' => 'report_stale',
                 'reasons' => $staleness['reasons'],
             ], 409);
@@ -86,7 +86,7 @@ class ReportSnapshotController extends Controller
 
         if (! $reviewability['reviewable']) {
             return response()->json([
-                'message' => 'The report snapshot is not reviewable.',
+                'message' => __('The report snapshot is not reviewable.'),
                 'code' => 'report_not_reviewable',
                 'reasons' => $reviewability['reasons'],
             ], 409);
@@ -98,7 +98,7 @@ class ReportSnapshotController extends Controller
 
         if ($validator->fails() || trim((string) $request->input('single_person_declaration', '')) === '') {
             return response()->json([
-                'message' => 'A single-person approval declaration is required.',
+                'message' => __('A single-person approval declaration is required.'),
                 'code' => 'single_person_declaration_required',
                 'errors' => $validator->errors(),
             ], 422);
@@ -125,7 +125,7 @@ class ReportSnapshotController extends Controller
             $lockedStaleness = $detector->refreshState($lockedSnapshot);
             if ($lockedStaleness['is_stale']) {
                 return ['response' => response()->json([
-                    'message' => 'The report snapshot is stale.',
+                    'message' => __('The report snapshot is stale.'),
                     'code' => 'report_stale',
                     'reasons' => $lockedStaleness['reasons'],
                 ], 409)];
@@ -139,7 +139,7 @@ class ReportSnapshotController extends Controller
             );
             if (! $lockedReviewability['reviewable']) {
                 return ['response' => response()->json([
-                    'message' => 'The report snapshot is not reviewable.',
+                    'message' => __('The report snapshot is not reviewable.'),
                     'code' => 'report_not_reviewable',
                     'reasons' => $lockedReviewability['reasons'],
                 ], 409)];

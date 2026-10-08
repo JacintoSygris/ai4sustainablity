@@ -1,3 +1,7 @@
+"use client"
+
+import { useLocale } from "@/components/locale-provider"
+import { ui } from "@/lib/i18n/messages.mjs"
 import Link from "next/link"
 import { ArrowLeft, Check } from "lucide-react"
 
@@ -15,11 +19,13 @@ interface WizardSidebarProps {
 }
 
 export function WizardSidebar({ steps, currentStep, viewingStep }: WizardSidebarProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
   return (
     <aside className="w-full lg:w-80 shrink-0">
       <Link href="/dashboard" className="mb-6 flex items-center gap-2 text-sm text-primary hover:underline">
         <ArrowLeft className="h-4 w-4" />
-        Volver a inicio
+        {tr("Volver a inicio")}
       </Link>
 
       <nav className="space-y-2">
@@ -45,9 +51,9 @@ export function WizardSidebar({ steps, currentStep, viewingStep }: WizardSidebar
                 <h3
                   className={`font-medium ${isViewing ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"}`}
                 >
-                  {step.title}
+                  {tr(step.title)}
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{tr(step.description)}</p>
               </div>
             </>
           )

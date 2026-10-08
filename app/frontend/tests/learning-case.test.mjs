@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { learningCaseConflict } from '../lib/learning-case-state.mjs'
 import * as state from '../lib/learning-case-state.mjs'
+import * as messages from '../lib/i18n/messages.mjs'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
 const ts = createRequire(import.meta.url)('typescript')
@@ -30,6 +31,8 @@ function panelHarness(snapshot) {
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
     if (name === '@/lib/learning-case-state.mjs') return state
     if (name === '@/lib/laravel-api') return api
+    if (name === '@/components/locale-provider') return { useLocale: () => ({ locale: 'es' }) }
+    if (name === '@/lib/i18n/messages.mjs') return messages
     if (name === '@/components/ui/button') return { Button: 'Button' }
     if (name === '@/components/ui/card') return { Card: 'Card', CardContent: 'CardContent' }
     throw new Error(`Unexpected dependency ${name}`)

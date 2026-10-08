@@ -25,31 +25,34 @@ class DocxRenderer
 {
     private const CUSTOM_XML_RELATIONSHIP_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml';
 
-    public function render(array $ir): string
+    public function render(array $ir, string $locale = 'es'): string
     {
+        $display = new ReportDisplayProjection($locale);
+        $narrative = $display->narrative($ir);
         $doc = new PhpWord();
         $this->configureStyles($doc);
+        $doc->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language($display->locale === 'en' ? 'en-GB' : 'es-ES'));
         $section = $doc->addSection([
             'marginTop' => 1134,
             'marginBottom' => 1134,
             'marginLeft' => 1276,
             'marginRight' => 1276,
         ]);
-        $section->addTitle(($ir['company']['name'] ?? 'Informe').' — Ejercicio '.($ir['company']['reporting_year'] ?? '-'), 1);
+        $section->addTitle(($ir['company']['name'] ?? $display->text('Informe')).' — '.$display->text('Ejercicio').' '.($ir['company']['reporting_year'] ?? '-'), 1);
         $claimsById = $this->claimsById($ir);
         $isFactual = ($ir['schema_version'] ?? null) === 'report_ir_v1';
 
         if ($isFactual) {
             $section->addText(
-                'Borrador factual basado en una versión aprobada',
+                $display->text('Borrador factual basado en una versión aprobada'),
                 ['bold' => true, 'size' => 12, 'color' => '1F4E78'],
                 ['spaceBefore' => 360, 'spaceAfter' => 240],
             );
         }
 
-        $disclaimers = $ir['disclaimers'] ?? [];
+        $disclaimers = $narrative['disclaimers'] ?? [];
         if ($isFactual && $disclaimers === []) {
-            $disclaimers = ['No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.'];
+            $disclaimers = [$display->text('No constituye una presentación oficial ni un trabajo de aseguramiento; tampoco acredita el cumplimiento de la Taxonomía de la UE ni genera el formato electrónico regulatorio.')];
         }
 
         foreach (array_values(array_unique($disclaimers)) as $disclaimer) {
@@ -62,13 +65,13 @@ class DocxRenderer
         if ($isFactual) {
             $section->addPageBreak();
         } else {
-            $this->renderOmissionSection($section, $ir['omission_section'] ?? null, false);
+            $this->renderOmissionSection($section, $narrative['omission_section'] ?? null, false, $display);
         }
 
         $slotMap = [];
         foreach (array_values($ir['chapters'] ?? []) as $chapter) {
             $chapterTitle = $isFactual
-                ? ReportVisiblePresentation::chapterTitle($chapter['block_key'] ?? null)
+                ? $display->chapterTitle($chapter['block_key'] ?? null)
                 : $chapter['title'];
             $section->addTitle($chapterTitle, 2);
 
@@ -78,7 +81,7 @@ class DocxRenderer
 
             foreach ($chapter['sections'] ?? [] as $sec) {
                 $sectionTitle = $isFactual
-                    ? ReportVisiblePresentation::sectionTitle($sec['dr_key'] ?? null)
+                    ? $display->sectionTitle($sec['dr_key'] ?? null)
                     : $sec['dr_key'];
                 $section->addTitle($sectionTitle, 3);
 
@@ -91,7 +94,7 @@ class DocxRenderer
                 foreach ($sec['blocks'] ?? [] as $block) {
                     if ($isFactual) {
                         $section->addText(
-                            ReportVisiblePresentation::claimLabel(
+                            $display->claimLabel(
                             $block['datapoint_id'] ?? null,
                             $this->firstClaimForBlock($block, $claimsById),
                             ),
@@ -111,7 +114,7 @@ class DocxRenderer
 
                     $citations = $guidance['citations'] ?? [];
                     if (! $isFactual && $citations !== []) {
-                        $section->addText('Fuentes: '.implode('; ', $citations), ['size' => 9]);
+                        $section->addText($display->text('Fuentes: ').implode('; ', $citations), ['size' => 9]);
                     }
 
                     foreach ($block['slots'] ?? [] as $slot) {
@@ -126,9 +129,9 @@ class DocxRenderer
                         // (and only that run) with a w:sdt, instead of splicing markup into
                         // the middle of an existing <w:t> text node.
                         $textrun = $section->addTextRun();
-                        $textrun->addText($isFactual ? 'Valor reportado: ' : (($slot['label'] ?? 'Información reportada').': '));
+                        $textrun->addText($isFactual ? $display->text('Valor reportado: ') : (($slot['label'] ?? 'Información reportada').': '));
                         $textrun->addText($this->slotToken($nodeId));
-                        $factValue = $this->factValueForSlot($slot, $claimsById, $isFactual);
+                        $factValue = $this->factValueForSlot($slot, $claimsById, $isFactual, $display);
 
                         $slotMap[$nodeId] = [
                             'datapoint_id' => $block['datapoint_id'],
@@ -142,9 +145,9 @@ class DocxRenderer
             }
         }
 
-        if ($isFactual && $this->hasOmissionContent($ir['omission_section'] ?? null)) {
+        if ($isFactual && $this->hasOmissionContent($narrative['omission_section'] ?? null)) {
             $section->addPageBreak();
-            $this->renderOmissionSection($section, $ir['omission_section'], true);
+            $this->renderOmissionSection($section, $narrative['omission_section'], true, $display);
         }
 
         $tmp = tempnam(sys_get_temp_dir(), 'p10docx');
@@ -183,7 +186,7 @@ class DocxRenderer
      *
      * @param  array<string, mixed>|null  $omission
      */
-    private function renderOmissionSection(\PhpOffice\PhpWord\Element\Section $section, ?array $omission, bool $isFactual): void
+    private function renderOmissionSection(\PhpOffice\PhpWord\Element\Section $section, ?array $omission, bool $isFactual, ReportDisplayProjection $display): void
     {
         if (! $this->hasOmissionContent($omission)) {
             return;
@@ -194,7 +197,7 @@ class DocxRenderer
             : $omission['title'];
 
         $section->addTitle(
-            $isFactual ? 'Anexo: '.$title : $title,
+            $isFactual ? $display->text('Anexo: ').$title : $title,
             2,
         );
 
@@ -272,7 +275,7 @@ class DocxRenderer
      * @param  array<string, mixed>  $slot
      * @param  array<string, array<string, mixed>>  $claimsById
      */
-    private function factValueForSlot(array $slot, array $claimsById, bool $isFactual): ?string
+    private function factValueForSlot(array $slot, array $claimsById, bool $isFactual, ReportDisplayProjection $display): ?string
     {
         $claimId = $slot['claim_id'] ?? null;
         if (! is_string($claimId) || $claimId === '') {
@@ -285,7 +288,7 @@ class DocxRenderer
         }
 
         if ($isFactual) {
-            return ReportVisiblePresentation::claimValue($claim);
+            return $display->claimValue($claim);
         }
 
         if (($claim['nil'] ?? false) === true) {

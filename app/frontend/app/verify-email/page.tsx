@@ -1,11 +1,16 @@
+import { ui } from "@/lib/i18n/messages.mjs"
+import { getLaravelServerLocale } from "@/lib/laravel-server"
 import { redirect } from "next/navigation"
 import { AuthHeader } from "@/components/auth/auth-header"
 import { Footer } from "@/components/ui/footer"
 import { VerifyEmailNotice } from "@/components/auth/verify-email-notice"
 import { getLaravelServerSession } from "@/lib/laravel-server"
 
-export const metadata = {
-  title: "Confirma tu correo - Airis",
+export async function generateMetadata() {
+  const locale = await getLaravelServerLocale()
+  return {
+  title: ui(locale, "Confirma tu correo - Airis"),
+}
 }
 
 export default async function VerifyEmailPage() {

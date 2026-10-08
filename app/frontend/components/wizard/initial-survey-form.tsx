@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui, formatUi } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import type React from "react"
 
 import { useEffect, useState } from "react"
@@ -11,7 +16,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   LaravelApiError,
@@ -114,20 +118,20 @@ function optionMapToList(options: LaravelOptionMap | undefined): SelectOption[] 
   return Object.entries(options ?? {}).map(([value, label]) => ({ value, label }))
 }
 
-function optionLabel(options: SelectOption[], value: string): string {
-  return options.find((option) => option.value === value)?.label ?? value
+function optionLabel(options: SelectOption[], value: string, locale: "es" | "en"): string {
+  return options.find((option) => option.value === value)?.label ?? ui(locale, "Etiqueta no disponible")
 }
 
-function optionLabels(options: SelectOption[], values: string[]): string {
-  return values.map((value) => optionLabel(options, value)).join(", ")
+function optionLabels(options: SelectOption[], values: string[], locale: "es" | "en"): string {
+  return values.map((value) => optionLabel(options, value, locale)).join(", ")
 }
 
 function stringArrayValue(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
 
-function naceCodeLabel(code: LaravelNaceCode): string {
-  const title = code.title.es ?? code.title.en
+function naceCodeLabel(code: LaravelNaceCode, locale: "es" | "en"): string {
+  const title = code.title[locale]
 
   return title ? `${code.code} - ${title}` : code.code
 }
@@ -268,21 +272,40 @@ function MultiSelectCheckboxes({
 }
 
 export function InitialSurveyForm() {
+
+  const { locale, changing } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
+  useEffect(() => {
+    if (changing) return
+    let active = true
+    setOptionLoadState("loading")
+    getLaravelCharacterizationOptions().then(response => {
+      if (active) { setOptions(response.data); setPresentationLocale(locale); setOptionLoadState("ready") }
+    }).catch(() => { if (active) { setOptionLoadState("failed"); setErrorMessage(systemCopy("No se pudieron actualizar las etiquetas de idioma. Inténtalo de nuevo.")) } })
+    return () => { active = false }
+  }, [locale, changing])
   const router = useRouter()
   const [expanded, setExpanded] = useState(true)
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isReadOnly, setIsReadOnly] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  const [storedFieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [messageLocale, setMessageLocale] = useState<"es" | "en">(locale)
+  const fieldErrors = messageLocale === locale ? storedFieldErrors : {}
   const [csrfToken, setCsrfToken] = useState<string>()
   const [options, setOptions] = useState<LaravelCharacterizationOptions>(emptyOptions)
+  const [presentationLocale, setPresentationLocale] = useState<"es" | "en" | null>(null)
+  const [optionLoadState, setOptionLoadState] = useState<"loading" | "ready" | "failed">("loading")
   const [formData, setFormData] = useState<FormState>(() => emptyFormState())
   const [naceOptions, setNaceOptions] = useState<LaravelNaceCode[]>([])
-  const [naceLookupMessage, setNaceLookupMessage] = useState<string | null>(null)
+  const [naceLookupMessage, setNaceLookupMessage] = useSystemMessage(null)
 
-  const coreOptions = options.levels.core
+  const presentationReady = !changing && presentationLocale === locale && optionLoadState === "ready"
+  const visibleOptions = presentationReady ? options : emptyOptions
+  const coreOptions = visibleOptions.levels.core
   const headquartersCountryOptions = optionMapToList(coreOptions.company_profile.headquarters_countries)
   const reportingScopeOptions = optionMapToList(coreOptions.company_profile.reporting_scopes)
   const reportingCurrencyOptions = optionMapToList(coreOptions.company_profile.reporting_currencies)
@@ -291,9 +314,9 @@ export function InitialSurveyForm() {
   const valueChainOptions = optionMapToList(coreOptions.operations.value_chain)
   const employeeCountOptions = optionMapToList(coreOptions.operations.employee_count_ranges)
   const revenueOptions = optionMapToList(coreOptions.operations.revenue_ranges)
-  const activityQuestionFields = optionMapToList(options.levels.activity_questions?.fields)
-  const activityAnswerOptions = optionMapToList(options.levels.activity_questions?.values)
-  const activityQuestionsNote = options.levels.activity_questions?.note
+  const activityQuestionFields = optionMapToList(visibleOptions.levels.activity_questions?.fields)
+  const activityAnswerOptions = optionMapToList(visibleOptions.levels.activity_questions?.values)
+  const activityQuestionsNote = visibleOptions.levels.activity_questions?.note
 
   const totalQuestions = 13
   const answeredQuestions = [
@@ -318,9 +341,8 @@ export function InitialSurveyForm() {
 
     async function loadP5() {
       try {
-        const [sessionResponse, optionsResponse, characterizationResponse] = await Promise.all([
+        const [sessionResponse, characterizationResponse] = await Promise.all([
           getLaravelSession(),
-          getLaravelCharacterizationOptions(),
           getLaravelCharacterization(),
         ])
 
@@ -330,7 +352,6 @@ export function InitialSurveyForm() {
 
         const nextState = stateFromCharacterization(characterizationResponse.data)
         setCsrfToken(sessionResponse.data.csrf_token)
-        setOptions(optionsResponse.data)
         setFormData(nextState)
         setIsReadOnly(p5IsComplete(nextState))
       } catch (error) {
@@ -340,7 +361,7 @@ export function InitialSurveyForm() {
           return
         }
 
-        setErrorMessage("No se ha podido cargar la encuesta inicial desde la plataforma.")
+        setErrorMessage(systemCopy("No se ha podido cargar la encuesta inicial desde la plataforma."))
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -397,11 +418,11 @@ export function InitialSurveyForm() {
         }
 
         setNaceOptions(response.data)
-        setNaceLookupMessage(response.data.length === 0 ? "No hay códigos NACE coincidentes." : null)
+        setNaceLookupMessage(response.data.length === 0 ? systemCopy("No hay códigos NACE coincidentes.") : null)
       } catch {
         if (mounted) {
           setNaceOptions([])
-          setNaceLookupMessage("No se ha podido consultar el catálogo NACE.")
+          setNaceLookupMessage(systemCopy("No se ha podido consultar el catálogo NACE."))
         }
       }
     }
@@ -415,11 +436,12 @@ export function InitialSurveyForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const submittedLocale = locale
     setErrorMessage(null)
     setFieldErrors({})
 
     if (!p5IsComplete(formData)) {
-      setErrorMessage("Completa los campos obligatorios de la encuesta inicial antes de continuar.")
+      setErrorMessage(systemCopy("Completa los campos obligatorios de la encuesta inicial antes de continuar."))
 
       return
     }
@@ -451,13 +473,14 @@ export function InitialSurveyForm() {
         }
 
         if (Object.keys(nextFieldErrors).length === 0) {
-          nextFieldErrors.naceCode = "Selecciona un código NACE/CNAE válido del catálogo."
+          nextFieldErrors.naceCode = tr("Selecciona un código NACE/CNAE válido del catálogo.")
         }
 
+        setMessageLocale(submittedLocale)
         setFieldErrors(nextFieldErrors)
       }
 
-      setErrorMessage("La plataforma no ha podido guardar el borrador de la encuesta inicial. Revisa los campos e inténtalo de nuevo.")
+      setErrorMessage(systemCopy("La plataforma no ha podido guardar el borrador de la encuesta inicial. Revisa los campos e inténtalo de nuevo."))
     } finally {
       setSaving(false)
     }
@@ -465,43 +488,40 @@ export function InitialSurveyForm() {
 
   return (
     <div className="flex-1">
+      {!presentationReady ? <p role="status">{optionLoadState === "failed" && !changing ? tr("No se pudieron actualizar las etiquetas de idioma. Inténtalo de nuevo.") : tr("Actualizando las etiquetas de idioma...")}</p> : null}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Editar este paso
-            </DialogTitle>
+              {" "}{tr("Editar este paso")}{" "}</DialogTitle>
             <DialogDescription className="space-y-2 pt-2">
-              <p>¿Quieres modificar la encuesta inicial guardada?</p>
+              <p>{tr("¿Quieres modificar la encuesta inicial guardada?")}</p>
               <p className="text-muted-foreground">
-                Los pasos posteriores pueden necesitar regenerarse cuando cambie esta información.
-              </p>
+                {" "}{tr("Los pasos posteriores pueden necesitar regenerarse cuando cambie esta información.")}{" "}</p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row justify-end gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setShowConfirmDialog(false)}>
-              Cancelar
-            </Button>
+              {" "}{tr("Cancelar")}{" "}</Button>
             <Button
               onClick={() => {
                 setShowConfirmDialog(false)
                 setIsReadOnly(false)
               }}
             >
-              Editar la encuesta inicial
-            </Button>
+              {" "}{tr("Editar la encuesta inicial")}{" "}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Caracterización inicial</h1>
+        <h1 className="text-2xl font-bold text-foreground">{tr("Caracterización inicial")}</h1>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {isReadOnly ? "Perfil guardado como borrador" : "Campos obligatorios completados"}
+          {isReadOnly ? tr("Perfil guardado como borrador") : tr("Campos obligatorios completados")}
         </span>
         <span className="text-sm font-medium text-foreground">{progress}%</span>
       </div>
@@ -520,8 +540,7 @@ export function InitialSurveyForm() {
 
       {isReadOnly ? (
         <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-foreground">
-          Encuesta inicial guardada. La propuesta de temas se genera en el paso 2.
-        </div>
+          {" "}{tr("Encuesta inicial guardada. La propuesta de temas se genera en el paso 2.")}{" "}</div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-8">
@@ -531,7 +550,7 @@ export function InitialSurveyForm() {
             className="flex w-full items-center justify-between p-4"
             onClick={() => setExpanded(!expanded)}
           >
-            <span className="text-lg font-semibold text-primary">1. Datos oficiales de la empresa</span>
+            <span className="text-lg font-semibold text-primary">{tr("1. Datos oficiales de la empresa")}</span>
             {expanded ? (
               <ChevronUp className="h-5 w-5 text-muted-foreground" />
             ) : (
@@ -542,51 +561,51 @@ export function InitialSurveyForm() {
           {expanded && (
             <div className="space-y-8 border-t border-border p-6">
               {loadingInitial ? (
-                <p className="text-sm text-muted-foreground">Cargando caracterización...</p>
+                <p className="text-sm text-muted-foreground">{tr("Cargando caracterización...")}</p>
               ) : isReadOnly ? (
                 <>
                   <div className="grid gap-5 md:grid-cols-2">
-                    <ReadOnlyField label="Nombre de la empresa" value={formData.companyName} />
-                    <ReadOnlyField label="Código NACE/CNAE" value={formData.naceCode} />
+                    <ReadOnlyField label={tr("Nombre de la empresa")} value={formData.companyName} />
+                    <ReadOnlyField label={tr("Código NACE/CNAE")} value={formData.naceCode} />
                     <ReadOnlyField
-                      label="País sede"
-                      value={optionLabel(headquartersCountryOptions, formData.headquartersCountry)}
+                      label={tr("País sede")}
+                      value={optionLabel(headquartersCountryOptions, formData.headquartersCountry, locale)}
                     />
-                    <ReadOnlyField label="Ejercicio de reporte" value={formData.reportingYear} />
+                    <ReadOnlyField label={tr("Ejercicio del informe")} value={formData.reportingYear} />
                     <ReadOnlyField
-                      label="Alcance de reporte"
-                      value={optionLabel(reportingScopeOptions, formData.reportingScope)}
+                      label={tr("Alcance del informe")}
+                      value={optionLabel(reportingScopeOptions, formData.reportingScope, locale)}
                     />
-                    <ReadOnlyField label="Países con subsidiarias" value={formData.numSubsidiariesCountries} />
-                    <ReadOnlyField label="Cotiza en bolsa" value={formData.stockListed === "yes" ? "Sí" : "No"} />
+                    <ReadOnlyField label={tr("Países con subsidiarias")} value={formData.numSubsidiariesCountries} />
+                    <ReadOnlyField label={tr("Cotiza en bolsa")} value={formData.stockListed === "yes" ? tr("Sí") : tr("No")} />
                     <ReadOnlyField
-                      label="Moneda"
-                      value={optionLabel(reportingCurrencyOptions, formData.reportingCurrency)}
+                      label={tr("Moneda")}
+                      value={optionLabel(reportingCurrencyOptions, formData.reportingCurrency, locale)}
                     />
                     <ReadOnlyField
-                      label="Producto o servicio principal"
-                      value={optionLabel(productServiceTypeOptions, formData.productServiceType)}
+                      label={tr("Producto o servicio principal")}
+                      value={optionLabel(productServiceTypeOptions, formData.productServiceType, locale)}
                     />
                     {formData.entityIdentifier ? (
                       <ReadOnlyField
-                        label="LEI de la entidad"
-                        value={`${formData.entityIdentifier} - se conserva como identificador de la entidad para futuros formatos electrónicos.`}
+                        label={tr("LEI de la entidad")}
+                        value={formatUi(locale, "{0} - se conserva como identificador de la entidad para futuros formatos electrónicos.", [formData.entityIdentifier])}
                       />
                     ) : null}
-                    <ReadOnlyField label="Regiones" value={optionLabels(regionOptions, formData.regions)} />
+                    <ReadOnlyField label={tr("Regiones")} value={optionLabels(regionOptions, formData.regions, locale)} />
                     <ReadOnlyField
-                      label="Posición en cadena de valor"
-                      value={optionLabels(valueChainOptions, formData.valueChain)}
+                      label={tr("Posición en cadena de valor")}
+                      value={optionLabels(valueChainOptions, formData.valueChain, locale)}
                     />
                     <ReadOnlyField
-                      label="Empleados"
-                      value={optionLabel(employeeCountOptions, formData.employeeCountRange)}
+                      label={tr("Empleados")}
+                      value={optionLabel(employeeCountOptions, formData.employeeCountRange, locale)}
                     />
-                    <ReadOnlyField label="Ingresos" value={optionLabel(revenueOptions, formData.revenueRange)} />
+                    <ReadOnlyField label={tr("Ingresos")} value={optionLabel(revenueOptions, formData.revenueRange, locale)} />
                   </div>
                   {Object.keys(formData.activityQuestions).length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-foreground">Preguntas sobre la actividad</p>
+                      <p className="text-sm font-medium text-foreground">{tr("Preguntas sobre la actividad")}</p>
                       <div className="grid gap-2 md:grid-cols-2">
                         {activityQuestionFields
                           .filter((question) => formData.activityQuestions[question.value])
@@ -594,21 +613,20 @@ export function InitialSurveyForm() {
                             <ReadOnlyField
                               key={question.value}
                               label={question.label}
-                              value={optionLabel(activityAnswerOptions, formData.activityQuestions[question.value])}
+                              value={optionLabel(activityAnswerOptions, formData.activityQuestions[question.value], locale)}
                             />
                           ))}
                       </div>
                     </div>
                   )}
-                  <ReadOnlyField label="Notas internas" value={formData.notes} />
                 </>
               ) : (
                 <>
                   <section className="space-y-4">
-                    <h2 className="text-base font-semibold text-foreground">Perfil de empresa</h2>
+                    <h2 className="text-base font-semibold text-foreground">{tr("Perfil de empresa")}</h2>
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="companyName">Nombre comercial o legal</Label>
+                        <Label htmlFor="companyName">{tr("Nombre comercial o legal")}</Label>
                         <Input
                           id="companyName"
                           value={formData.companyName}
@@ -617,18 +635,17 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="naceCode">Código NACE/CNAE principal</Label>
+                        <Label htmlFor="naceCode">{tr("Código NACE/CNAE principal")}</Label>
                         <Input
                           id="naceCode"
-                          placeholder="Ej. C, K62, K62.1"
+                          placeholder={tr("Ej. C, K62, K62.1")}
                           value={formData.naceCode}
                           onChange={(e) => updateForm({ naceCode: e.target.value })}
                           aria-invalid={fieldErrors.naceCode ? "true" : undefined}
                           aria-describedby={fieldErrors.naceCode ? "naceCode-error" : "naceCode-help"}
                         />
                         <p id="naceCode-help" className="text-xs text-muted-foreground">
-                          Busca por código o descripción, incluso sin acentos, y selecciona un resultado del catálogo.
-                        </p>
+                          {" "}{tr("Busca por código o descripción, incluso sin acentos, y selecciona un resultado del catálogo.")}{" "}</p>
                         {fieldErrors.naceCode ? (
                           <p id="naceCode-error" className="text-sm text-destructive">
                             {fieldErrors.naceCode}
@@ -643,7 +660,7 @@ export function InitialSurveyForm() {
                                 className="block w-full rounded-sm px-2 py-2 text-left text-sm hover:bg-muted"
                                 onClick={() => updateForm({ naceCode: option.code })}
                               >
-                                {naceCodeLabel(option)}
+                                {naceCodeLabel(option, locale)}
                               </button>
                             ))}
                           </div>
@@ -653,13 +670,13 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="headquartersCountry">País sede</Label>
+                        <Label htmlFor="headquartersCountry">{tr("País sede")}</Label>
                         <Select
                           value={formData.headquartersCountry}
                           onValueChange={(value) => updateForm({ headquartersCountry: value })}
                         >
                           <SelectTrigger id="headquartersCountry">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {headquartersCountryOptions.map((option) => (
@@ -672,7 +689,7 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="reportingYear">Ejercicio de reporte</Label>
+                        <Label htmlFor="reportingYear">{tr("Ejercicio del informe")}</Label>
                         <Input
                           id="reportingYear"
                           min={2000}
@@ -684,13 +701,13 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="reportingScope">Alcance de reporte</Label>
+                        <Label htmlFor="reportingScope">{tr("Alcance del informe")}</Label>
                         <Select
                           value={formData.reportingScope}
                           onValueChange={(value) => updateForm({ reportingScope: value })}
                         >
                           <SelectTrigger id="reportingScope">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {reportingScopeOptions.map((option) => (
@@ -703,7 +720,7 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="numSubsidiariesCountries">Número de países con subsidiarias</Label>
+                        <Label htmlFor="numSubsidiariesCountries">{tr("Número de países con subsidiarias")}</Label>
                         <Input
                           id="numSubsidiariesCountries"
                           min={0}
@@ -714,29 +731,29 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="stockListed">Cotiza en bolsa</Label>
+                        <Label htmlFor="stockListed">{tr("Cotiza en bolsa")}</Label>
                         <Select
                           value={formData.stockListed}
                           onValueChange={(value: "yes" | "no") => updateForm({ stockListed: value })}
                         >
                           <SelectTrigger id="stockListed">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="yes">Sí</SelectItem>
-                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="yes">{tr("Sí")}</SelectItem>
+                            <SelectItem value="no">{tr("No")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="reportingCurrency">Moneda de reporte</Label>
+                        <Label htmlFor="reportingCurrency">{tr("Moneda del informe")}</Label>
                         <Select
                           value={formData.reportingCurrency}
                           onValueChange={(value) => updateForm({ reportingCurrency: value })}
                         >
                           <SelectTrigger id="reportingCurrency">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {reportingCurrencyOptions.map((option) => (
@@ -749,13 +766,13 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="productServiceType">Producto o servicio principal</Label>
+                        <Label htmlFor="productServiceType">{tr("Producto o servicio principal")}</Label>
                         <Select
                           value={formData.productServiceType}
                           onValueChange={(value) => updateForm({ productServiceType: value })}
                         >
                           <SelectTrigger id="productServiceType">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {productServiceTypeOptions.map((option) => (
@@ -768,7 +785,7 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="entityIdentifier">LEI de la entidad (opcional para la caracterización)</Label>
+                        <Label htmlFor="entityIdentifier">{tr("LEI de la entidad (opcional para la caracterización)")}</Label>
                         <Input
                           id="entityIdentifier"
                           autoCapitalize="characters"
@@ -781,8 +798,7 @@ export function InitialSurveyForm() {
                           }
                         />
                         <p id="entityIdentifier-help" className="text-xs text-muted-foreground">
-                          Se conserva como identificador oficial de la entidad para futuros formatos electrónicos regulados. Debe ser el LEI oficial de 20 caracteres; no use NIF/CIF ni la razón social.
-                        </p>
+                          {" "}{tr("Se conserva como identificador oficial de la entidad para futuros formatos electrónicos regulados. Debe ser el LEI oficial de 20 caracteres; no use NIF/CIF ni la razón social.")}{" "}</p>
                         {fieldErrors.entityIdentifier ? (
                           <p id="entityIdentifier-error" className="text-sm text-destructive">
                             {fieldErrors.entityIdentifier}
@@ -793,11 +809,11 @@ export function InitialSurveyForm() {
                   </section>
 
                   <section className="space-y-4">
-                    <h2 className="text-base font-semibold text-foreground">Operaciones</h2>
+                    <h2 className="text-base font-semibold text-foreground">{tr("Operaciones")}</h2>
                     <div className="grid gap-5 md:grid-cols-2">
                       <MultiSelectCheckboxes
                         id="regions"
-                        label="Regiones"
+                        label={tr("Regiones")}
                         options={regionOptions}
                         values={formData.regions}
                         onChange={(regions) => updateForm({ regions })}
@@ -805,20 +821,20 @@ export function InitialSurveyForm() {
 
                       <MultiSelectCheckboxes
                         id="valueChain"
-                        label="Posición en cadena de valor"
+                        label={tr("Posición en cadena de valor")}
                         options={valueChainOptions}
                         values={formData.valueChain}
                         onChange={(valueChain) => updateForm({ valueChain })}
                       />
 
                       <div className="space-y-2">
-                        <Label htmlFor="employeeCountRange">Rango de empleados</Label>
+                        <Label htmlFor="employeeCountRange">{tr("Rango de empleados")}</Label>
                         <Select
                           value={formData.employeeCountRange}
                           onValueChange={(value) => updateForm({ employeeCountRange: value })}
                         >
                           <SelectTrigger id="employeeCountRange">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {employeeCountOptions.map((option) => (
@@ -831,13 +847,13 @@ export function InitialSurveyForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="revenueRange">Rango de ingresos</Label>
+                        <Label htmlFor="revenueRange">{tr("Rango de ingresos")}</Label>
                         <Select
                           value={formData.revenueRange}
                           onValueChange={(value) => updateForm({ revenueRange: value })}
                         >
                           <SelectTrigger id="revenueRange">
-                            <SelectValue placeholder="Selecciona..." />
+                            <SelectValue placeholder={tr("Selecciona...")} />
                           </SelectTrigger>
                           <SelectContent>
                             {revenueOptions.map((option) => (
@@ -849,20 +865,12 @@ export function InitialSurveyForm() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="notes">Notas internas</Label>
-                        <Textarea
-                          id="notes"
-                          value={formData.notes}
-                          onChange={(e) => updateForm({ notes: e.target.value })}
-                        />
-                      </div>
                     </div>
                   </section>
 
                   {activityQuestionFields.length > 0 && (
                     <section className="space-y-4">
-                      <h2 className="text-base font-semibold text-foreground">Preguntas sobre la actividad</h2>
+                      <h2 className="text-base font-semibold text-foreground">{tr("Preguntas sobre la actividad")}</h2>
                       {activityQuestionsNote && <p className="text-sm text-muted-foreground">{activityQuestionsNote}</p>}
                       <div className="space-y-4">
                         {activityQuestionFields.map((question) => (
@@ -907,22 +915,20 @@ export function InitialSurveyForm() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" variant="outline" onClick={() => setShowConfirmDialog(true)} className="gap-2">
-                      Editar la encuesta inicial
-                      <AlertCircle className="h-4 w-4" />
+                      {" "}{tr("Editar la encuesta inicial")}{" "}<AlertCircle className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs bg-muted-foreground text-background">
-                    <p>Editar la encuesta inicial puede requerir recalcular los pasos posteriores.</p>
+                    <p>{tr("Editar la encuesta inicial puede requerir recalcular los pasos posteriores.")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               <Button type="button" onClick={() => router.push("/wizard/step-2")}>
-                Continuar a la propuesta de temas
-              </Button>
+                {" "}{tr("Continuar a la propuesta de temas")}{" "}</Button>
             </div>
           ) : (
             <Button type="submit" disabled={loadingInitial || saving}>
-              {saving ? "Guardando..." : "Guardar y continuar"}
+              {saving ? tr("Guardando...") : tr("Guardar y continuar")}
             </Button>
           )}
         </div>

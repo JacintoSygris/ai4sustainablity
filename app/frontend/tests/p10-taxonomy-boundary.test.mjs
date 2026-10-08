@@ -16,7 +16,7 @@ test("P10 frontend shows safe taxonomy identity and does not advertise candidate
   assert.match(api, /EFRAG ESRS XBRL Taxonomy Set 1/)
   assert.match(api, /2023-12-22/)
   assert.match(api, /esrs-2023-preparatory-v1/)
-  assert.match(panel, /Taxonomía ESRS externa/)
+  assert.match(panel, /Taxonomía NEIS externa/)
   assert.match(panel, /candidato XHTML\/iXBRL no se ofrece como descarga/)
   assert.doesNotMatch(panel, /taxonomy_package_path|manifest_path|sha256/i)
 })

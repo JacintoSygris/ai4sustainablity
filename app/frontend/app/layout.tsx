@@ -1,32 +1,30 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { LocaleProvider } from "@/components/locale-provider";
+import { getLaravelServerLocale } from "@/lib/laravel-server";
+import { localeMetadata } from "@/lib/i18n/locale.mjs";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import "./globals.css";
 import "../public/consent/consent.css";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLaravelServerLocale();
+  return { ...localeMetadata[locale], icons: { icon: "/icon-light-32x32.png", apple: "/apple-icon.png" } };
+}
 
-export const metadata: Metadata = {
-  title: "Airis - Preparación ESRS asistida",
-  description: "Asistente para preparar reportes ESRS 2023 con materialidad, datos normativos y evidencias organizadas.",
-  icons: {
-    icon: "/icon-light-32x32.png",
-    apple: "/apple-icon.png",
-  },
-};
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLaravelServerLocale();
   return (
-    <html lang="es">
+    <html lang={locale}>
       <body className={`font-sans antialiased`}>
-        {children}
-        <CookieConsent />
+        <LocaleProvider initialLocale={locale}>
+          {children}
+          <CookieConsent />
+        </LocaleProvider>
       </body>
     </html>
   );

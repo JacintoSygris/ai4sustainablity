@@ -1,5 +1,12 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui, formatUi } from "@/lib/i18n/messages.mjs"
+
+import { useLocale } from "@/components/locale-provider"
+import { LocalizedDownload } from "@/components/localized-download"
+
 import { useOptionalStorage } from "@/lib/consent-storage"
 
 import type React from "react"
@@ -67,6 +74,8 @@ type GuidedAnswers = Record<string, any> // validated via build
 type Mode = "direct" | "guided"
 
 export function FinalTopicsSelection() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
   const recoveryStorage = useOptionalStorage("recovery")
   const router = useRouter()
   const [reloadCounter, setReloadCounter] = useState(0)
@@ -84,7 +93,7 @@ export function FinalTopicsSelection() {
   const [changeReasons, setChangeReasons] = useState<ChangeReasons>({})
   const [changeNotes, setChangeNotes] = useState<ChangeNotes>({})
   const [e1Explanation, setE1Explanation] = useState("")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useSystemMessage(null)
   const [conflictedDraftRaw, setConflictedDraftRaw] = useState<string | null>(null)
 
   // F3 two-mode + guided state
@@ -261,7 +270,7 @@ export function FinalTopicsSelection() {
           return
         }
 
-        setErrorMessage("No se ha podido cargar la selección final desde la plataforma.")
+        setErrorMessage(systemCopy("No se ha podido cargar la selección final desde la plataforma."))
       } finally {
         if (mounted) {
           setLoadingInitial(false)
@@ -605,7 +614,7 @@ export function FinalTopicsSelection() {
     if (!confirmation || saveInFlight.current) return
 
     if (removesE1 && e1Explanation.trim() === "") {
-      setErrorMessage("La plataforma exige una explicación si E1 deja de ser material.")
+      setErrorMessage(systemCopy("La plataforma exige una explicación si E1 deja de ser material."))
       return
     }
 
@@ -644,7 +653,7 @@ export function FinalTopicsSelection() {
       if (draftMutationVersion.current !== mutationVersionAtDispatch) {
         setConfirmation(response.data)
         draftDirty.current = true
-        setErrorMessage("Se guardó la revisión enviada, pero conservamos cambios posteriores para que puedas revisarlos y guardar de nuevo.")
+        setErrorMessage(systemCopy("Se guardó la revisión enviada, pero conservamos cambios posteriores para que puedas revisarlos y guardar de nuevo."))
         return
       }
 
@@ -676,11 +685,11 @@ export function FinalTopicsSelection() {
         draftDirty.current = false
         latestDraftRaw.current = null
         draftReadyFor.current = null
-        setErrorMessage("La selección final ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar.")
+        setErrorMessage(systemCopy("La selección final ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar."))
         reload()
         return
       }
-      setErrorMessage("La plataforma no ha podido guardar la selección final.")
+      setErrorMessage(systemCopy("La plataforma no ha podido guardar la selección final."))
     } finally {
       saveInFlight.current = false
       activeSaveRequestId.current = 0
@@ -699,9 +708,9 @@ export function FinalTopicsSelection() {
   const filteredTopics = useMemo(() => {
     return catalogTopics.filter((topic) => {
       const selected = selectedTopics.has(topic.id)
-      return topicMatches(topic, searchQuery) && (!showOnlySelected || selected)
+      return topicMatches(topic, searchQuery, locale) && (!showOnlySelected || selected)
     })
-  }, [catalogTopics, searchQuery, selectedTopics, showOnlySelected])
+  }, [catalogTopics, searchQuery, selectedTopics, showOnlySelected, locale])
 
   const currentPreview = previewSelectionKey === selectedTopicKey ? previewEstimate : null
 
@@ -720,23 +729,20 @@ export function FinalTopicsSelection() {
   const showAdmBanner = true
   const admRegistered = adm.acta_registered
   const admText = admRegistered && adm.acta
-    ? `Registraste tu análisis el ${adm.acta.completed_on || ""} (${adm.acta.method || ""}; participantes: ${adm.acta.participants || ""}). Confirma tus conclusiones.`
-    : "No has registrado el análisis en el paso 3. Puedes confirmar igualmente: tu hoja de decisión quedará marcada como 'sin análisis registrado'."
+    ? formatUi(locale, "Registraste tu análisis el {0} ({1}; participantes: {2}). Confirma tus conclusiones.", [adm.acta.completed_on || "", adm.acta.method || "", adm.acta.participants || ""])
+    : tr("No has registrado el análisis en el paso 3. Puedes confirmar igualmente: tu hoja de decisión quedará marcada como 'sin análisis registrado'.")
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Selección final de temas relevantes</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{tr("Selección final de temas relevantes")}</h1>
           <p className="mt-2 text-muted-foreground">
-            Confirma los temas finales tras tu análisis de doble <Term k="materialidad">materialidad</Term> y revisa
-            cómo cambia tu lista de datos normativos del paso 5.
-          </p>
+            {" "}{tr("Confirma los temas finales tras tu análisis de doble")}{" "}<Term k="materialidad">{tr("materialidad")}</Term> {" "}{tr("y revisa cómo cambia tu lista de datos normativos del paso 5.")}{" "}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setShowInfoModal(true)} className="text-muted-foreground">
           <Info className="mr-1 h-4 w-4" />
-          Info
-        </Button>
+          {" "}{tr("Info")}{" "}</Button>
       </div>
 
       {errorMessage ? (
@@ -747,31 +753,31 @@ export function FinalTopicsSelection() {
 
       {conflictedDraftRaw && confirmation ? (
         <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p>Hay un borrador de otra revisión. Compáralo con el estado actualizado antes de aplicarlo.</p>
+          <p>{tr("Hay un borrador de otra revisión. Compáralo con el estado actualizado antes de aplicarlo.")}</p>
           <div className="mt-2 flex gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={recoverConflictedDraft}>Recuperar borrador</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={discardConflictedDraft}>Descartar borrador</Button>
+            <Button type="button" size="sm" variant="outline" onClick={recoverConflictedDraft}>{tr("Recuperar borrador")}</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={discardConflictedDraft}>{tr("Descartar borrador")}</Button>
           </div>
         </div>
       ) : null}
 
       {loadingInitial ? (
         <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">Cargando selección final...</CardContent>
+          <CardContent className="pt-6 text-sm text-muted-foreground">{tr("Cargando selección final...")}</CardContent>
         </Card>
       ) : !confirmation ? (
         <StatePanel
           icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-          title="No hay propuesta del paso 2"
-          description="Completa el paso 2 antes de confirmar la materialidad final."
-          action={<Button type="button" onClick={() => router.push("/wizard/step-2")}>Volver al paso 2</Button>}
+          title={tr("No hay propuesta del paso 2")}
+          description={tr("Completa el paso 2 antes de confirmar la materialidad final.")}
+          action={<Button type="button" onClick={() => router.push("/wizard/step-2")}>{tr("Volver al paso 2")}</Button>}
         />
       ) : confirmation.p6_topic_ids.length === 0 ? (
         <StatePanel
           icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
-          title="El paso 2 no tiene temas propuestos"
-          description="La plataforma necesita una propuesta del paso 2 completada y no vacía antes de guardar la selección final."
-          action={<Button type="button" variant="outline" onClick={reload}><RefreshCw className="h-4 w-4" /> Actualizar</Button>}
+          title={tr("El paso 2 no tiene temas propuestos")}
+          description={tr("La plataforma necesita una propuesta del paso 2 completada y no vacía antes de guardar la selección final.")}
+          action={<Button type="button" variant="outline" onClick={reload}><RefreshCw className="h-4 w-4" /> {" "}{tr("Actualizar")}</Button>}
         />
       ) : (
         <>
@@ -782,24 +788,24 @@ export function FinalTopicsSelection() {
               <button type="button" aria-pressed={mode === "direct"} className="block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => chooseMode("direct")}>
                 <Card className={`h-full cursor-pointer border ${mode === "direct" ? "border-primary" : ""}`}>
                   <CardContent className="pt-6">
-                    <div className="font-semibold">Ya tengo mis conclusiones</div>
-                    <p className="text-sm text-muted-foreground mt-1">Directo: confirma o ajusta la lista tras tu ADM (o sin acta registrada).</p>
+                    <div className="font-semibold">{tr("Ya tengo mis conclusiones")}</div>
+                    <p className="text-sm text-muted-foreground mt-1">{tr("Directo: confirma o ajusta la lista tras tu ADM (o sin acta registrada).")}</p>
                   </CardContent>
                 </Card>
               </button>
               <button type="button" aria-pressed={mode === "guided"} className="block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => chooseMode("guided")}>
                 <Card className={`h-full cursor-pointer border ${mode === "guided" ? "border-primary" : ""}`}>
                   <CardContent className="pt-6">
-                    <div className="font-semibold">Ayúdame a decidir tema por tema</div>
-                    <p className="text-sm text-muted-foreground mt-1">Guiado: 4 señales por tema (impacto, financiero, confianza, exposición). Sugerencias solo informan.</p>
+                    <div className="font-semibold">{tr("Ayúdame a decidir tema por tema")}</div>
+                    <p className="text-sm text-muted-foreground mt-1">{tr("Guiado: 4 señales por tema (impacto, financiero, confianza, exposición). Sugerencias solo informan.")}</p>
                   </CardContent>
                 </Card>
               </button>
             </div>
           ) : (
             <div className="flex gap-2">
-              <Button type="button" aria-pressed={mode === "direct"} variant={mode === "direct" ? "default" : "outline"} size="sm" onClick={() => chooseMode("direct")}>Directo</Button>
-              <Button type="button" aria-pressed={mode === "guided"} variant={mode === "guided" ? "default" : "outline"} size="sm" onClick={() => chooseMode("guided")}>Guiado</Button>
+              <Button type="button" aria-pressed={mode === "direct"} variant={mode === "direct" ? "default" : "outline"} size="sm" onClick={() => chooseMode("direct")}>{tr("Directo")}</Button>
+              <Button type="button" aria-pressed={mode === "guided"} variant={mode === "guided" ? "default" : "outline"} size="sm" onClick={() => chooseMode("guided")}>{tr("Guiado")}</Button>
             </div>
           )}
 
@@ -815,19 +821,17 @@ export function FinalTopicsSelection() {
           {/* F3: stale confirmation banner (exact copy, only when is_stale) */}
           {isStale ? (
             <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Tu confirmación es anterior a tus últimos cambios en la propuesta del paso 2. Revisa la lista y vuelve a confirmar.
-            </div>
+              {" "}{tr("Tu confirmación es anterior a tus últimos cambios en la propuesta del paso 2. Revisa la lista y vuelve a confirmar.")}{" "}</div>
           ) : null}
 
           {/* Pinned delta + live estimate */}
           <div className="sticky top-2 z-10">
             <Card>
               <CardContent className="py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>{addedCount} añadidos · {removedCount} retirados · {unchangedCount} sin cambios</span>
+                <span>{addedCount} {" "}{tr("añadidos ·")}{" "}{removedCount} {" "}{tr("retirados ·")}{" "}{unchangedCount} {" "}{tr("sin cambios")}</span>
                 <span className="text-muted-foreground">
-                  Estimación paso 5: {previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} datos normativos
-                </span>
-                <Button type="button" variant="outline" size="sm" onClick={() => chooseMode(mode === "direct" ? "guided" : "direct")}>Cambiar modo</Button>
+                  {" "}{tr("Estimación paso 5:")}{" "}{previewLoading ? "..." : (currentPreview?.datapoint_estimate?.total_datapoint_count ?? "—")} {" "}{tr("datos normativos")}{" "}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => chooseMode(mode === "direct" ? "guided" : "direct")}>{tr("Cambiar modo")}</Button>
               </CardContent>
             </Card>
           </div>
@@ -838,7 +842,7 @@ export function FinalTopicsSelection() {
               <div className="space-y-4">
                 {/* Propuestos */}
                 <div>
-                  <div className="text-sm font-semibold mb-2">Propuestos (paso 2)</div>
+                  <div className="text-sm font-semibold mb-2">{tr("Propuestos (paso 2)")}</div>
                   {confirmation.p6_topic_ids.map((pid) => {
                     const topic = catalogTopics.find((t) => t.id === pid)
                     if (!topic) return null
@@ -846,15 +850,15 @@ export function FinalTopicsSelection() {
                     const hist = p6History[String(pid)]
                     return (
                       <div key={pid} className="rounded border p-3 mb-2 flex gap-3 items-start">
-                        <Checkbox aria-label={`${selected ? "Retirar" : "Añadir"} ${topicTitle(topic)}`} checked={selected} onCheckedChange={() => toggleTopic(pid)} className="mt-1" />
+                        <Checkbox aria-label={`${selected ? tr("Retirar") : tr("Añadir")} ${topicTitle(topic, locale)}`} checked={selected} onCheckedChange={() => toggleTopic(pid)} className="mt-1" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{topic.esrs_code}</Badge>
-                            <span className="font-medium">{topicTitle(topic)}</span>
-                            {hist ? <span className="text-xs text-muted-foreground">En el paso 2 lo marcaste '{hist.decision}'{hist.note ? ` — ${hist.note}` : ""}</span> : null}
+                            <span className="font-medium">{topicTitle(topic, locale)}</span>
+                            {hist ? <span className="text-xs text-muted-foreground">{tr("En el paso 2 lo marcaste '")}{({ accepted: tr("Aceptar"), unsure: tr("Duda"), rejected: tr("Rechazar") } as Record<string, string>)[hist.decision] ?? tr("Sin revisar")}'{hist.note ? ` — ${hist.note}` : ""}</span> : null}
                           </div>
                           <div className="mt-2">
-                            <Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>Ayúdame a decidir</Button>
+                            <Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>{tr("Ayúdame a decidir")}</Button>
                           </div>
                           {inlineAssistantFor === pid && (
                             <div className="mt-2"><TopicSignalAssistant topic={topic} exposicionDefault={(exposicionDefaults[String(pid)] as any) || "normal"} initialAnswer={guidedDrafts[String(pid)]} onResult={(ans) => applyAssistantResult(pid, ans)} /></div>
@@ -864,12 +868,12 @@ export function FinalTopicsSelection() {
                               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {CHANGE_REASON_OPTIONS.map((r) => (
                                   <label key={r.key} className="flex items-center gap-2 text-xs border rounded px-2 py-1">
-                                    <Checkbox aria-label={`Motivo: ${r.label}`} checked={(changeReasons[String(pid)] || []).includes(r.key)} onCheckedChange={(c) => toggleReason(pid, r.key, !!c)} />
-                                    {r.label}
+                                    <Checkbox aria-label={formatUi(locale, "Motivo: {0}", [tr(r.label)])} checked={(changeReasons[String(pid)] || []).includes(r.key)} onCheckedChange={(c) => toggleReason(pid, r.key, !!c)} />
+                                    {tr(r.label)}
                                   </label>
                                 ))}
                               </div>
-                              <Textarea placeholder="Nota opcional" value={changeNotes[String(pid)] || ""} onChange={(e) => updateNote(pid, e.target.value)} />
+                              <Textarea placeholder={tr("Nota opcional")} value={changeNotes[String(pid)] || ""} onChange={(e) => updateNote(pid, e.target.value)} />
                             </div>
                           )}
                         </div>
@@ -880,34 +884,34 @@ export function FinalTopicsSelection() {
 
                 {/* Retirados */}
                 <div>
-                  <div className="text-sm font-semibold mb-2">Retirados (re-check para volver)</div>
+                  <div className="text-sm font-semibold mb-2">{tr("Retirados (seleccionar de nuevo para recuperar)")}</div>
                   {Array.from(p6TopicIds).filter((id) => !selectedTopics.has(id)).map((pid) => {
                     const topic = catalogTopics.find((t) => t.id === pid)
                     if (!topic) return null
                     return (
                       <div key={pid} className="rounded border p-3 mb-2 flex gap-3">
-                        <Checkbox aria-label={`Añadir ${topicTitle(topic)}`} checked={false} onCheckedChange={() => toggleTopic(pid)} />
+                        <Checkbox aria-label={formatUi(locale, "Añadir {0}", [topicTitle(topic, locale)])} checked={false} onCheckedChange={() => toggleTopic(pid)} />
                         <div>
-                          <Badge variant="destructive">Retirado</Badge> {topicTitle(topic)}
-                          <div className="mt-1"><Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>Ayúdame a decidir</Button></div>
+                          <Badge variant="destructive">{tr("Retirado")}</Badge> {topicTitle(topic, locale)}
+                          <div className="mt-1"><Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>{tr("Ayúdame a decidir")}</Button></div>
                           {inlineAssistantFor === pid && <div className="mt-2"><TopicSignalAssistant topic={topic} exposicionDefault={(exposicionDefaults[String(pid)] as any) || "normal"} onResult={(a) => applyAssistantResult(pid, a)} /></div>}
                         </div>
                       </div>
                     )
                   })}
-                  {Array.from(p6TopicIds).filter((id) => !selectedTopics.has(id)).length === 0 && <div className="text-xs text-muted-foreground">Nada retirado.</div>}
+                  {Array.from(p6TopicIds).filter((id) => !selectedTopics.has(id)).length === 0 && <div className="text-xs text-muted-foreground">{tr("Nada retirado.")}</div>}
                 </div>
 
                 {/* Nuevos + Añadir */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-semibold">Nuevos (añadidos por ti)</div>
-                    <Button size="sm" variant="outline" onClick={() => { setSearchQuery(""); /* reuse dialog */ setShowInfoModal(false); /* simple: reuse search area */ }}>Añadir tema</Button>
+                    <div className="text-sm font-semibold">{tr("Nuevos (añadidos por ti)")}</div>
+                    <Button size="sm" variant="outline" onClick={() => { setSearchQuery(""); /* reuse dialog */ setShowInfoModal(false); /* simple: reuse search area */ }}>{tr("Añadir tema")}</Button>
                   </div>
                   {Array.from(selectedTopics).filter((id) => !p6TopicIds.has(id)).map((id) => {
                     const t = catalogTopics.find((x) => x.id === id)
                     if (!t) return null
-                    return <div key={id} className="text-sm border rounded p-2 mb-1 flex justify-between"><span>{t.esrs_code} {topicTitle(t)}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Quitar</Button></div>
+                    return <div key={id} className="text-sm border rounded p-2 mb-1 flex justify-between"><span>{t.esrs_code} {topicTitle(t, locale)}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Quitar")}</Button></div>
                   })}
                 </div>
               </div>
@@ -916,9 +920,9 @@ export function FinalTopicsSelection() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input aria-label="Buscar tema ESRS" placeholder="Buscar y añadir tema del catálogo..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                  <Input aria-label={tr("Buscar tema NEIS")} placeholder={tr("Buscar y añadir tema del catálogo...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                 </div>
-                <Button variant="outline" onClick={() => { /* open simple add from filtered */ if (filteredTopics[0]) toggleTopic(filteredTopics[0].id) }}>Añadir primero filtrado</Button>
+                <Button variant="outline" onClick={() => { /* open simple add from filtered */ if (filteredTopics[0]) toggleTopic(filteredTopics[0].id) }}>{tr("Añadir primero filtrado")}</Button>
               </div>
             </>
           )}
@@ -926,7 +930,7 @@ export function FinalTopicsSelection() {
           {/* 5. GUIDED mode */}
           {mode === "guided" && (
             <div className="space-y-4">
-              <div className="text-sm">Progreso guiado: {guidedProgress.done} de {guidedProgress.total}</div>
+              <div className="text-sm">{tr("Progreso guiado:")}{" "}{guidedProgress.done} {" "}{tr("de")}{" "}{guidedProgress.total}</div>
               <div className="space-y-3">
                 {guidedTopics.map((topic) => (
                   <div key={topic.id} className="border rounded p-3">
@@ -943,18 +947,18 @@ export function FinalTopicsSelection() {
               {/* closing question + catalog add for guided */}
               <Card>
                 <CardContent className="pt-6 space-y-2">
-                  <div className="font-medium">¿Hay algún otro tema que te preocupe?</div>
+                  <div className="font-medium">{tr("¿Hay algún otro tema que te preocupe?")}</div>
                   <div className="flex gap-2">
-                    <Input aria-label="Buscar tema adicional en el catálogo" placeholder="Buscar en catálogo (exposición = normal para añadidos)" value={guidedAddQuery} onChange={(e) => setGuidedAddQuery(e.target.value)} />
-                    <Button variant="outline" onClick={() => setGuidedAddOpen(!guidedAddOpen)}>Buscar</Button>
+                    <Input aria-label={tr("Buscar tema adicional en el catálogo")} placeholder={tr("Buscar en catálogo (exposición = normal para añadidos)")} value={guidedAddQuery} onChange={(e) => setGuidedAddQuery(e.target.value)} />
+                    <Button variant="outline" onClick={() => setGuidedAddOpen(!guidedAddOpen)}>{tr("Buscar")}</Button>
                   </div>
                   {guidedAddOpen && (
                     <div className="max-h-48 overflow-auto border rounded p-2 text-sm">
                       {Object.entries(groupedCatalog).map(([g, list]) => (
                         <div key={g} className="mb-2">
-                          <div className="text-xs uppercase text-muted-foreground">{g}</div>
-                          {list.filter((t) => topicMatches(t, guidedAddQuery)).slice(0, 8).map((t) => (
-                            <button type="button" key={t.id} className="block w-full text-left px-2 py-0.5 hover:bg-muted" onClick={() => addTopicFromGuided(t.id)}>{t.esrs_code} {topicTitle(t)}</button>
+                          <div className="text-xs uppercase text-muted-foreground">{tr(g)}</div>
+                          {list.filter((t) => topicMatches(t, guidedAddQuery, locale)).slice(0, 8).map((t) => (
+                            <button type="button" key={t.id} className="block w-full text-left px-2 py-0.5 hover:bg-muted" onClick={() => addTopicFromGuided(t.id)}>{t.esrs_code} {topicTitle(t, locale)}</button>
                           ))}
                         </div>
                       ))}
@@ -968,33 +972,33 @@ export function FinalTopicsSelection() {
           {/* 6. Shared review surface (always visible for both modes once edits started) */}
           <div className="space-y-3">
             <div>
-              <div className="font-semibold text-emerald-700 mb-1">Material</div>
+              <div className="font-semibold text-emerald-700 mb-1">{tr("Material")}</div>
               {materialIds.length === 0 && <div className="text-xs text-muted-foreground">—</div>}
               {materialIds.map((id) => {
                 const t = catalogTopics.find((x) => x.id === id)
                 const g = guidedDrafts[String(id)]
-                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t)}` : id} {g?.revisar ? <Badge variant="outline">revisar</Badge> : null}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Quitar</Button></div>
+                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t, locale)}` : id} {g?.revisar ? <Badge variant="outline">{tr("revisar")}</Badge> : null}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Quitar")}</Button></div>
               })}
             </div>
             <div>
-              <div className="font-semibold text-rose-700 mb-1">No material</div>
+              <div className="font-semibold text-rose-700 mb-1">{tr("No material")}</div>
               {noMaterialIds.length === 0 && <div className="text-xs text-muted-foreground">—</div>}
               {noMaterialIds.map((id) => {
                 const t = catalogTopics.find((x) => x.id === id)
-                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t)}` : id}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Marcar como material</Button></div>
+                return <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between"><span>{t ? `${t.esrs_code} ${topicTitle(t, locale)}` : id}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Marcar como material")}</Button></div>
               })}
             </div>
             <div>
-              <div className="font-semibold text-amber-700 mb-1">En observación <Badge variant="outline">revisar el próximo ciclo</Badge></div>
+              <div className="font-semibold text-amber-700 mb-1">{tr("En observación")}{" "}<Badge variant="outline">{tr("revisar el próximo ciclo")}</Badge></div>
               {obsIds.length === 0 && <div className="text-xs text-muted-foreground">—</div>}
               {obsIds.map((id) => {
                 const t = catalogTopics.find((x) => x.id === id)
                 return (
                   <div key={id} className="text-sm border rounded px-3 py-1 mb-1 flex justify-between items-center">
-                    <span>{t ? `${t.esrs_code} ${topicTitle(t)}` : id} <span className="text-amber-600">(incluido por precaución)</span></span>
+                    <span>{t ? `${t.esrs_code} ${topicTitle(t, locale)}` : id} <span className="text-amber-600">{tr("(incluido por precaución)")}</span></span>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => toggleObsToNo(id)}>Pasar a No material (mantener revisar)</Button>
-                      <Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>Quitar</Button>
+                      <Button size="sm" variant="outline" onClick={() => toggleObsToNo(id)}>{tr("Pasar a No material (mantener revisar)")}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Quitar")}</Button>
                     </div>
                   </div>
                 )
@@ -1006,9 +1010,9 @@ export function FinalTopicsSelection() {
           {removesE1 ? (
             <Card className="border-amber-300">
               <CardContent className="space-y-2 pt-6">
-                <div className="text-sm font-medium text-amber-800">La normativa exige una explicación detallada si el cambio climático no es material. La mayoría de empresas lo mantienen como material.</div>
-                <label htmlFor="e1Explanation" className="sr-only">Explicación de por qué E1 no es material</label>
-                <Textarea id="e1Explanation" value={e1Explanation} onChange={(e) => { if (!saveInFlight.current) { markDraftChanged(); setE1Explanation(e.target.value) } }} maxLength={2000} placeholder="Explicación detallada (hasta 2000 caracteres)" />
+                <div className="text-sm font-medium text-amber-800">{tr("La normativa exige una explicación detallada si el cambio climático no es material. La mayoría de empresas lo mantienen como material.")}</div>
+                <label htmlFor="e1Explanation" className="sr-only">{tr("Explicación de por qué E1 no es material")}</label>
+                <Textarea id="e1Explanation" value={e1Explanation} onChange={(e) => { if (!saveInFlight.current) { markDraftChanged(); setE1Explanation(e.target.value) } }} maxLength={2000} placeholder={tr("Explicación detallada (hasta 2000 caracteres)")} />
               </CardContent>
             </Card>
           ) : null}
@@ -1017,7 +1021,7 @@ export function FinalTopicsSelection() {
             <CardContent className="pt-6">
               <label className="flex items-start gap-3 text-sm">
                 <Checkbox
-                  aria-label="Atestación técnica del universo revisado"
+                  aria-label={tr("Atestación técnica del universo revisado")}
                   checked={reviewedUniverse && (mode === "direct" || guidedUniverseComplete)}
                   disabled={mode === "guided" && !guidedUniverseComplete}
                   onCheckedChange={(checked) => {
@@ -1028,11 +1032,11 @@ export function FinalTopicsSelection() {
                   className="mt-0.5"
                 />
                 <span>
-                  <span className="block font-medium text-foreground">He revisado todos los temas mostrados o añadidos en este paso.</span>
+                  <span className="block font-medium text-foreground">{tr("He revisado todos los temas mostrados o añadidos en este paso.")}</span>
                   <span className="mt-1 block text-muted-foreground">
-                    Esta marca solo completa el universo técnico de revisión para aprendizaje; no aprueba un modelo ni constituye una declaración legal final.
+                    {tr("Esta marca solo completa el universo técnico de revisión para aprendizaje; no aprueba un modelo ni constituye una declaración legal final.")}
                     {mode === "guided" && !guidedUniverseComplete
-                      ? " Antes debes resolver cada tema revisado con un resultado material o no material, sin estados en observación ni respuestas desconocidas."
+                      ? tr(" Antes debes resolver cada tema revisado con un resultado material o no material, sin estados en observación ni respuestas desconocidas.")
                       : ""}
                   </span>
                 </span>
@@ -1044,13 +1048,12 @@ export function FinalTopicsSelection() {
           <div className="flex items-center justify-between border-t pt-4">
             <div>
               {confirmation.is_confirmed ? (
-                <Button variant="outline" onClick={() => window.open(laravelApiUrl("/materiality-confirmation/decision-sheet"), "_blank")}>
-                  Descargar hoja de decisión (para tu gestoría o auditoría)
-                </Button>
+                <LocalizedDownload variant="outline" href={laravelApiUrl("/materiality-confirmation/decision-sheet")} target="_blank" rel="noopener noreferrer">
+                  {" "}{tr("Descargar hoja de decisión (para tu gestoría o auditoría)")}{" "}</LocalizedDownload>
               ) : null}
             </div>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando..." : "Confirmar y continuar"}
+              {saving ? tr("Guardando...") : tr("Confirmar y continuar")}
             </Button>
           </div>
           </fieldset>
@@ -1062,12 +1065,11 @@ export function FinalTopicsSelection() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">4</span>
-              Selección final de temas relevantes
-            </DialogTitle>
+              {" "}{tr("Selección final de temas relevantes")}{" "}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de datos normativos del paso 5.</p>
-            <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /><span>Guardar confirma la selección final en la plataforma.</span></div>
+            <p>{tr("Este paso registra tu decisión final frente a la propuesta del paso 2. Los cambios quedan trazados y actualizan la estimación de datos normativos del paso 5.")}</p>
+            <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-accent" /><span>{tr("Guardar confirma la selección final en la plataforma.")}</span></div>
           </div>
         </DialogContent>
       </Dialog>

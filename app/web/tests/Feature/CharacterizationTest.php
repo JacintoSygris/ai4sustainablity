@@ -363,6 +363,7 @@ it('allows manual retry of failed submissions', function () {
 });
 
 it('renders characterization summary and downloads pdf', function () {
+    $this->withSession(['app_locale' => 'es']);
     $topicId = \App\Models\EsrsTopic::first()->id;
 
     Characterization::factory()->create([
@@ -396,7 +397,7 @@ it('renders characterization summary and downloads pdf', function () {
     $this->actingAs($this->user)
         ->get(route('characterization.summary'))
         ->assertOk()
-        ->assertSee('Characterization Summary')
+        ->assertSee('Resumen de caracterización')
         ->assertSee('Entidad Demo')
         ->assertSee('España')
         ->assertSee('2025')
@@ -404,7 +405,8 @@ it('renders characterization summary and downloads pdf', function () {
         ->assertSee('3')
         ->assertSee('No')
         ->assertSee('EUR')
-        ->assertSee('Software/SaaS/servicios digitales')
+        ->assertSee('Programas informáticos y servicios digitales')
+        ->assertDontSee('Software/SaaS/servicios digitales')
         ->assertSee('50-249')
         ->assertSee('EUR 2M-10M');
 

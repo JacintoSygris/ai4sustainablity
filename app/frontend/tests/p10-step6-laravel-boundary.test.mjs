@@ -62,7 +62,7 @@ test("report draft component reads Laravel report readiness and draft APIs", () 
   )
   assert.match(source, /laravelApiUrl/, "P10 component must expose Laravel download endpoints")
   assert.match(source, /laravelApiUrl\("\/report\/package"\)/, "P10 component must expose the printable HTML package")
-  assert.match(source, /reportPackageReady/, "P10 component must not show the package shortcut before it is ready")
+  assert.match(source, /storedReadiness\?\.downloads\?\.report_package_html\?\.status === "ready"/, "P10 component must not show the package shortcut before it is ready")
   assert.match(
     source,
     /downloads\?\.report_package_html\?\.status === "ready"/,
@@ -88,7 +88,7 @@ test("report draft component reads Laravel report readiness and draft APIs", () 
 test("Step 6 report panel renders the payoff layout with plain-language copy", () => {
   const panel = read("components/wizard/report-draft-panel.tsx")
 
-  assert.match(panel, /Esto muestra qué asuntos materiales, indicadores\/datos y evidencias están registrados, qué falta y qué descargas pueden generarse\./)
+  assert.match(panel, /Esto muestra qué asuntos materiales, datos normativos y evidencias están registrados, qué falta y qué descargas pueden generarse\./)
   assert.match(panel, /Lo que está registrado/)
   assert.match(panel, /Una lista de/)
   assert.match(panel, /Modo alcance/)
@@ -111,7 +111,7 @@ test("P10 helpers map report status, endpoints, actions, and section counts", ()
   assert.equal(statusLabel("generation_pending"), "Pendiente de generación")
   assert.equal(statusLabel("not_implemented"), "No disponible en esta versión")
   assert.equal(statusLabel("scoping_only"), "Modo alcance")
-  assert.equal(statusLabel("custom_status"), "Custom Status")
+  assert.equal(statusLabel("custom_status"), "Estado no disponible")
   assert.match(statusTone("ready"), /emerald/)
   assert.match(statusTone("generation_pending"), /blue/)
   assert.match(statusTone("blocked"), /amber/)

@@ -1,4 +1,8 @@
-'use client'
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 
 import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
@@ -30,8 +34,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = 'Paleta de comandos',
-  description = 'Busca una acción disponible.',
+  title,
+  description,
   children,
   className,
   showCloseButton = true,
@@ -42,11 +46,14 @@ function CommandDialog({
   className?: string
   showCloseButton?: boolean
 }) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   return (
     <Dialog {...props}>
       <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+        <DialogTitle>{title ?? tr("Paleta de comandos")}</DialogTitle>
+        <DialogDescription>{description ?? tr("Busca una acción disponible.")}</DialogDescription>
       </DialogHeader>
       <DialogContent
         className={cn('overflow-hidden p-0', className)}

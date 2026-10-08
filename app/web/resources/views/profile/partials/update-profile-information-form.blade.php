@@ -48,7 +48,7 @@
         </div>
 
         <div>
-            <x-input-label for="profile_current_password" value="Contraseña actual para cambiar el correo" />
+            <x-input-label for="profile_current_password" :value="__('Contraseña actual para cambiar el correo')" />
             <x-text-input
                 id="profile_current_password"
                 name="current_password"
@@ -57,7 +57,7 @@
                 autocomplete="current-password"
             />
             <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Solo es necesaria si modificas la dirección de correo electrónico.
+                {{ __('Solo es necesaria si modificas la dirección de correo electrónico.') }}
             </p>
             <x-input-error class="mt-2" :messages="$errors->get('current_password')" />
         </div>

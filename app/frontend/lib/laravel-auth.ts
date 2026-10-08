@@ -1,3 +1,4 @@
+import { ui } from "@/lib/i18n/messages.mjs"
 function readCookie(name: string): string | null {
   const encoded = document.cookie
     .split(";")
@@ -46,9 +47,9 @@ export function laravelAuthHeaders(csrfToken: string): Headers {
   return headers
 }
 
-export async function laravelValidationMessage(response: Response, fallback: string): Promise<string> {
+export async function laravelValidationMessage(response: Response, fallback: string, locale: "es" | "en" = "es"): Promise<string> {
   if (response.status === 419) {
-    return "La sesión de seguridad ha caducado. Recarga la página e inténtalo de nuevo."
+    return ui(locale, "La sesión de seguridad ha caducado. Recarga la página e inténtalo de nuevo.")
   }
 
   if (response.headers.get("Content-Type")?.includes("application/json")) {

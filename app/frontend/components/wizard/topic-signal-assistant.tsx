@@ -1,5 +1,8 @@
 "use client"
 
+import { ui , formatUi } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -47,6 +50,9 @@ const EXP_LABEL: Record<SignalAnswer["exposicion"], string> = {
 }
 
 export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, onResult }: TopicSignalAssistantProps) {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const [signals, setSignals] = useState<SignalAnswer>(() => ({
     impacto: (initialAnswer?.impacto as any) || "bajo",
     financiero: (initialAnswer?.financiero as any) || "bajo",
@@ -71,24 +77,24 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
   }
 
   const currentExp = signals.exposicion
-  const expTrace = exposicionDefault === "fuerte" && currentExp === "descartada" ? "Descartada por ti" : null
+  const expTrace = exposicionDefault === "fuerte" && currentExp === "descartada" ? tr("Descartada por ti") : null
 
   const suggestionText = (() => {
-    const label = suggestion.suggested_result === "material" ? "Material" : suggestion.suggested_result === "no_material" ? "No material" : "En observación"
-    return `Sugerencia: ${label} — puedes cambiarla`
+    const label = suggestion.suggested_result === "material" ? tr("Material") : suggestion.suggested_result === "no_material" ? tr("No material") : tr("En observación")
+    return formatUi(locale, "Sugerencia: {0} — puedes cambiarla", [label])
   })()
 
   return (
     <div className="space-y-3 rounded-lg border border-border p-3 text-sm">
-      <div className="font-medium text-foreground">{topicTitle(topic)} <Badge variant="outline" className="ml-1 align-middle">{topic.esrs_code}</Badge></div>
+      <div className="font-medium text-foreground">{topicTitle(topic, locale)} <Badge variant="outline" className="ml-1 align-middle">{topic.esrs_code}</Badge></div>
 
       {/* Impacto */}
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">¿Cuánto puede afectar a personas o medioambiente?</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar a personas o medioambiente?")}</div>
         <div className="flex flex-wrap gap-1">
           {(["bajo", "medio", "alto", "no_lo_se"] as const).map((v) => (
             <Button key={v} type="button" size="sm" variant={signals.impacto === v ? "default" : "outline"} onClick={() => setSig("impacto", v)}>
-              {IMPACT_LABEL[v]}
+              {tr(IMPACT_LABEL[v])}
             </Button>
           ))}
         </div>
@@ -96,11 +102,11 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
 
       {/* Financiero */}
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">¿Cuánto puede afectar económicamente a la empresa?</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar económicamente a la empresa?")}</div>
         <div className="flex flex-wrap gap-1">
           {(["bajo", "medio", "alto", "no_lo_se"] as const).map((v) => (
             <Button key={v} type="button" size="sm" variant={signals.financiero === v ? "default" : "outline"} onClick={() => setSig("financiero", v)}>
-              {FIN_LABEL[v]}
+              {tr(FIN_LABEL[v])}
             </Button>
           ))}
         </div>
@@ -108,11 +114,11 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
 
       {/* Confianza (defaults Media) */}
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">¿Qué seguridad tienes sobre esta decisión?</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Qué seguridad tienes sobre esta decisión?")}</div>
         <div className="flex flex-wrap gap-1">
           {(["baja", "media", "alta"] as const).map((v) => (
             <Button key={v} type="button" size="sm" variant={signals.confianza === v ? "default" : "outline"} onClick={() => setSig("confianza", v)}>
-              {CONF_LABEL[v]}
+              {tr(CONF_LABEL[v])}
             </Button>
           ))}
         </div>
@@ -120,11 +126,11 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
 
       {/* Exposición (editable, seeded from default, trace when downgraded) */}
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">Exposición (derivado de tu sector/cadena; editable)</div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("Exposición (derivado de tu sector/cadena; editable)")}</div>
         <div className="flex flex-wrap gap-1">
           {(["normal", "fuerte", "descartada"] as const).map((v) => (
             <Button key={v} type="button" size="sm" variant={currentExp === v ? "default" : "outline"} onClick={() => setSig("exposicion", v)}>
-              {EXP_LABEL[v]}
+              {tr(EXP_LABEL[v])}
             </Button>
           ))}
         </div>
@@ -132,12 +138,12 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
       </div>
 
       {/* Live suggestion */}
-      <div className="rounded bg-muted/60 px-2 py-1 text-xs text-foreground">{suggestionText}{suggestion.revisar ? " (revisar)" : ""}</div>
+      <div className="rounded bg-muted/60 px-2 py-1 text-xs text-foreground">{suggestionText}{suggestion.revisar ? tr(" (revisar)") : ""}</div>
 
       {/* Optional note max 300 */}
       <div>
         <Textarea
-          placeholder="Nota opcional (máx 300)"
+          placeholder={tr("Nota opcional (máx 300)")}
           value={note}
           maxLength={300}
           onChange={(e) => setUserNote(e.target.value)}

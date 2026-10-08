@@ -14,14 +14,42 @@ final class RunLearningBatch extends Command
     private static function assertDeadline(?float $deadline, string $code='learning_batch.timeout'): void {
         if ($deadline!==null && hrtime(true)/1e9>$deadline) { throw new DomainException($code); }
     }
-    private function bundle(array $token, ?float $deadline=null): array {
+    /**
+     * Live terminal observation at budget seams, only after the refresh ack. Deadline first and last;
+     * the first real exit code is kept and only a fully validated success throws the trusted $signal.
+     */
+    private static function terminalCheckpoint(float $deadline, \Closure $status, string $artifact, array $ack, ?array &$terminal, ?DomainException $signal=null): \Closure {
+        $signal ??= new DomainException('learning_batch.child_terminal');
+        return function () use ($deadline, $status, $artifact, $ack, &$terminal, $signal): void {
+            self::assertDeadline($deadline);
+            if ($terminal!==null) { throw $signal; }
+            $observed=$status();
+            if ($observed['running']) { return; }
+            if ($observed['exitcode']!==0) { throw new DomainException('learning_batch.child_failed'); }
+            $stdout=self::readOutput($artifact.'/stdout.log',1048576);
+            self::readOutput($artifact.'/stderr.log',65536);
+            $lines=explode("\n",trim($stdout));
+            if (count($lines)!==2 || json_decode($lines[0],true,32,JSON_THROW_ON_ERROR)!==['ready'=>true]) { throw new DomainException('learning_batch.output_invalid'); }
+            $result=json_decode($lines[1],true,128,JSON_THROW_ON_ERROR);
+            if (($result['receipt']['authority_generation'] ?? null)!==($ack['generation'] ?? null)
+                || ($result['receipt']['authority_digest'] ?? null)!==($ack['canonical_digest'] ?? null)) {
+                throw new DomainException('learning_batch.receipt_authority_mismatch');
+            }
+            self::assertDeadline($deadline);
+            $terminal=['exitcode'=>0,'stdout'=>$stdout];
+            throw $signal;
+        };
+    }
+    private function bundle(array $token, ?float $deadline=null, ?\Closure $checkpoint=null): array {
         self::assertDeadline($deadline);
-        $result=LearningBatch::locked($token,function ($row) use ($deadline) {
+        $result=LearningBatch::locked($token,function ($row) use ($deadline, $checkpoint) {
             self::assertDeadline($deadline);
             $export=app(LearningCaseExport::class);
             $export->resumeEligibilityFromBatch($row);
             self::assertDeadline($deadline);
-            $bundle=$export->eligibilityBundleForAccounts(config('services.learning_batch.actors'));
+            // Producer budget enters the bounded actor/stage loops; default issuance keeps null.
+            $bundle=$export->eligibilityBundleForAccounts(config('services.learning_batch.actors'),
+                $checkpoint ?? ($deadline===null ? null : fn () => self::assertDeadline($deadline)));
             self::assertDeadline($deadline);
             $witness=$row->issuer_state['dataset_witness'] ?? null;
             $export->persistEligibilityInBatch($row);
@@ -38,6 +66,69 @@ final class RunLearningBatch extends Command
         unset($bindings['manifest_digest']);
         return hash('sha256',json_encode([$bundle['jsonl'],$manifest['cases'],$manifest['tombstones'],$bindings],JSON_THROW_ON_ERROR));
     }
+    /** Negative evidence only. A null result always leaves the full producer path mandatory. */
+    public function denySourceDrift(array $token, ?float $deadline=null): ?array {
+        self::assertDeadline($deadline);
+        return LearningBatch::locked($token,function () use ($token,$deadline) {
+            $c=\Illuminate\Support\Facades\DB::connection(); $pdo=$c->getPdo(); $level=$c->transactionLevel();
+            $read=function () use ($c,$token): array {
+                $raw=$c->table('learning_batches')->where('id',1)->lockForUpdate()->first();
+                if ($raw===null || $raw->batch_id!==$token['batch_id'] || $raw->fence!==$token['fence']
+                    || $raw->status!=='running' || $raw->lease_until<=now()->getTimestamp()) {
+                    throw new DomainException('learning_batch.stale_owner');
+                }
+                return (array)$raw;
+            };
+            $raw=$read();
+            $cursor=json_decode($raw['issuer_state'] ?? 'null',true,512,JSON_THROW_ON_ERROR);
+            if (!is_array($cursor) || !is_int($cursor['generation'] ?? null) || $cursor['generation']<0
+                || $cursor['generation']>=9007199254740991 || !is_array($cursor['history'] ?? null)) {
+                throw new DomainException('learning_eligibility.cursor_invalid');
+            }
+            $witness=$cursor['dataset_witness'] ?? null;
+            if ($witness===null) { return null; }
+            if (!is_array($witness) || ($witness['token'] ?? null)!==$token
+                || !is_array($witness['bundle'] ?? null) || !is_array($witness['state'] ?? null)
+                || ($witness['context_digest'] ?? null)!==$raw['context_digest']) {
+                throw new DomainException('learning_batch.witness_invalid');
+            }
+            $bundle=$witness['bundle'];
+            foreach (['jsonl','manifest_json','bindings_json'] as $key) {
+                if (!is_string($bundle[$key] ?? null) || strlen($bundle[$key])>1048576) { throw new DomainException('learning_batch.witness_invalid'); }
+            }
+            if (self::authorityContext($bundle)!==$raw['context_digest']) { throw new DomainException('learning_batch.witness_invalid'); }
+            $state=json_decode($raw['dataset_state'] ?? 'null',true,512,JSON_THROW_ON_ERROR) ?? [];
+            // Any intervening dataset update needs the ordinary complete reconciliation.
+            if ($state!==$witness['state']) { return null; }
+            $checkpoint=fn () => self::assertDeadline($deadline);
+            $export=app(LearningCaseExport::class);
+            $negative=$export->sourceDriftExclusions($cursor,$bundle,$checkpoint);
+            if ($negative===null || $negative===[]) { return null; }
+            foreach (['lineage','excluded','tombstones'] as $key) {
+                if (isset($state[$key]) && !is_array($state[$key])) { throw new DomainException('learning_batch.state_invalid'); }
+            }
+            if (isset($state['invalidated']) && (!is_array($state['invalidated']) || !array_is_list($state['invalidated']))) {
+                throw new DomainException('learning_batch.state_invalid');
+            }
+            foreach (array_keys($state['lineage'] ?? []) as $digest) {
+                if (!is_string($digest) || !preg_match('/\A[a-f0-9]{64}\z/D',$digest)) { throw new DomainException('learning_batch.state_invalid'); }
+                if (!in_array($digest,$state['invalidated'] ?? [],true)) { $state['invalidated'][]=$digest; }
+            }
+            foreach ($negative as $exclusion) { $state['excluded'][$exclusion['case_id']]=$exclusion['reason']; }
+            $checkpoint();
+            if ($read()!==$raw || \Illuminate\Support\Facades\DB::connection()!==$c || $c->getPdo()!==$pdo || $c->transactionLevel()!==$level) {
+                throw new DomainException('learning_batch.witness_changed');
+            }
+            $cursor['generation']++;
+            // Raw conditional update: retrieved batch/issuer attributes are never write authority.
+            $changed=$c->table('learning_batches')->where('id',1)->where('batch_id',$token['batch_id'])->where('fence',$token['fence'])
+                ->where('status','running')->where('lease_until','>',now()->getTimestamp())
+                ->update(['issuer_state'=>json_encode($cursor,JSON_THROW_ON_ERROR),'dataset_state'=>json_encode($state,JSON_THROW_ON_ERROR)]);
+            if ($changed!==1) { throw new DomainException('learning_batch.stale_owner'); }
+            // Return across the transaction boundary before the caller aborts the child/batch.
+            return ['denied'=>true,'exclusions'=>$negative];
+        });
+    }
     public function handle(): int {
         $token=null; $process=null; $exit=null; $artifact=null; $fresh=null; $ackManifest=null;
         try {
@@ -52,7 +143,7 @@ final class RunLearningBatch extends Command
                 $row->issuer_state=$cursor; $row->context_digest=$context; $row->save(); return $prior;
             });
             $root=dirname(base_path());
-            $python=$root.'/ai-service/.venv-learning/Scripts/python.exe';
+            $python=$root.'/ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python');
             // Fixed trusted local launcher; no executable, shell or path supplied by a user.
             $mode=config('services.learning_batch.adversarial_mode','');
             if (!in_array($mode,['','timeout','crash','malformed','oversized','receipt_generation'],true)) { throw new DomainException('learning_batch.mode_invalid'); }
@@ -86,7 +177,7 @@ final class RunLearningBatch extends Command
             ]),['bypass_shell'=>true]);
             if (!is_resource($process)) { throw new DomainException('learning_batch.start_failed'); }
             self::assertDeadline($deadline);
-            $sent=false; $lastPoll=$started;
+            $sent=false; $lastPoll=$started; $terminal=null; $signal=new DomainException('learning_batch.child_terminal');
             while (true) {
                 self::assertDeadline($deadline);
                 $status=proc_get_status($process);
@@ -100,18 +191,35 @@ final class RunLearningBatch extends Command
                     self::assertDeadline($deadline);
                     LearningBatch::heartbeat($token);
                     self::assertDeadline($deadline);
-                    $fresh=$this->bundle($token,$deadline); $lastPoll=hrtime(true)/1e9;
+                    if ($this->denySourceDrift($token,$deadline)!==null) { throw new DomainException('learning_batch.authority_changed'); }
+                    // After the acked refresh, a validated exit aborts this partial poll (full rollback);
+                    // only this closure's own signal object is consumed, everything else propagates.
+                    $checkpoint=$sent && $ackManifest!==null
+                        ? self::terminalCheckpoint($deadline,fn () => proc_get_status($process),$artifact,$ackManifest,$terminal,$signal) : null;
+                    try { $fresh=$this->bundle($token,$deadline,$checkpoint); }
+                    catch (DomainException $caught) {
+                        if ($caught!==$signal || $terminal===null) { throw $caught; }
+                        $exit=$terminal['exitcode']; break;
+                    }
+                    $lastPoll=hrtime(true)/1e9;
                     $output=self::readOutput($artifact.'/stdout.log',1048576);
                     if (self::authorityContext($fresh)!==$context) { throw new DomainException('learning_batch.authority_changed'); }
                     self::assertDeadline($deadline);
+                    // Synchronous bundle may outlive the child: reobserve instead of acting on old status.
+                    $status=proc_get_status($process);
+                    if (!$status['running']) { $exit=$status['exitcode']; break; }
                     $polled=true;
                 }
                 if (!$sent && str_contains($output,"\n")) {
                     $ready=json_decode(explode("\n",$output)[0],true,32,JSON_THROW_ON_ERROR);
                     if ($ready!==['ready'=>true]) { throw new DomainException('learning_batch.output_invalid'); }
                     if (!$polled) {
+                        if ($this->denySourceDrift($token,$deadline)!==null) { throw new DomainException('learning_batch.authority_changed'); }
                         $fresh=$this->bundle($token,$deadline);
                         if (self::authorityContext($fresh)!==$context) { throw new DomainException('learning_batch.authority_changed'); }
+                        self::assertDeadline($deadline);
+                        $status=proc_get_status($process);
+                        if (!$status['running']) { $exit=$status['exitcode']; break; }
                     }
                     $ackManifest=json_decode($fresh['manifest_json'],true,512,JSON_THROW_ON_ERROR);
                     self::assertDeadline($deadline);
@@ -330,7 +438,7 @@ final class RunLearningBatch extends Command
         $root=dirname(base_path()); $started=hrtime(true)/1e9; $deadline=$started+6; $process=null;
         try {
             self::assertDeadline($deadline,'learning_batch.witness_timeout');
-            $process=proc_open([$root.'/ai-service/.venv-learning/Scripts/python.exe','-B',$root.'/ai-service/scripts/learning-case-batch.py','--witness'],[
+            $process=proc_open([$root.'/ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python'),'-B',$root.'/ai-service/scripts/learning-case-batch.py','--witness'],[
                 0=>['file',$artifact.'/input.json','r'],1=>['file',$artifact.'/stdout.log','w'],2=>['file',$artifact.'/stderr.log','w'],
             ],$pipes,$root.'/ai-service',array_replace(array_diff_key(getenv(),['I4S_BATCH_NATIVE_ARTIFACT_ROOT'=>true]),$nativeMetadata,[
                 'PYTHONPATH'=>$root.'/ai-service/src'.PATH_SEPARATOR.$root.'/ai-service/src/tests','PYTHONDONTWRITEBYTECODE'=>'1',

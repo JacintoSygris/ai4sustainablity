@@ -810,3 +810,56 @@ test("learning closure 409 matches controller body and email oneOf exactly", () 
   assert.match(controller, /response\(\)->json\(\['code'=>\$forbidden\?'learning_case_blocked':'learning_case_conflict','message'=>\$forbidden\?/)
   assert.match(controller, /\$forbidden\?403:409/)
 })
+
+test("public locale contract publishes the guest protocol and exact supported enum", () => {
+  const contract = JSON.parse(read("../contracts/api/frontend-characterization-openapi-v0.json"))
+  const routes = read("../web/routes/api.php")
+  const locale = contract.paths["/api/locale"]
+  assert.ok(locale, "OpenAPI must publish /api/locale")
+  const schemas = contract.components.schemas
+  assert.deepEqual(schemas.Locale.properties.locale.enum, ["es", "en"])
+  assert.deepEqual(schemas.LocaleUpdateRequest.properties.locale.enum, ["es", "en"])
+  assert.deepEqual(schemas.LocaleUpdateRequest.required, ["locale"])
+  assert.equal(schemas.Locale.properties.locale.default, "es")
+  assert.ok(schemas.Locale.required.includes("csrf_token"))
+  for (const method of ["get", "put"]) {
+    assert.deepEqual(locale[method].security, [], "guests do not require authenticated sessions")
+    assert.equal(locale[method].responses["200"].content["application/json"].schema.$ref, "#/components/schemas/LocaleEnvelope")
+    for (const header of ["Content-Language", "Vary", "Cache-Control"]) assert.ok(locale[method].responses["200"].headers[header])
+    assert.match(routes, /LocaleController::class/)
+  }
+  assert.equal(locale.put.requestBody.content["application/json"].schema.$ref, "#/components/schemas/LocaleUpdateRequest")
+  assert.ok(locale.put.responses["422"])
+  assert.ok(locale.put.responses["419"])
+  assert.ok(locale.put.responses["429"])
+  for (const text of [JSON.stringify(locale)]) {
+    assert.match(text, /es.*en/)
+    assert.match(text, /Accept-Language/)
+    assert.match(text, /X-CSRF-TOKEN/)
+    assert.match(text, /private, no-store/)
+  }
+})
+
+test("report fact request types reject numeric literals while historical response values remain readable", () => {
+  const filename = join(root, "tests/report-fact-type-regression.ts")
+  const source = `import type { LaravelReportingFactInput, LaravelReportingFact } from "../lib/laravel-api"
+    const exact: LaravelReportingFactInput["value"] = "9007199254740993.125"
+    // @ts-expect-error New numeric writes must preserve their exact lexical value.
+    const literal: LaravelReportingFactInput["value"] = 9007199254740993.125
+    const historical: LaravelReportingFact["value"] = 42.5
+  `
+  const config = ts.readConfigFile(join(root, "tsconfig.json"), ts.sys.readFile)
+  assert.equal(config.error, undefined)
+  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root)
+  assert.deepEqual(parsed.errors, [])
+  // Resolve the real TS/ESM boundary with the application's configuration.
+  // Disable only build-info output for this in-memory regression.
+  const options = { ...parsed.options, incremental: false }
+  assert.equal(options.strict, true)
+  assert.notEqual(options.noImplicitAny, false)
+  const host = ts.createCompilerHost(options)
+  const getSourceFile = host.getSourceFile.bind(host)
+  host.getSourceFile = (path, ...args) => path === filename ? ts.createSourceFile(path, source, options.target, true) : getSourceFile(path, ...args)
+  const program = ts.createProgram([filename], options, host)
+  assert.deepEqual(ts.getPreEmitDiagnostics(program).map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")), [])
+})

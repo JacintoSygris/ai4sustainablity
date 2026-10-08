@@ -10,8 +10,9 @@ function read(relativePath) {
 test("Spanish application shell declares locale and localized metadata", () => {
   const layout = read("app/layout.tsx")
 
-  assert.match(layout, /<html lang=["']es["']>/)
-  assert.match(layout, /Preparaci[oó]n ESRS asistida/)
+  assert.match(layout, /<html lang=\{locale\}>/)
+  assert.match(layout, /getLaravelServerLocale/)
+  assert.match(read("lib/i18n/locale.mjs"), /Preparaci[oó]n NEIS asistida/)
   assert.doesNotMatch(layout, /\/favicon\.png/)
   assert.match(layout, /\/icon-light-32x32\.png/)
   assert.match(layout, /\/apple-icon\.png/)
@@ -55,7 +56,7 @@ test("active UI primitives do not leak English accessibility copy", () => {
 test("dashboard header exposes named account controls", () => {
   const source = read("components/dashboard/dashboard-header.tsx")
 
-  assert.match(source, /aria-label=["']Abrir men[uú] de usuario["']/)
+  assert.match(source, /aria-label=\{tr\(["']Abrir men[uú] de usuario["']\)\}/)
   assert.match(source, /<HelpCircle[^>]+aria-hidden=["']true["']/)
 })
 
@@ -63,8 +64,8 @@ test("materiality workflows expose labelled searches and announced errors", () =
   const p6 = read("components/wizard/material-topics-form.tsx")
   const p8 = read("components/wizard/final-topics-selection.tsx")
 
-  assert.match(p6, /aria-label=["']Buscar tema ESRS["']/)
-  assert.match(p8, /aria-label=["']Buscar tema ESRS["']/)
+  assert.match(p6, /aria-label=\{tr\(["']Buscar tema NEIS["']\)\}/)
+  assert.match(p8, /aria-label=\{tr\(["']Buscar tema NEIS["']\)\}/)
   assert.match(p6, /role=["']alert["']/)
   assert.match(p8, /role=["']alert["']/)
 })
@@ -91,4 +92,39 @@ test("Next frontend applies baseline security headers to rendered routes", () =>
   assert.match(source, /X-Frame-Options/)
   assert.match(source, /DENY/)
   assert.match(source, /Permissions-Policy/)
+})
+
+
+test("wizard presentation does not expose internal notes, phase codes or the previous time-bound instruction", () => {
+  const survey = read("components/wizard/initial-survey-form.tsx")
+  const internalNotesLabel = ["Notas", " internas"].join("")
+  assert.ok(!survey.includes(`label="${internalNotesLabel}"`))
+  assert.doesNotMatch(survey, /htmlFor="notes"|value=\{formData.notes\}/)
+  assert.match(survey, /notes: formData.notes.trim\(\) \|\| null/, "stored notes must be preserved in the payload")
+  const topics = read("components/wizard/material-topics-form.tsx")
+  assert.doesNotMatch(topics, /\{proposal.ai.summary\}/)
+  const datapoints = read("components/wizard/esrs-datapoints-form.tsx")
+  assert.match(datapoints, /El objetivo de este paso no es responderlo todo: es inventariar qué tienes y qué te falta/)
+  assert.doesNotMatch(datapoints, /El objetivo de hoy|\{phaseSummary.status \|\|/)
+  const forbiddenRuntimeCopy = new RegExp([
+    "\\bP(?:5|6|7|8|9|10)\\b",
+    ["small", "10"].join(""),
+    ["Prueba", " E2E"].join(""),
+    ["AI", " proposed"].join(""),
+  ].join("|"))
+  for (const file of ["initial-survey-form", "material-topics-form", "double-materiality-guide", "esrs-datapoints-form", "final-topics-selection", "report-draft-panel", "wizard-expectations", "wizard-sidebar"]) {
+    const source = read(`components/wizard/${file}.tsx`)
+    // User-facing JSX prose, excluding identifiers, API keys and comments.
+    const prose = [...source.matchAll(/>([^<>{}]+)</g)].map(match => match[1]).join(" ")
+    assert.doesNotMatch(prose, forbiddenRuntimeCopy, file)
+  }
+})
+
+
+test("characterization HTML and PDF summary never print internal notes", () => {
+  const view = read("../web/resources/views/characterization/summary.blade.php")
+  assert.doesNotMatch(view, /Arr::get\(\$formData, ['"]notes['"]|No additional notes provided/)
+  const controller = read("../web/app/Http/Controllers/CharacterizationController.php")
+  assert.match(controller, /Pdf::loadView\('characterization.summary'/)
+  assert.match(controller, /return view\('characterization.summary'/)
 })

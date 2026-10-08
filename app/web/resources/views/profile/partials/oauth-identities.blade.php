@@ -7,9 +7,9 @@
 
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Identidades sociales</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ __('Identidades sociales') }}</h2>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Vincula una identidad solo desde esta sesión autenticada. Se solicitará confirmar la contraseña.
+            {{ __('Vincula una identidad solo desde esta sesión autenticada. Se solicitará confirmar la contraseña.') }}
         </p>
     </header>
 
@@ -31,13 +31,13 @@
                 <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-gray-700 dark:text-gray-300">{{ $label }}</span>
                     @if ($linked)
-                        <span class="text-sm font-medium text-emerald-700">Vinculada</span>
+                        <span class="text-sm font-medium text-emerald-700">{{ __('Vinculada') }}</span>
                     @else
                         <a
                             href="{{ route('social.link', ['provider' => $provider]) }}"
                             class="rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-700"
                         >
-                            Vincular {{ $label }}
+                            {{ __('Vincular') }} {{ $label }}
                         </a>
                     @endif
                 </div>

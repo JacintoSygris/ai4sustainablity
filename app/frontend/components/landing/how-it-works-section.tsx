@@ -1,24 +1,32 @@
+"use client"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 export function HowItWorksSection() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const steps = [
     {
       number: 1,
-      title: "Caracterización inicial",
-      description: "Define tu sector, tamaño, alcance geográfico y productos/servicios.",
+      title: tr("Caracterización inicial"),
+      description: tr("Define tu sector, tamaño, alcance geográfico y productos/servicios."),
     },
     {
       number: 2,
-      title: "Revisión de asuntos ASG",
-      description: "Contrasta las propuestas con tu actividad, cadena de valor y criterio del equipo responsable.",
+      title: tr("Revisión de asuntos ASG"),
+      description: tr("Contrasta las propuestas con tu actividad, cadena de valor y criterio del equipo responsable."),
     },
     {
       number: 3,
-      title: "Doble materialidad y datos",
-      description: "Registra la selección humana y reúne indicadores/datos ESRS, pendientes y evidencias.",
+      title: tr("Doble importancia relativa y datos"),
+      description: tr("Registra la selección humana y reúne datos normativos NEIS, pendientes y evidencias."),
     },
     {
       number: 4,
-      title: "Resumen y exportación",
-      description: "Consulta el estado de preparación y descarga salidas de trabajo para revisión posterior.",
+      title: tr("Resumen y exportación"),
+      description: tr("Consulta el estado de preparación y descarga salidas de trabajo para revisión posterior."),
     },
   ]
 
@@ -28,14 +36,11 @@ export function HowItWorksSection() {
         <div className="grid gap-12 lg:grid-cols-2">
           {/* Left side - Description */}
           <div className="rounded-2xl bg-primary p-8 text-primary-foreground lg:p-12">
-            <h2 className="text-2xl font-bold md:text-3xl">¿Cómo te ayuda Airis?</h2>
+            <h2 className="text-2xl font-bold md:text-3xl">{tr("¿Cómo te ayuda Airis?")}</h2>
             <p className="mt-4 text-primary-foreground/80">
-              Airis organiza el recorrido ASG/CSRD/ESRS y deja visible qué está registrado, qué falta y qué sigue
-              dependiendo de tu equipo.
-            </p>
+              {" "}{tr("Airis organiza el recorrido ASG/CSRD/NEIS y deja visible qué está registrado, qué falta y qué sigue dependiendo de tu equipo.")}{" "}</p>
             <button className="mt-6 rounded-lg border border-primary-foreground/30 px-6 py-2 text-sm font-medium transition-colors hover:bg-primary-foreground/10">
-              Descubrir
-            </button>
+              {" "}{tr("Descubrir")}{" "}</button>
           </div>
 
           {/* Right side - Steps */}
@@ -49,8 +54,8 @@ export function HowItWorksSection() {
                   {step.number}
                 </div>
                 <div>
-                  <h3 className="font-semibold">{step.title}</h3>
-                  <p className="mt-1 text-sm text-primary-foreground/80">{step.description}</p>
+                  <h3 className="font-semibold">{tr(step.title)}</h3>
+                  <p className="mt-1 text-sm text-primary-foreground/80">{tr(step.description)}</p>
                 </div>
               </div>
             ))}

@@ -16,85 +16,6 @@ final class ReportVisiblePresentation
     ];
 
     /** @var array<string, string> */
-    private const SECTION_TITLES_ES = [
-        'BP-1' => 'Bases de preparación',
-        'E1-5' => 'Consumo y combinación energética',
-        'E5-4' => 'Entradas de recursos',
-        'E5-5' => 'Salidas de recursos y residuos',
-        'S1-1' => 'Políticas relativas al personal propio',
-        'S1-6' => 'Características de la plantilla',
-        'S1-8' => 'Cobertura de la negociación colectiva',
-        'S1-9' => 'Diversidad de la plantilla',
-        'S1-10' => 'Salarios adecuados',
-        'S1-13' => 'Formación y desarrollo de capacidades',
-        'S1-14' => 'Salud y seguridad laboral',
-        'S1-15' => 'Conciliación y permisos familiares',
-        'S1-16' => 'Remuneración e igualdad salarial',
-        'S1-17' => 'Incidentes, reclamaciones y derechos humanos',
-    ];
-
-    /** @var array<string, string> */
-    private const CLAIM_LABELS_ES = [
-        'BP-1_01' => 'Base de preparación del informe',
-        'BP-1_04' => 'Alcance de la cadena de valor',
-        'E1-5_01' => 'Consumo total de energía en operaciones propias',
-        'E1-5_05' => 'Consumo de energía procedente de fuentes renovables',
-        'E1-5_09' => 'Porcentaje de energía renovable sobre el consumo total',
-        'E5-4_01' => 'Descripción de las entradas materiales de recursos',
-        'E5-4_02' => 'Masa total de productos y materiales utilizados',
-        'E5-4_03' => 'Porcentaje de materiales biológicos',
-        'E5-5_01' => 'Productos y materiales resultantes de la actividad',
-        'E5-5_05' => 'Reciclabilidad de los envases',
-        'E5-5_06' => 'Metodología de cálculo de las salidas de recursos',
-        'E5-5_07' => 'Total de residuos generados',
-        'E5-5_08' => 'Residuos desviados de eliminación',
-        'E5-5_09' => 'Residuos destinados a eliminación',
-        'E5-5_10' => 'Residuos no reciclados',
-        'E5-5_11' => 'Porcentaje de residuos no reciclados',
-        'E5-5_12' => 'Composición de los residuos',
-        'E5-5_13' => 'Flujos de residuos relevantes para la actividad',
-        'E5-5_14' => 'Materiales presentes en los residuos',
-        'E5-5_15' => 'Total de residuos peligrosos',
-        'E5-5_16' => 'Total de residuos radiactivos',
-        'E5-5_17' => 'Metodología de cálculo de los residuos',
-        'S1-1_09' => 'Sistema de prevención de accidentes laborales',
-        'S1-6_02' => 'Número de personas empleadas al cierre',
-        'S1-8_01' => 'Plantilla cubierta por convenios colectivos',
-        'S1-9_01' => 'Distribución por género en la dirección superior',
-        'S1-9_02' => 'Porcentaje por género en la dirección superior',
-        'S1-9_03' => 'Personas menores de 30 años',
-        'S1-9_04' => 'Personas de entre 30 y 50 años',
-        'S1-9_05' => 'Personas mayores de 50 años',
-        'S1-9_06' => 'Definición de dirección superior',
-        'S1-10_01' => 'Cobertura de salarios adecuados',
-        'S1-10_03' => 'Plantilla por debajo del salario adecuado de referencia',
-        'S1-13_01' => 'Indicadores de formación por género',
-        'S1-13_03' => 'Promedio de formación por género',
-        'S1-13_04' => 'Promedio de formación por persona',
-        'S1-14_01' => 'Cobertura del sistema de salud y seguridad laboral',
-        'S1-14_02' => 'Fallecimientos relacionados con el trabajo',
-        'S1-14_04' => 'Accidentes laborales registrables',
-        'S1-14_05' => 'Tasa de accidentes laborales registrables',
-        'S1-14_06' => 'Casos registrables de enfermedad profesional',
-        'S1-14_07' => 'Días perdidos por daños relacionados con el trabajo',
-        'S1-15_01' => 'Plantilla con derecho a permisos familiares',
-        'S1-15_02' => 'Uso de permisos familiares',
-        'S1-15_03' => 'Uso de permisos familiares por género',
-        'S1-15_04' => 'Derecho de toda la plantilla a permisos familiares',
-        'S1-16_01' => 'Brecha salarial de género',
-        'S1-16_02' => 'Relación entre la remuneración máxima y la mediana',
-        'S1-16_03' => 'Metodología de los indicadores de remuneración',
-        'S1-17_01' => 'Incidentes de discriminación y acoso por categoría',
-        'S1-17_02' => 'Incidentes de discriminación',
-        'S1-17_03' => 'Quejas presentadas por la plantilla',
-        'S1-17_05' => 'Multas, sanciones e indemnizaciones por discriminación o acoso',
-        'S1-17_08' => 'Incidentes graves de derechos humanos',
-        'S1-17_09' => 'Incumplimientos de principios internacionales de derechos humanos',
-        'S1-17_10' => 'Ausencia de incidentes graves de derechos humanos',
-        'S1-17_11' => 'Multas, sanciones e indemnizaciones por incidentes graves',
-    ];
-
-    /** @var array<string, string> */
     private const DIMENSION_MEMBERS_ES = [
         'plant_residues' => 'Restos vegetales',
         'cardboard' => 'Cartón',
@@ -224,35 +145,13 @@ final class ReportVisiblePresentation
 
     public static function sectionTitle(mixed $drKey): string
     {
-        $key = (string) $drKey;
-
-        return self::SECTION_TITLES_ES[$key]
-            ?? ReportVisibleLabels::sectionTitle($key)
-            ?? 'Información revisada';
+        return (new \App\Support\EsrsDisplayCatalogue)->sectionTitle((string) $drKey) ?? 'Título no disponible';
     }
 
     /** @param array<string, mixed>|null $claim */
     public static function claimLabel(?string $datapointId, ?array $claim = null): string
     {
-        if (isset(self::CLAIM_LABELS_ES[(string) $datapointId])) {
-            return self::CLAIM_LABELS_ES[(string) $datapointId];
-        }
-
-        $label = ReportVisibleLabels::claimLabel((string) $datapointId);
-        if ($label !== null) {
-            return $label;
-        }
-
-        return match ((string) ($claim['value_type'] ?? '')) {
-            'text' => 'Declaración revisada',
-            'number' => 'Indicador numérico revisado',
-            'monetary' => 'Importe revisado',
-            'integer' => 'Recuento revisado',
-            'boolean' => 'Indicador sí/no revisado',
-            'enumeration' => 'Clasificación revisada',
-            'date' => 'Fecha revisada',
-            default => 'Dato revisado',
-        };
+        return (new \App\Support\EsrsDisplayCatalogue)->claimLabel((string) $datapointId) ?? 'Etiqueta no disponible';
     }
 
     public static function controlledNarrative(mixed $value): string
@@ -269,10 +168,10 @@ final class ReportVisiblePresentation
     }
 
     /** @param array<string, mixed> $claim */
-    public static function claimValue(array $claim): ?string
+    public static function claimValue(array $claim, string $locale = 'es'): ?string
     {
         $dimensions = array_key_exists('dimensions', $claim) ? $claim['dimensions'] : [];
-        self::withVisibleDimensions('', $dimensions);
+        self::withVisibleDimensions('', $dimensions, $locale);
 
         if (($claim['nil'] ?? false) === true) {
             return null;
@@ -284,7 +183,7 @@ final class ReportVisiblePresentation
         }
 
         if (is_bool($value)) {
-            return self::withVisibleDimensions($value ? 'Sí' : 'No', $dimensions);
+            return self::withVisibleDimensions($value ? ($locale === 'en' ? 'Yes' : 'Sí') : 'No', $dimensions, $locale);
         }
 
         $valueType = (string) ($claim['value_type'] ?? '');
@@ -295,33 +194,132 @@ final class ReportVisiblePresentation
         if ($isNumeric && is_numeric($value)) {
             $decimals = max(0, min(12, (int) ($claim['decimals'] ?? 0)));
             $unit = trim((string) ($claim['unit'] ?? ''));
-            if ($unit === 'año') {
-                return self::withVisibleDimensions(
-                    number_format((float) $value, $decimals, ',', ''),
-                    $dimensions,
-                );
+            $calendarYear = $unit === 'año' || $unit === 'year';
+            $formatted = $valueType !== 'monetary'
+                ? self::visibleNumber($value, $locale, ! $calendarYear)
+                : (is_string($value)
+                    ? self::formatDecimalString($value, $decimals, $locale, ! $calendarYear)
+                    : number_format($value, $decimals, $locale === 'en' ? '.' : ',', $calendarYear ? '' : ($locale === 'en' ? ',' : '.')));
+            if ($calendarYear) {
+                return self::withVisibleDimensions($formatted, $dimensions, $locale);
             }
 
-            $formatted = number_format((float) $value, $decimals, ',', '.');
-            $displayUnit = self::visibleUnit($unit, (float) $value);
+            $singular = is_string($value) ? preg_match('/^[+-]?0*1(?:\.0*)?$/D', $value) === 1 : abs($value) == 1;
+            $displayUnit = $locale === 'en'
+                ? match ($unit) {
+                    'personas', 'persons' => $singular ? 'person' : 'persons',
+                    'percent' => '%',
+                    default => $unit,
+                }
+                : self::visibleUnit($unit, $singular);
             $displayValue = $displayUnit === '' ? $formatted : $formatted.' '.$displayUnit;
 
-            return self::withVisibleDimensions($displayValue, $dimensions);
+            return self::withVisibleDimensions($displayValue, $dimensions, $locale);
         }
 
         if (is_string($value)) {
-            return self::withVisibleDimensions($value, $dimensions);
+            return self::withVisibleDimensions($value, $dimensions, $locale);
         }
 
         throw new RuntimeException('Unsupported factual value type.');
     }
 
-    private static function visibleUnit(string $unit, float $value): string
+    /** Format decimal lexemes with exact half-up rounding, without binary floating point. */
+    private static function formatDecimalString(string $value, int $decimals, string $locale, bool $group): string
     {
-        $singular = abs($value) === 1.0;
+        if (preg_match('/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/D', $value) !== 1) {
+            throw new RuntimeException('Unsupported factual decimal string.');
+        }
+        $negative = str_starts_with($value, '-');
+        [$integer, $fraction] = array_pad(explode('.', ltrim($value, '+-'), 2), 2, '');
+        $integer = ltrim($integer, '0') ?: '0';
+        $digits = $integer.str_pad(substr($fraction, 0, $decimals), $decimals, '0');
+        if (strlen($fraction) > $decimals && $fraction[$decimals] >= '5') {
+            // Carry through the decimal digits directly, even above PHP_INT_MAX.
+            $position = strlen($digits) - 1;
+            while ($position >= 0 && $digits[$position] === '9') {
+                $digits[$position--] = '0';
+            }
+            if ($position < 0) {
+                $digits = '1'.$digits;
+            } else {
+                $digits[$position] = chr(ord($digits[$position]) + 1);
+            }
+        }
+        $integer = $decimals === 0 ? $digits : substr($digits, 0, -$decimals);
+        $fraction = $decimals === 0 ? '' : substr($digits, -$decimals);
+        if ($group) {
+            $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', $locale === 'en' ? ',' : '.', $integer);
+        }
 
+        return ($negative && trim($digits, '0') !== '' ? '-' : '').$integer
+            .($decimals === 0 ? '' : ($locale === 'en' ? '.' : ',').$fraction);
+    }
+
+    private static function visibleNumber(string|int|float $value, string $locale, bool $groupThousands): string
+    {
+        if (is_float($value)) {
+            // Use native shortest round-trip serialization, independent of display precision.
+            $previousPrecision = ini_set('serialize_precision', '-1');
+            if ($previousPrecision === false) {
+                throw new RuntimeException('Unable to serialize factual float without precision loss.');
+            }
+
+            try {
+                $decimal = json_encode($value, JSON_THROW_ON_ERROR);
+            } finally {
+                ini_set('serialize_precision', $previousPrecision);
+            }
+        } else {
+            $decimal = (string) $value;
+        }
+
+        $sign = '';
+        if ($decimal[0] === '-' || $decimal[0] === '+') {
+            $sign = $decimal[0];
+            $decimal = substr($decimal, 1);
+        }
+
+        $exponent = 0;
+        if (is_float($value) && preg_match('/\A(.+)[eE]([+-]?\d+)\z/', $decimal, $matches) === 1) {
+            // Only native finite floats can reach this branch, bounding expansion to their range.
+            $decimal = $matches[1];
+            $exponent = (int) $matches[2];
+        }
+
+        [$integer, $fraction] = array_pad(explode('.', $decimal, 2), 2, '');
+        if ($exponent !== 0) {
+            $digits = $integer.$fraction;
+            $point = strlen($integer) + $exponent;
+            if ($point <= 0) {
+                $integer = '0';
+                $fraction = str_repeat('0', -$point).$digits;
+            } elseif ($point >= strlen($digits)) {
+                $integer = $digits.str_repeat('0', $point - strlen($digits));
+                $fraction = '';
+            } else {
+                $integer = substr($digits, 0, $point);
+                $fraction = substr($digits, $point);
+            }
+        }
+
+        if (is_float($value)) {
+            $fraction = rtrim($fraction, '0');
+        }
+
+        $integer = $integer === '' ? '0' : $integer;
+        if ($groupThousands) {
+            $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', $locale === 'en' ? ',' : '.', $integer);
+        }
+
+        return $sign.$integer.($fraction === '' ? '' : ($locale === 'en' ? '.' : ',').$fraction);
+    }
+
+    private static function visibleUnit(string $unit, bool $singular): string
+    {
         return match ($unit) {
-            'personas' => $singular ? 'persona' : 'personas',
+            'personas', 'persons' => $singular ? 'persona' : 'personas',
+            'percent' => '%',
             'fallecimientos' => $singular ? 'fallecimiento' : 'fallecimientos',
             'accidentes_registrables' => $singular ? 'accidente registrable' : 'accidentes registrables',
             'accidentes/1.000.000 h' => 'accidentes registrables por 1.000.000 h',
@@ -335,7 +333,7 @@ final class ReportVisiblePresentation
         };
     }
 
-    private static function withVisibleDimensions(string $value, mixed $dimensions): string
+    private static function withVisibleDimensions(string $value, mixed $dimensions, string $locale = 'es'): string
     {
         if (! is_array($dimensions)) {
             throw new RuntimeException('Unsupported factual dimension shape.');
@@ -366,6 +364,13 @@ final class ReportVisiblePresentation
                 throw new RuntimeException('Unsupported factual dimension label.');
             }
 
+            // Only closed system-code axes have translated display values. Free-text axes/members stay verbatim.
+            $systemAxis = in_array($axis, ['waste_stream', 'hazard_class', 'treatment_type', 'gender', 'contract_type', 'country', 'esrs:CountryAxis'], true);
+            if ($locale === 'en' && $systemAxis) {
+                $label = preg_match('/^País ([A-Z]{2})$/', $label, $code) === 1
+                    ? 'Country '.$code[1]
+                    : (new ReportDisplayProjection('en'))->text($label);
+            }
             $labels[] = $label;
         }
 

@@ -1,5 +1,10 @@
 "use client"
 
+import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+
+import { ui } from "@/lib/i18n/messages.mjs"
+import { useLocale } from "@/components/locale-provider"
+
 import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
@@ -16,6 +21,9 @@ import { fetchLaravelCsrfToken, laravelAuthHeaders, laravelValidationMessage } f
 const DEFAULT_HONEYPOT_FIELD = "company_website"
 
 export function RegisterForm() {
+  const { locale } = useLocale()
+  const tr = (message: string) => ui(locale, message)
+
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const securityHost = useRef<HTMLDivElement>(null)
@@ -24,7 +32,7 @@ export function RegisterForm() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useSystemMessage("")
   const [loading, setLoading] = useState(false)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [honeypotField, setHoneypotField] = useState(DEFAULT_HONEYPOT_FIELD)
@@ -59,7 +67,7 @@ export function RegisterForm() {
       })
       .catch(() => {
         setRegistrationEnabled(false)
-        setError("El registro no está disponible en este momento.")
+        setError(systemCopy("El registro no está disponible en este momento."))
       })
 
     return () => {
@@ -72,17 +80,17 @@ export function RegisterForm() {
     setError("")
 
     if (!registrationEnabled) {
-      setError("El registro no está disponible en este momento.")
+      setError(systemCopy("El registro no está disponible en este momento."))
       return
     }
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden")
+      setError(systemCopy("Las contraseñas no coinciden"))
       return
     }
 
     if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres")
+      setError(systemCopy("La contraseña debe tener al menos 8 caracteres"))
       return
     }
 
@@ -120,14 +128,14 @@ export function RegisterForm() {
       })
 
       if (!(response.ok || response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400))) {
-        setError(await laravelValidationMessage(response, "Error al crear la cuenta"))
+        setError(await laravelValidationMessage(response, tr("Error al crear la cuenta"), locale))
         return
       }
 
       router.push("/login?registration=pending")
       router.refresh()
     } catch {
-      setError("Error al crear la cuenta. Intenta de nuevo.")
+      setError(systemCopy("Error al crear la cuenta. Intenta de nuevo."))
     } finally {
       setLoading(false)
     }
@@ -137,15 +145,15 @@ export function RegisterForm() {
     <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
 
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Crear cuenta</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Empieza a generar informes ESG con inteligencia artificial</p>
+        <h1 className="text-2xl font-semibold text-foreground">{tr("Crear cuenta")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{tr("Empieza a generar informes ESG con inteligencia artificial")}</p>
       </div>
 
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Nombre completo</Label>
+          <Label htmlFor="name">{tr("Nombre completo")}</Label>
           <Input
             id="name"
             type="text"
@@ -157,11 +165,11 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{tr("Email")}</Label>
           <Input
             id="email"
             type="email"
-            placeholder="nombre@empresa.com"
+            placeholder={tr("nombre@empresa.com")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -169,12 +177,12 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="password">{tr("Contraseña")}</Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Mínimo 8 caracteres"
+              placeholder={tr("Mínimo 8 caracteres")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -191,11 +199,11 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+          <Label htmlFor="confirmPassword">{tr("Confirmar contraseña")}</Label>
           <Input
             id="confirmPassword"
             type="password"
-            placeholder="Repite tu contraseña"
+            placeholder={tr("Repite tu contraseña")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -205,7 +213,7 @@ export function RegisterForm() {
 
       {/* Anti-spam honeypot: hidden from real users, left empty; bots that fill it are rejected. */}
       <div aria-hidden="true" className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden opacity-0">
-        <label htmlFor={honeypotField}>No rellenes este campo</label>
+        <label htmlFor={honeypotField}>{tr("No rellenes este campo")}</label>
         <input
           id={honeypotField}
           name={honeypotField}
@@ -219,14 +227,13 @@ export function RegisterForm() {
       <div ref={securityHost} />
 
       <Button type="submit" className="w-full" disabled={loading || !registrationEnabled}>
-        {loading ? "Creando cuenta..." : "Crear cuenta"}
+        {loading ? tr("Creando cuenta...") : tr("Crear cuenta")}
       </Button>
 
       <div className="text-center text-sm text-muted-foreground">
-        ¿Ya tienes cuenta?{" "}
+        {" "}{tr("¿Ya tienes cuenta?")}{" "}
         <Link href="/login" className="text-primary hover:underline">
-          Inicia sesión
-        </Link>
+          {" "}{tr("Inicia sesión")}{" "}</Link>
       </div>
     </form>
   )

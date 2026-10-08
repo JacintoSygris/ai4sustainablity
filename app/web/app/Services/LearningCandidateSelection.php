@@ -157,7 +157,7 @@ final class LearningCandidateSelection
         $started=hrtime(true)/1e9; $deadline=$started+20; $process=null;
         try {
             self::assertNativeDeadline($deadline);
-            $process=proc_open([$root.'/ai-service/.venv-learning/Scripts/python.exe','-B',$root.'/ai-service/scripts/learning-case-batch.py','--candidate-check'],[
+            $process=proc_open([$root.'/ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python'),'-B',$root.'/ai-service/scripts/learning-case-batch.py','--candidate-check'],[
                 0=>['file',$artifact.'/input.json','r'],1=>['file',$artifact.'/stdout.log','w'],2=>['file',$artifact.'/stderr.log','w'],
             ],$pipes,$root.'/ai-service',array_replace(array_diff_key(getenv(),['I4S_BATCH_NATIVE_ARTIFACT_ROOT'=>true]),$nativeMetadata,[
                 'PYTHONPATH'=>$root.'/ai-service/src','PYTHONDONTWRITEBYTECODE'=>'1',

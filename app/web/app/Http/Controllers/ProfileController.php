@@ -110,7 +110,7 @@ class ProfileController extends Controller
                 ->lockForUpdate()
                 ->exists()) {
                 throw ValidationException::withMessages([
-                    'password' => 'Hay un documento en proceso. Inténtalo de nuevo cuando termine.',
+                    'password' => __('Hay un documento en proceso. Inténtalo de nuevo cuando termine.'),
                 ])->errorBag('userDeletion');
             }
 

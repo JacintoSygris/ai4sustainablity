@@ -43,7 +43,7 @@ test("double materiality guide loads Laravel P7 prose guide + persisted checklis
   assert.match(source, /sin análisis registrado/, "P7 must surface the no-acta helper text")
   assert.match(source, /He identificado a mis grupos de interés/, "P7 must use exact checklist labels from plan")
   assert.match(source, /Plantillas para tu análisis/, "P7 must render the localized templates card (restored per owner decision 2026-06-10)")
-  assert.match(source, /templateDownloadPath\(template\.key, locale\)/, "P7 template downloads must be per-locale")
+  assert.match(source, /templateDownloadPath\(template\.key\)/, "P7 template downloads must use the persisted application locale")
   assert.doesNotMatch(source, /Plantillas ADM/, "P7 must not use the ADM jargon in the templates card title")
   assert.doesNotMatch(source, /firstOpenStepKey\(guideResponse\.data\)/, "P7 sections start collapsed until the user opens them")
   assert.match(source, /canContinueFromGuideState/, "P7 component must gate continuation from guide state")
@@ -54,19 +54,19 @@ test("double materiality guide loads Laravel P7 prose guide + persisted checklis
   assert.doesNotMatch(source, /reportId/, "P7 component must not accept or send local report IDs")
 })
 
-test("template download paths are locale-aware and default to Spanish", () => {
+test("template download paths follow the persisted locale without query overrides", () => {
   assert.deepEqual(TEMPLATE_LOCALES, ["es", "en"])
-  assert.equal(templateDownloadPath("iro_register"), "/double-materiality-guide/templates/iro_register.csv?locale=es")
+  assert.equal(templateDownloadPath("iro_register"), "/double-materiality-guide/templates/iro_register.csv")
   assert.equal(
     templateDownloadPath("iro_register", "en"),
-    "/double-materiality-guide/templates/iro_register.csv?locale=en",
+    "/double-materiality-guide/templates/iro_register.csv",
   )
   assert.equal(
     templateDownloadPath("stakeholder_consultation_log", "fr"),
-    "/double-materiality-guide/templates/stakeholder_consultation_log.csv?locale=es",
+    "/double-materiality-guide/templates/stakeholder_consultation_log.csv",
   )
   assert.equal(TEMPLATE_DOWNLOAD_LABELS.es, "Descargar en español")
-  assert.equal(TEMPLATE_DOWNLOAD_LABELS.en, "Download in English")
+  assert.equal(TEMPLATE_DOWNLOAD_LABELS.en, "Descargar en inglés")
 })
 
 test("double materiality guide state helpers derive progress label and acta/checklist completeness", () => {
@@ -81,7 +81,7 @@ test("double materiality guide state helpers derive progress label and acta/chec
   assert.deepEqual(firstOpenStepKey(guide), [])
   assert.deepEqual(firstOpenStepKey({ sections: [] }), [])
   assert.equal(localized({ es: "ES", en: "EN" }), "ES")
-  assert.equal(localized({ es: null, en: "EN" }), "EN")
+  assert.equal(localized({ es: null, en: "EN" }), "")
 
   assert.equal(canContinueFromGuideState({ guide, loadingInitial: false, errorMessage: null }), true)
   assert.equal(canContinueFromGuideState({ guide, loadingInitial: true, errorMessage: null }), false)

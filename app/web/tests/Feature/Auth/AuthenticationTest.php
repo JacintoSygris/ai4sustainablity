@@ -13,7 +13,7 @@ test('login screen keeps the Airis visual shell while using Laravel csrf', funct
 
     $response->assertStatus(200);
     $response->assertSee('Airis');
-    $response->assertSee('By Sygris');
+    $response->assertSee('Por Sygris');
     $response->assertSee('Necesitas ayuda');
     $response->assertSee('Español');
     $response->assertSee('Iniciar sesión');
@@ -92,7 +92,7 @@ test('configured google social login redirects to google oauth', function () {
         'services.social_login.enabled' => true,
         'services.google.client_id' => 'google-client-id',
         'services.google.client_secret' => 'google-client-secret',
-        'services.google.redirect' => 'https://i4s.ueporreres.com/auth/google/callback',
+        'services.google.redirect' => 'https://reports.example.test/auth/google/callback',
     ]);
 
     $response = $this->get('/auth/google/redirect');
@@ -109,7 +109,7 @@ test('configured microsoft social login redirects to microsoft oauth', function 
         'services.social_login.enabled' => true,
         'services.microsoft.client_id' => 'microsoft-client-id',
         'services.microsoft.client_secret' => 'microsoft-client-secret',
-        'services.microsoft.redirect' => 'https://i4s.ueporreres.com/auth/microsoft/callback',
+        'services.microsoft.redirect' => 'https://reports.example.test/auth/microsoft/callback',
         'services.microsoft.tenant' => 'common',
     ]);
 

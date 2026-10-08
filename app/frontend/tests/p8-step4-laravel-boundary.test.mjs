@@ -334,8 +334,8 @@ test("P8 mode cards and topic controls are keyboard operable and named", () => {
 
   assert.match(source, /aria-pressed=\{mode === "direct"\}/)
   assert.match(source, /aria-pressed=\{mode === "guided"\}/)
-  assert.match(source, /aria-label=\{`\$\{selected \? "Retirar" : "Añadir"\}/)
-  assert.match(source, /aria-label=\{`Motivo: \$\{r\.label\}`\}/)
+  assert.match(source, /aria-label=\{`\$\{selected \? tr\("Retirar"\) : tr\("Añadir"\)\}/)
+  assert.match(source, /aria-label=\{formatUi\(locale, "Motivo: \{0\}", \[tr\(r\.label\)\]\)\}/)
 })
 
 test("P8 draft identity binds a conflict copy to its tab and save request", () => {

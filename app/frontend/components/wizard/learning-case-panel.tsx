@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useLocale } from "@/components/locale-provider"
+import { ui as systemUi } from "@/lib/i18n/messages.mjs"
 import { learningCaseConflict, learningCaseRead, learningCaseCanSubmit } from "@/lib/learning-case-state.mjs"
 import {
   LaravelApiError, getLaravelSession, getLaravelLearningCaseDraft, saveLaravelLearningCaseDraft,
@@ -13,6 +15,8 @@ import {
 const statusCopy = { disabled: "Deshabilitado", blocked: "Bloqueado", ready: "Disponible para revisión", closed: "Cerrado", stale: "Fuentes modificadas", withdrawn: "Retirado" }
 type Draft = { reviewed_universe: boolean; final_for_period_scope: boolean; idempotency_key: string; source_token?: string | null }
 export function LearningCasePanel() {
+  const { locale } = useLocale()
+  const tr = (source: string) => systemUi(locale, source)
   const [server, setServer] = useState<LaravelLearningClosureDraft | null>(null)
   const [ui, setUi] = useState({ draft: { reviewed_universe: false, final_for_period_scope: false, idempotency_key: "" } as Draft, needsReload: false, requiresReview: false })
   const [busy, setBusy] = useState(false)
@@ -77,19 +81,19 @@ export function LearningCasePanel() {
   const canSave = canEdit && learningCaseCanSubmit(ui, server, "save")
   return <Card aria-labelledby="learning-case-title">
     <CardContent className="space-y-4 pt-6">
-      <h2 id="learning-case-title" className="text-lg font-semibold">Cierre del caso de aprendizaje</h2>
-      <p className="text-sm text-muted-foreground">Solo mecanismo local sintético. Esta declaración técnica no es consentimiento jurídico aprobado, no concede derechos reales y no acredita mejora predictiva.</p>
-      <p role="status" aria-live="polite">{server ? statusCopy[server.status] : "Leyendo estado…"}{message ? ` · ${message}` : ""}</p>
+      <h2 id="learning-case-title" className="text-lg font-semibold">{tr("Cierre del caso de aprendizaje")}</h2>
+      <p className="text-sm text-muted-foreground">{tr("Solo mecanismo local sintético. Esta declaración técnica no es consentimiento jurídico aprobado, no concede derechos reales y no acredita mejora predictiva.")}</p>
+      <p role="status" aria-live="polite">{server ? tr(statusCopy[server.status]) : tr("Leyendo estado…")}{message ? ` · ${tr(message)}` : ""}</p>
       <fieldset disabled={!canEdit} className="space-y-3">
-        <legend className="text-sm font-medium">Revisión técnica explícita</legend>
-        <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ui.draft.reviewed_universe && !ui.requiresReview} onChange={e => patch("reviewed_universe", e.target.checked)} />He revisado el universo almacenado de temas y decisiones.</label>
-        <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ui.draft.final_for_period_scope} onChange={e => patch("final_for_period_scope", e.target.checked)} />Declaro este caso final para el período y perímetro sintéticos indicados por el servidor.</label>
+        <legend className="text-sm font-medium">{tr("Revisión técnica explícita")}</legend>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ui.draft.reviewed_universe && !ui.requiresReview} onChange={e => patch("reviewed_universe", e.target.checked)} />{tr("He revisado el universo almacenado de temas y decisiones.")}</label>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ui.draft.final_for_period_scope} onChange={e => patch("final_for_period_scope", e.target.checked)} />{tr("Declaro este caso final para el período y perímetro sintéticos indicados por el servidor.")}</label>
       </fieldset>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" disabled={busy} onClick={() => { setBusy(true); void read().catch(() => setMessage("No se pudo releer.")).finally(() => { if (active.current) setBusy(false) }) }}>Releer estado</Button>
-        <Button type="button" variant="outline" disabled={!canSave} onClick={() => void perform("save")}>Guardar revisión</Button>
-        <Button type="button" disabled={!canClose} onClick={() => void perform("close")}>Cerrar caso</Button>
-        <Button type="button" variant="outline" disabled={!server?.can_withdraw || busy} onClick={() => void perform("withdraw")}>Retirar caso</Button>
+        <Button type="button" variant="outline" disabled={busy} onClick={() => { setBusy(true); void read().catch(() => setMessage("No se pudo releer.")).finally(() => { if (active.current) setBusy(false) }) }}>{tr("Releer estado")}</Button>
+        <Button type="button" variant="outline" disabled={!canSave} onClick={() => void perform("save")}>{tr("Guardar revisión")}</Button>
+        <Button type="button" disabled={!canClose} onClick={() => void perform("close")}>{tr("Cerrar caso")}</Button>
+        <Button type="button" variant="outline" disabled={!server?.can_withdraw || busy} onClick={() => void perform("withdraw")}>{tr("Retirar caso")}</Button>
       </div>
     </CardContent>
   </Card>

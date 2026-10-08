@@ -244,7 +244,7 @@ it('T07b real Laravel export Python command and import retain author bytes with 
             $f['closure']->close($f['u']->id,t07CurationInput($f)); $e=t07CurationExporter($f);
             $f['ledger']->grant($f['u']->id,$f['g']->id,'synthetic:curation',0,hash('sha256','curation-grant'));
             $packet=$e->exportForAccount($f['u']->id,$e->referenceForAccount($f['u']->id));
-            $native=new Symfony\Component\Process\Process([base_path('../ai-service/.venv-learning/Scripts/python.exe'),'-B','-c',
+            $native=new Symfony\Component\Process\Process([base_path('../ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python')),'-B','-c',
                 'import json,sys; from learning_case_curation_adapter import annotation_command; v=json.load(sys.stdin); print(json.dumps(annotation_command(v["export"],v["input"]),separators=(",",":")))'],base_path('../ai-service/src'));
             $input=json_encode(['schema_version'=>'learning-case-curation-input-v1','expected_annotation_revision'=>0,'command_id'=>hash('sha256','annotation-roundtrip'),'topic_labels'=>[['topic_id'=>'1','value'=>0,'observed_mask'=>1]],'note'=>'SYNTHETIC_FREE_NOTE']);
             $native->setInput(json_encode(['export'=>$packet['jsonl'],'input'=>$input]));$native->setTimeout(10);$native->run();

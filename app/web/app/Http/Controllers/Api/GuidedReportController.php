@@ -108,14 +108,14 @@ class GuidedReportController extends Controller
             return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
         }
 
-        $bytes = $this->docx->render($ir);
+        $bytes = $this->docx->render($ir, app()->getLocale());
         if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
             return $block;
         }
 
         return response($bytes, 200)
             ->header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            ->header('Content-Disposition', 'attachment; filename="informe-esrs-borrador.docx"');
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-draft-report.docx' : 'informe-neis-borrador.docx').'"');
     }
 
     public function evidenceBundle(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -144,12 +144,13 @@ class GuidedReportController extends Controller
             return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
         }
 
-        $bundle = $this->evidence->build($ir);
+        $bundle = $this->evidence->build($ir, [], app()->getLocale());
         if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
             return $block;
         }
 
-        return response()->json(['data' => $bundle]);
+        return response()->json(['data' => $bundle])
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-evidence-bundle.json' : 'paquete-evidencias-neis.json').'"');
     }
 
     public function html(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -178,14 +179,14 @@ class GuidedReportController extends Controller
             return $this->blocked($ir['content_readiness']['reasons'][0] ?? 'completed_datapoint_facts_missing');
         }
 
-        $html = $this->html->render($ir);
+        $html = $this->html->render($ir, app()->getLocale());
         if ($block = $this->finalPublicationSnapshotBlock($snapshot)) {
             return $block;
         }
 
         return response($html, 200)
             ->header('Content-Type', 'text/html; charset=UTF-8')
-            ->header('Content-Disposition', 'attachment; filename="informe-esrs-borrador.html"');
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-draft-report.html' : 'informe-neis-borrador.html').'"');
     }
 
     public function xhtmlIxbrlCandidate(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -224,7 +225,7 @@ class GuidedReportController extends Controller
                     'xhtml_ixbrl_candidate_blocked',
                 );
             }
-            $xhtml = $this->xhtmlIxbrl->render($ir, $profile, $manifest);
+            $xhtml = $this->xhtmlIxbrl->render($ir, $profile, $manifest, app()->getLocale());
             $this->arelle->validate($xhtml, $profile, $manifest);
         } catch (DomainException) {
             return $this->blocked('approved_snapshot_invalid', 'xhtml_ixbrl_candidate_blocked');
@@ -238,7 +239,7 @@ class GuidedReportController extends Controller
 
         return response($xhtml, 200)
             ->header('Content-Type', 'application/xhtml+xml; charset=UTF-8')
-            ->header('Content-Disposition', 'attachment; filename="informe-esrs-candidato.xhtml"')
+            ->header('Content-Disposition', 'attachment; filename="'.(app()->getLocale() === 'en' ? 'esrs-candidate-report.xhtml' : 'informe-neis-candidato.xhtml').'"')
             ->header('X-Report-Publication-State', 'validated_candidate');
     }
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { useLocale } from "@/components/locale-provider"
 import type { ReactNode } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary"
@@ -10,7 +11,8 @@ type TermProps = {
 }
 
 export function Term({ k, children }: TermProps) {
-  const entry = GLOSSARY[k]
+  const { locale } = useLocale()
+  const entry = GLOSSARY[k][locale]
 
   return (
     <Tooltip>
@@ -23,8 +25,8 @@ export function Term({ k, children }: TermProps) {
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-sm bg-foreground px-3 py-2 text-left text-background">
-        <p className="font-semibold">{entry.es.term}</p>
-        <p className="mt-1 leading-snug">{entry.es.definition}</p>
+        <p className="font-semibold">{entry.term}</p>
+        <p className="mt-1 leading-snug">{entry.definition}</p>
       </TooltipContent>
     </Tooltip>
   )

@@ -32,12 +32,12 @@ class EnsureCurrentAuthVersion
 
             if ($request->expectsJson()) {
                 return response()->json([
-                    'message' => 'La sesión ya no es válida. Vuelve a iniciar sesión.',
+                    'message' => __('La sesión ya no es válida. Vuelve a iniciar sesión.'),
                     'code' => 'session_revoked',
                 ], 401);
             }
 
-            return redirect()->route('login')->with('status', 'Tu sesión ha caducado. Vuelve a iniciar sesión.');
+            return redirect()->route('login')->with('status', __('Tu sesión ha caducado. Vuelve a iniciar sesión.'));
         }
 
         return $next($request);

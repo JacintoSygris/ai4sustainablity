@@ -7,15 +7,15 @@ class DoubleMaterialityGuide
     /**
      * @return array<string, mixed>
      */
-    public static function toArray(): array
+    public static function toArray(string $locale = 'es'): array
     {
-        return [
+        $guide = [
             'type' => 'double_materiality_guide',
             'phase' => 'P7',
             'content_format' => 'structured_prose_v2',
             'warning' => [
                 'en' => 'The guide accelerates the external double materiality assessment; it does not decide materiality.',
-                'es' => 'La guía acelera la ADM externa; no decide la materialidad.',
+                'es' => 'La guía facilita el análisis externo de doble importancia relativa; no decide la materialidad.',
             ],
             'sections' => [
                 self::section(
@@ -145,7 +145,7 @@ class DoubleMaterialityGuide
                         self::step(
                             'sync_to_laravel',
                             'Sync final materiality back to the app',
-                            'Sincronizar la materialidad final en la app',
+                            'Sincronizar la materialidad final en la aplicación',
                             [
                                 'en' => 'Return to the application with your closed list and the meeting record (date, method, participants). In step 4 you will record the changes against the proposal and the application will save your decision sheet.',
                                 'es' => 'Vuelve a la aplicación con tu lista cerrada y el acta de la reunión (fecha, método, participantes). En el paso 4 registrarás los cambios frente a la propuesta y la aplicación guardará tu hoja de decisión.',
@@ -181,10 +181,21 @@ class DoubleMaterialityGuide
                 'next_api' => '/api/materiality-confirmation',
                 'note' => [
                     'en' => 'When you finish the analysis, return to step 4 to confirm your final material topics. Step 5 will derive the data to report from that selection.',
-                    'es' => 'Cuando termines el análisis, vuelve al paso 4 para confirmar tus temas materiales finales. El paso 5 derivará los datos a reportar de esa selección.',
+                    'es' => 'Cuando termines el análisis, vuelve al paso 4 para confirmar tus temas materiales finales. El paso 5 derivará los datos que incluir en el informe de esa selección.',
                 ],
             ],
         ];
+        $locale = ApplicationLocale::normalize($locale);
+        $labels = $locale === 'en'
+            ? json_decode(file_get_contents(dirname(__DIR__, 2).'/lang/en.json'), true, 512, JSON_THROW_ON_ERROR) : [];
+        foreach ($guide['sections'] as &$section) {
+            foreach ($section['steps'] as &$step) {
+                $step['checks'] = array_map(fn (string $check) => $labels[$check] ?? $check, $step['checks']);
+            }
+        }
+        $guide['locale'] = $locale;
+
+        return $guide;
     }
 
     public const TEMPLATE_LOCALES = ['en', 'es'];
@@ -274,7 +285,9 @@ class DoubleMaterialityGuide
         fclose($handle);
 
         return [
-            'filename' => str_replace('_', '-', $key).'-template-'.$locale.'.csv',
+            'filename' => $locale === 'es'
+                ? ($key === 'iro_register' ? 'plantilla-registro-impactos-riesgos-oportunidades.csv' : 'plantilla-consultas-grupos-interes.csv')
+                : str_replace('_', '-', $key).'-template-en.csv',
             'content' => $content === false ? '' : $content,
         ];
     }

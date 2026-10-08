@@ -22,7 +22,7 @@ it('claims only non-confirmation for inferred evidence', function () {
     $c = new FloorProseComposer();
 
     expect($c->omissionStatement(omittedTopic('Agua y recursos marinos', NotMaterialTopicResolver::GRADE_INFERRED)))
-        ->toBe('Agua y recursos marinos no fue confirmado como material tras la evaluación de doble materialidad.');
+        ->toBe('Agua y recursos marinos no fue confirmado como material tras la evaluación de doble importancia relativa.');
 });
 
 it('appends canonical reason phrases but never the free-text note', function () {
