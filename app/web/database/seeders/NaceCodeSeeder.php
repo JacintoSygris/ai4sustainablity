@@ -29,8 +29,6 @@ class NaceCodeSeeder extends Seeder
             return;
         }
 
-        DB::table('nace_codes')->truncate();
-
         $now = now();
         $records = [];
 
@@ -47,7 +45,9 @@ class NaceCodeSeeder extends Seeder
         }
 
         foreach (array_chunk($records, 200) as $chunk) {
-            DB::table('nace_codes')->insert($chunk);
+            DB::table('nace_codes')->upsert($chunk, ['code'], [
+                'level', 'parent_code', 'title_en', 'title_es', 'updated_at',
+            ]);
         }
 
         $this->command?->info('Seeded NACE codes: '.count($records));

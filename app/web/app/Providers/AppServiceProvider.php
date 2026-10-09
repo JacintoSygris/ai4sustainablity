@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\DenyLearningAuthorizationAuthority;
 use App\Services\LearningAuthorizationAuthority;
+use App\Support\AppUrlWarning;
 use App\Support\CanonicalPublicUrl;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -29,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $host = strtolower((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: ''));
+        if ($this->app->environment('production')
+            && in_array($host, ['', 'localhost', 'example.com', 'app.example.org'], true)) {
+            $this->app->make(AppUrlWarning::class)->logOnce();
+        }
+
         $trustedHosts = (bool) config('app.enforce_trusted_hosts', false)
             ? array_values(array_filter((array) config('app.trusted_hosts', []), 'is_string'))
             : [];

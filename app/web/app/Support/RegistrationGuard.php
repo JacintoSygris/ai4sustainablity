@@ -31,27 +31,36 @@ class RegistrationGuard
 
     public static function registrationAvailable(): bool
     {
-        if (! config('services.auth_hardening.public_registration_enabled')) {
-            return false;
-        }
+        return self::registrationUnavailableReasons() === [];
+    }
+
+    /** @return list<string> Configuration names only; never include secret values. */
+    public static function registrationUnavailableReasons(): array
+    {
+        $checks = [
+            'AUTH_PUBLIC_REGISTRATION_ENABLED' => (bool) config('services.auth_hardening.public_registration_enabled'),
+        ];
 
         if (! app()->environment('production')) {
-            return true;
+            return $checks['AUTH_PUBLIC_REGISTRATION_ENABLED'] ? [] : ['AUTH_PUBLIC_REGISTRATION_ENABLED'];
         }
 
         $siteKey = trim((string) config('services.auth_hardening.turnstile.site_key'));
         $secret = trim((string) config('services.auth_hardening.turnstile.secret'));
 
-        return (bool) config('services.auth_hardening.require_email_verification')
-            && self::isTurnstileConfigured()
-            && ! in_array($siteKey, self::TURNSTILE_TEST_SITE_KEYS, true)
-            && ! in_array($secret, self::TURNSTILE_TEST_SECRET_KEYS, true)
-            && filled(config('services.auth_hardening.turnstile.expected_hostname'))
-            && config('services.auth_hardening.turnstile.expected_action') === 'register'
-            && hash_equals(self::TURNSTILE_VERIFY_URL, trim((string) config('services.auth_hardening.turnstile.verify_url')))
-            && SensitiveDeliveryGuard::queueIsDurable()
-            && SensitiveDeliveryGuard::mailerProtectsSecrets()
-            && self::hasBoundCanonicalOrigin();
+        $checks += [
+            'AUTH_REQUIRE_EMAIL_VERIFICATION' => (bool) config('services.auth_hardening.require_email_verification'),
+            'TURNSTILE_SITE_KEY' => $siteKey !== '' && ! in_array($siteKey, self::TURNSTILE_TEST_SITE_KEYS, true),
+            'TURNSTILE_SECRET' => $secret !== '' && ! in_array($secret, self::TURNSTILE_TEST_SECRET_KEYS, true),
+            'TURNSTILE_EXPECTED_HOSTNAME' => filled(config('services.auth_hardening.turnstile.expected_hostname')),
+            'TURNSTILE_EXPECTED_ACTION' => config('services.auth_hardening.turnstile.expected_action') === 'register',
+            'TURNSTILE_VERIFY_URL' => hash_equals(self::TURNSTILE_VERIFY_URL, trim((string) config('services.auth_hardening.turnstile.verify_url'))),
+            'QUEUE_CONNECTION' => SensitiveDeliveryGuard::queueIsDurable(),
+            'MAIL_MAILER' => SensitiveDeliveryGuard::mailerProtectsSecrets(),
+            'APP_URL_TURNSTILE_HOSTNAME' => self::hasBoundCanonicalOrigin(),
+        ];
+
+        return array_keys(array_filter($checks, static fn (bool $passed): bool => ! $passed));
     }
 
     /**

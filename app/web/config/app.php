@@ -1,7 +1,15 @@
 <?php
 
 $applicationUrl = (string) env('APP_URL', 'http://localhost');
-$defaultTrustedHost = (string) (parse_url($applicationUrl, PHP_URL_HOST) ?: 'localhost');
+$trustedHosts = array_merge(
+    explode(',', (string) env('TRUSTED_HOSTS', '')),
+    [(string) (parse_url($applicationUrl, PHP_URL_HOST) ?: '')],
+    explode(',', (string) env('INTERNAL_TRUSTED_HOSTS', 'web,localhost,127.0.0.1')),
+);
+$trustedHosts = array_values(array_unique(array_filter(
+    array_map(static fn (string $host): string => strtolower(trim($host)), $trustedHosts),
+    static fn (string $host): bool => ! in_array($host, ['', 'example.com', 'app.example.org'], true),
+)));
 
 return [
 
@@ -57,10 +65,7 @@ return [
 
     'url' => $applicationUrl,
 
-    'trusted_hosts' => array_values(array_filter(array_map(
-        static fn (string $host): string => trim($host),
-        explode(',', (string) env('TRUSTED_HOSTS', $defaultTrustedHost)),
-    ))),
+    'trusted_hosts' => $trustedHosts,
 
     'enforce_trusted_hosts' => (bool) env('ENFORCE_TRUSTED_HOSTS', env('APP_ENV', 'production') === 'production'),
 

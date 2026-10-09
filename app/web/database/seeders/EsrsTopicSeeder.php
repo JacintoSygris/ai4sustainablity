@@ -30,8 +30,6 @@ class EsrsTopicSeeder extends Seeder
             return;
         }
 
-        DB::table('esrs_topics')->truncate();
-
         $now = now();
         $records = [];
 
@@ -75,7 +73,10 @@ class EsrsTopicSeeder extends Seeder
         }
 
         foreach (array_chunk($records, 200) as $chunk) {
-            DB::table('esrs_topics')->insert($chunk);
+            DB::table('esrs_topics')->upsert($chunk, ['hash'], array_values(array_diff(
+                array_keys($chunk[0]),
+                ['hash', 'created_at'],
+            )));
         }
 
         $this->command?->info('Seeded ESRS topics: '.count($records));

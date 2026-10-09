@@ -6,6 +6,39 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+it('upserts reference data twice without replacing identifiers, custom rows or user data', function () {
+    $user = \App\Models\User::factory()->create();
+    $userBefore = $user->refresh()->getAttributes();
+    $seeders = [\Database\Seeders\NaceCodeSeeder::class, \Database\Seeders\EsrsTopicSeeder::class];
+    $this->seed($seeders);
+    $nace = NaceCode::firstOrFail();
+    $topic = EsrsTopic::firstOrFail();
+    $naceBefore = $nace->getAttributes();
+    $topicBefore = $topic->getAttributes();
+    $naceIds = NaceCode::orderBy('id')->pluck('id', 'code')->all();
+    $topicIds = EsrsTopic::orderBy('id')->pluck('id', 'hash')->all();
+    $customNace = $nace->replicate()->fill(['code' => 'CUSTOM']);
+    $customNace->save();
+    $customTopic = $topic->replicate()->fill(['hash' => hash('sha256', 'custom-topic')]);
+    $customTopic->save();
+
+    \Illuminate\Support\Facades\DB::table('nace_codes')->where('id', $nace->id)->update(['title_en' => 'stale']);
+    \Illuminate\Support\Facades\DB::table('esrs_topics')->where('id', $topic->id)->update(['theme_en' => 'stale']);
+    $this->seed($seeders);
+
+    expect(NaceCode::count())->toBe(count($naceIds) + 1);
+    expect(EsrsTopic::count())->toBe(count($topicIds) + 1);
+    expect(NaceCode::where('code', '!=', 'CUSTOM')->orderBy('id')->pluck('id', 'code')->all())->toBe($naceIds);
+    expect(EsrsTopic::where('hash', '!=', $customTopic->hash)->orderBy('id')->pluck('id', 'hash')->all())->toBe($topicIds);
+    expect($nace->fresh()->title_en)->toBe($naceBefore['title_en']);
+    expect($topic->fresh()->theme_en)->toBe($topicBefore['theme_en']);
+    expect($nace->fresh()->getRawOriginal('created_at'))->toBe($naceBefore['created_at']);
+    expect($topic->fresh()->getRawOriginal('created_at'))->toBe($topicBefore['created_at']);
+    expect($customNace->fresh())->not->toBeNull();
+    expect($customTopic->fresh())->not->toBeNull();
+    expect($user->fresh()->getAttributes())->toBe($userBefore);
+});
+
 it('seeds all NACE codes from the JSON dataset', function () {
     $dataset = json_decode(file_get_contents(base_path('data/nace_codes.json')), true);
 
