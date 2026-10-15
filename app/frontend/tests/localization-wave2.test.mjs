@@ -102,7 +102,7 @@ test('report display copy and controlled country/dimension labels have explicit 
 test('localized report output receives application locale while immutable builders stay outside translation', () => {
   const controller = read('../../web/app/Http/Controllers/Api/GuidedReportController.php')
   for (const renderer of ['docx', 'html']) assert.ok(controller.includes(`$this->${renderer}->render($ir, app()->getLocale())`))
-  assert.match(controller, /xhtmlIxbrl->render\(\$ir, \$profile, \$manifest, app\(\)->getLocale\(\)\)/)
+  assert.match(controller, /xhtmlIxbrl->render\(\$ir, \$profile, \$manifest, app\(\)->getLocale\(\), \$taxonomyId\)/)
   for (const file of ['ReportSnapshotBuilder', 'ReportClaimBuilder']) assert.doesNotMatch(read(`../../web/app/Services/Report/${file}.php`), /ReportDisplayProjection|translateSystem/)
   assert.doesNotMatch(read('../components/wizard/report-draft-panel.tsx').split('async function loadP10()')[1].split('loadP10()')[0], /setDraft\(|setReadiness\(/)
 })

@@ -51,6 +51,9 @@ class EvidenceBundleBuilder
         $bundle = [
             'type' => 'report_evidence_bundle',
             'version' => 'v1',
+            ...(isset($ir['iro_context_v1']) ? ['iro_context_v1' => $ir['iro_context_v1']] : []),
+            ...(isset($ir['dma_import_evidence']) ? ['dma_import_evidence' => $ir['dma_import_evidence']] : []),
+            ...(isset($ir['xbrl_identifications']) ? ['xbrl_identifications' => $ir['xbrl_identifications']] : []),
             'ir_version_hash' => $ir['version_hash'] ?? null,
             'asset_versions' => $ir['asset_versions'] ?? [],
             'unmapped_concepts' => array_values(array_unique($unmapped)),
@@ -67,7 +70,11 @@ class EvidenceBundleBuilder
             $bundle['claim_evidence_index'] = $this->claimEvidenceIndex($bundle['claims']);
         }
 
-        $display = new ReportDisplayProjection($locale);
+        if (isset($ir['taxonomy_profile'])) {
+            $bundle['taxonomy_profile'] = $ir['taxonomy_profile'];
+        }
+
+        $display = new ReportDisplayProjection($locale, $ir);
         $bundle['display'] = [
             'locale' => $display->locale,
             'narrative' => $display->narrative($ir),

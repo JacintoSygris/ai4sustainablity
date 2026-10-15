@@ -14,6 +14,7 @@ use App\Services\LearningAuthorizationAuthority;
 use App\Services\LearningAuthorizationLedger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 // Positive sources live only here; the application binding stays deny-all.
@@ -197,7 +198,7 @@ it('T05c second tombstone and user deletion failures roll back every write and p
     if ($failure === 'second') { expect($seen)->toBe(2); }
 })->with(['second', 'user']);
 
-it('T05c tampered projection or history aborts the whole supported deletion', function (string $tamper) {
+it('T05c tampered learning history never vetoes supported account erasure', function (string $tamper) {
     [$user] = t05cFixture();
     t05cFixture($user, 'two');
     [, $document, $path] = t05cDocument($user);
@@ -206,8 +207,57 @@ it('T05c tampered projection or history aborts the whole supported deletion', fu
     else { DB::table('learning_authorization_records')->where('learning_authorization_state_id', $header->id)->update(['payload_text' => '{}']); }
     $before = t05cBytes();
     $this->withoutExceptionHandling()->actingAs($user);
-    expect(fn () => $this->delete('/profile', ['password' => 'password']))->toThrow(DomainException::class, 'learning_ledger.incoherent');
-    expect(t05cBytes())->toBe($before)->and($user->fresh())->not->toBeNull()->and($document->fresh())->not->toBeNull();
-    $this->assertAuthenticatedAs($user);
-    Storage::disk(CharacterizationDocument::STORAGE_DISK)->assertExists($path);
+    $this->delete('/profile', ['password' => 'password'])->assertRedirect('/');
+    expect($user->fresh())->toBeNull()->and($document->fresh())->toBeNull();
+    $this->assertGuest();
+    Storage::disk(CharacterizationDocument::STORAGE_DISK)->assertMissing($path);
+    expect(LearningAuthorizationState::where('status', '!=', 'deleted')->count())->toBe(0);
 })->with(['header', 'history']);
+
+it('deletes the account and private documents before optional learning migrations are applied', function () {
+    $user = User::factory()->create();
+    [$characterization, $document, $path] = t05cDocument($user);
+    // Model the native installation without the optional learning migrations.
+    $tables = collect(Schema::getTableListing(null, false))
+        ->filter(fn (string $name): bool => str_starts_with($name, 'learning_'))->reverse();
+    expect($tables)->not->toBeEmpty();
+    Schema::disableForeignKeyConstraints();
+    foreach ($tables as $table) {
+        Schema::drop($table);
+    }
+    Schema::enableForeignKeyConstraints();
+    expect(Schema::hasTable('learning_authorization_states'))->toBeFalse();
+
+    $this->actingAs($user)->delete('/profile', ['password' => 'password'])
+        ->assertSessionHasNoErrors()->assertRedirect('/');
+
+    $this->assertGuest();
+    expect($user->fresh())->toBeNull()->and($characterization->fresh())->toBeNull();
+    $this->assertDatabaseMissing('characterization_documents', ['id' => $document->id]);
+    Storage::disk(CharacterizationDocument::STORAGE_DISK)->assertMissing($path);
+});
+
+it('withdraws existing learning grants even with the learning engine disabled', function () {
+    [$user] = t05cFixture();
+    config(['services.learning_source_clock.enabled' => false, 'services.learning_batch.enabled' => false]);
+    $header = LearningAuthorizationState::where('user_id', $user->id)->firstOrFail();
+    $this->actingAs($user)->delete('/profile', ['password' => 'password'])
+        ->assertSessionHasNoErrors()->assertRedirect('/');
+    expect($header->fresh()->status)->toBe('deleted')->and($header->fresh()->user_id)->toBeNull();
+    expect(LearningAuthorizationRecord::where('learning_authorization_state_id', $header->id)->count())->toBe(2);
+});
+
+it('denies existing projections when the optional record table is absent', function () {
+    [$user] = t05cFixture();
+    [$other] = t05cFixture(null, 'partial-unrelated');
+    $header = LearningAuthorizationState::where('user_id', $user->id)->firstOrFail();
+    $otherBytes = LearningAuthorizationState::where('user_id', $other->id)->firstOrFail()->getRawOriginal();
+    Schema::drop('learning_authorization_records');
+
+    $this->actingAs($user)->delete('/profile', ['password' => 'password'])
+        ->assertSessionHasNoErrors()->assertRedirect('/');
+
+    expect($header->fresh()->status)->toBe('deleted')->and($header->fresh()->user_id)->toBeNull()
+        ->and($header->fresh()->promotion_allowed)->toBeFalse()
+        ->and(LearningAuthorizationState::where('user_id', $other->id)->firstOrFail()->getRawOriginal())->toBe($otherBytes);
+});

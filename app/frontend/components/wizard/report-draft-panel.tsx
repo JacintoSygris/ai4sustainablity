@@ -1,6 +1,12 @@
 "use client"
 
+import { XbrlIdentificationPanel, type IdentificationSubject } from "@/components/wizard/xbrl-identification-panel"
+import { datapointIdentificationSubject } from "@/lib/xbrl-identification-state.mjs"
+
+import { useStudyError } from "@/lib/use-study-error"
+
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
+import { EuTaxonomyPanel } from "@/components/wizard/eu-taxonomy-panel"
 
 import { ui, formatUi } from "@/lib/i18n/messages.mjs"
 import { useLocale } from "@/components/locale-provider"
@@ -32,6 +38,7 @@ import {
   getLaravelReportSnapshots,
   getLaravelReportTaxonomyStatus,
   getLaravelReportingFacts,
+  getLaravelEsrsDatapoints,
   getLaravelSession,
   laravelApiUrl,
   reviewLaravelReportingFact,
@@ -62,6 +69,9 @@ import {
   sectionLabel,
   sectionNumber,
   snapshotDownloadBlockers,
+  snapshotApprovalAllowed,
+  snapshotStaleMessages,
+  xhtmlPresentationAvailable,
   statusLabel,
   statusTone,
   uniqueLimitations,
@@ -103,6 +113,10 @@ export function ReportDraftPanel() {
 
   const router = useRouter()
   const [reloadCounter, setReloadCounter] = useState(0)
+  const [xbrlRuntimeEnabled, setXbrlRuntimeEnabled] = useState(false)
+  const [xbrlSubjects, setXbrlSubjects] = useState<{ locale: string; items: IdentificationSubject[] } | null>(null)
+  const [xbrlCsrfToken, setXbrlCsrfToken] = useState<string>()
+  const [euTaxonomyEnabled, setEuTaxonomyEnabled] = useState(false)
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [storedReadiness, setReadiness] = useState<LaravelReportReadiness | null>(null)
   const [storedDraft, setDraft] = useState<LaravelReportDraft | null>(null)
@@ -115,15 +129,19 @@ export function ReportDraftPanel() {
   const [taxonomyStatus, setTaxonomyStatus] = useState<LaravelReportTaxonomyStatus | null>(null)
   const [snapshots, setSnapshots] = useState<LaravelReportSnapshot[]>([])
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(6, errorMessage)
   const [operationMessage, setOperationMessage] = useSystemMessage(null)
   const [formError, setFormError] = useSystemMessage(null)
+  useStudyError(6, formError)
   const [factForm, setFactForm] = useState<FactFormState>(initialFactForm)
   const [reviewFact, setReviewFact] = useState<LaravelReportingFact | null>(null)
   const [reviewDeclaration, setReviewDeclaration] = useState("")
   const [reviewError, setReviewError] = useSystemMessage(null)
+  useStudyError(6, reviewError)
   const [approveDialogOpen, setApproveDialogOpen] = useState(false)
   const [approvalDeclaration, setApprovalDeclaration] = useState("")
   const [approvalError, setApprovalError] = useSystemMessage(null)
+  useStudyError(6, approvalError)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const confirmedMaterialThemes = useMemo(
     () => materialThemeGroups(draft?.materiality.confirmed_topics ?? [], locale),
@@ -150,7 +168,7 @@ export function ReportDraftPanel() {
       setErrorMessage(null)
 
       try {
-        const [, factsResponse, snapshotsResponse, taxonomyResponse] = await Promise.all([
+        const [sessionResponse, factsResponse, snapshotsResponse, taxonomyResponse] = await Promise.all([
           getLaravelSession(),
           getLaravelReportingFacts(),
           getLaravelReportSnapshots(),
@@ -160,8 +178,10 @@ export function ReportDraftPanel() {
         if (!mounted) {
           return
         }
-
+        setXbrlRuntimeEnabled(sessionResponse.data.xbrl_runtime_identification_enabled === true)
+        setXbrlCsrfToken(sessionResponse.data.csrf_token)
         setFacts(factsResponse.data)
+        setEuTaxonomyEnabled(sessionResponse.data.eu_taxonomy_eligibility_enabled === true)
         setSnapshots(snapshotsResponse.data)
         setTaxonomyStatus(taxonomyResponse.data)
       } catch (error) {
@@ -185,6 +205,23 @@ export function ReportDraftPanel() {
       mounted = false
     }
   }, [reloadCounter, router])
+
+  useEffect(() => {
+    if (!xbrlRuntimeEnabled || changing) return
+    let active = true
+    getLaravelEsrsDatapoints().then(response => {
+      if (!active || response.data?.locale !== locale) return
+      const points = Object.values(response.data.blocks ?? {}).flatMap(block => block.datapoints ?? [])
+      const items = (facts?.persisted_facts ?? []).filter(record => record.id).map(fact => {
+        const point = points.find(item => item.id === fact.datapoint_id)
+        return { ...(point ? datapointIdentificationSubject(point, locale) : { label: fact.datapoint_id, description: "", language: locale }),
+          key: `fact:${fact.id}`, reporting_fact_id: fact.id, datapoint_id: fact.datapoint_id,
+          value_type: fact.value_type, unit: fact.unit }
+      })
+      setXbrlSubjects({ locale, items })
+    }).catch(() => { if (active) setXbrlSubjects(null) })
+    return () => { active = false }
+  }, [xbrlRuntimeEnabled, changing, locale, facts])
 
   useEffect(() => {
     if (changing) return
@@ -284,7 +321,7 @@ export function ReportDraftPanel() {
   async function handleApproveSnapshot() {
     const declaration = approvalDeclaration.trim()
 
-    if (!latestSnapshot || declaration === "") {
+    if (!snapshotApprovalAllowed(latestSnapshot) || !latestSnapshot || declaration === "") {
       setApprovalError(systemCopy("Escribe una declaración de persona única antes de continuar."))
 
       return
@@ -307,6 +344,8 @@ export function ReportDraftPanel() {
 
   return (
     <div className="min-w-0 flex-1 space-y-6">
+      <XbrlIdentificationPanel enabled={xbrlRuntimeEnabled} csrfToken={xbrlCsrfToken} subjects={!changing && xbrlSubjects?.locale === locale ? xbrlSubjects.items : []} />
+      {euTaxonomyEnabled ? <EuTaxonomyPanel /> : null}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{tr("Informe NEIS")}</h1>
@@ -709,13 +748,18 @@ export function ReportDraftPanel() {
                   </div>
 
                   <SnapshotSummary snapshot={latestSnapshot} />
+                  {latestSnapshot && !snapshotApprovalAllowed(latestSnapshot) ? (
+                    <div role="status" aria-live="polite" className="text-sm text-amber-700">
+                      {snapshotStaleMessages(latestSnapshot).map((message: string) => <p key={message}>{tr(message)}</p>)}
+                    </div>
+                  ) : null}
 
                   <div className="flex flex-col gap-2">
                     <Button type="button" onClick={handleCreateSnapshot} disabled={busyAction === "create-snapshot"}>
                       <ShieldCheck className="h-4 w-4" />
                       {" "}{tr("Preparar versión factual")}{" "}</Button>
                     {latestSnapshot && !latestSnapshot.is_approved ? (
-                      <Button type="button" variant="outline" onClick={() => setApproveDialogOpen(true)}>
+                      <Button type="button" variant="outline" disabled={!snapshotApprovalAllowed(latestSnapshot)} onClick={() => setApproveDialogOpen(true)}>
                         <CheckCircle2 className="h-4 w-4" />
                         {" "}{tr("Aprobar versión factual")}{" "}</Button>
                     ) : null}
@@ -731,6 +775,18 @@ export function ReportDraftPanel() {
                         <LocalizedDownload disabled={!presentationReady} type="button" variant="outline" className="w-full justify-start" href={laravelApiUrl("/guided-report/docx")}>
                             <Download className="h-4 w-4" />
                             {" "}{tr("DOCX factual")}{" "}</LocalizedDownload>
+                        {readiness?.report_scope_integrity_enabled === true ? (
+                          <LocalizedDownload disabled={!presentationReady || !xhtmlPresentationAvailable(readiness, latestSnapshot)} type="button" variant="outline" className="w-full justify-start" href={laravelApiUrl("/report/xhtml")}>
+                            <Download className="h-4 w-4" />
+                            {tr("Descargar informe NEIS en XHTML")}
+                          </LocalizedDownload>
+                        ) : null}
+                        {readiness?.ixbrl_package_enabled === true && readiness.workflow_complete && readiness.report_content_ready && taxonomyStatus?.availability.state === "verified" ? (
+                          <LocalizedDownload disabled={!presentationReady} type="button" variant="outline" className="w-full justify-start whitespace-normal text-left h-auto" href={laravelApiUrl("/report/ixbrl-package")}>
+                            <Download className="h-4 w-4 shrink-0" />
+                            {tr("Candidato iXBRL provisional (no es una presentación ESEF/ESAP oficial)")}
+                          </LocalizedDownload>
+                        ) : null}
                         <LocalizedDownload disabled={!presentationReady} type="button" variant="outline" className="w-full justify-start" href={laravelApiUrl("/guided-report/evidence-bundle")}>
                             <Download className="h-4 w-4" />
                             {" "}{tr("Paquete de evidencias")}{" "}</LocalizedDownload>
@@ -989,6 +1045,11 @@ function apiErrorMessage(error: unknown, fallback: string, locale: "es" | "en" =
 
   if (error instanceof LaravelApiError) {
     if (error.status === 409) {
+      const payload = error.payload as { reasons?: string[]; data?: { reason_code?: string } } | null
+      const reasons = payload?.reasons ?? (payload?.data?.reason_code ? [payload.data.reason_code] : [])
+      if (reasons.some((reason) => ["scope_identity_missing", "ig3_corpus_changed", "ar16_dr_mapping_changed", "report_scope_changed", "scope_assets_unavailable"].includes(reason))) {
+        return ui(locale, snapshotStaleMessages({ stale_reasons: reasons })[0])
+      }
       return formatUi(locale, "{0} Hay un bloqueo de estado que debes resolver antes de continuar.", [fallback])
     }
 

@@ -3,6 +3,7 @@ import { validateDatapointWorkspace } from "./esrs-datapoints-state.mjs"
 export type LaravelApiOptions = Omit<RequestInit, "body" | "credentials" | "signal"> & {
   body?: BodyInit | Record<string, unknown> | unknown[] | null
   csrfToken?: string
+  abortSignal?: AbortSignal
   timeoutMs?: number
 }
 
@@ -22,12 +23,18 @@ export type LaravelApiEnvelope<T> = {
 }
 
 export type LaravelFrontendSession = {
+  xbrl_runtime_identification_enabled?: boolean
+  learning_admin?: boolean
+  learning_consent_invitation?: boolean
+  eu_taxonomy_eligibility_enabled?: boolean
   locale: "es" | "en"
   authenticated: true
+  usability_study_enabled?: boolean
   csrf_header: "X-XSRF-TOKEN"
   csrf_token: string
   // Present when the platform enforces email verification (feature detection):
   // when true AND user.email_verified is false the app routes to /verify-email.
+  ixbrl_package_enabled?: boolean
   require_email_verification?: boolean
   user: {
     id: number
@@ -59,6 +66,8 @@ export type LaravelNaceCode = {
 export type LaravelCharacterizationCompanyProfile = {
   company_name?: string | null
   headquarters_country?: string | null
+  reporting_period_start?: string | null
+  reporting_period_end?: string | null
   reporting_year?: number | null
   reporting_scope?: string | null
   num_subsidiaries_countries?: number | null
@@ -150,6 +159,7 @@ export type LaravelCharacterizationSubmitPayload = {
 export type LaravelTopicAction = "accepted" | "rejected" | "unsure"
 
 export type LaravelMaterialityTopic = {
+  often_reported_with?: Array<{ id: number; esrs_code: string; label: string; lift: number; confidence: number }>
   id: number
   esrs_code: string
   theme: {
@@ -224,6 +234,8 @@ export type LaravelMaterialityProposalReview = {
 }
 
 export type LaravelMaterialityProposal = {
+  sector_comparison_enabled?: true
+  sector_comparison_input_fingerprint?: string
   characterization_id: number
   status: string
   source: "ai_prediction" | "stored_topic_ids"
@@ -360,7 +372,23 @@ type LaravelMaterialityLearningUniversePair =
       universe_attestation?: never
     }
 
+export type LaravelIroReview = {
+  import_id: number; iro_id: string; decision: string; type: string; dimension: string
+  locations: string[]; groups: string[]; description: string; group: string; channel: string
+  reason: string | null; focus_datapoint_ids: string[]
+  topic_id?: number; source_topic_id?: number; associated_topic_ids?: number[]
+  source_row?: number; source_sha256?: string; p8_revision?: number
+}
+export type LaravelIroCandidate = { id: string; dr: string; esrs: string; name: string; transversal: boolean }
+export type LaravelIroLink = { iro_id: string; topic_id: number; datapoint_id: string; dr: string; esrs: string; transversal: boolean
+  questions: Array<{ id: string; rule_key: string; text: { es: string; en: string } }> }
+export type LaravelIroContext = { schema_version: string; dma_nlp?: { shortlist: DmaNlpEvidence[]; by_datapoint: Record<string, DmaNlpEvidence[]> }; reviews: LaravelIroReview[];
+  cards: Array<{ review: LaravelIroReview; links: LaravelIroLink[] }>; by_datapoint: Record<string, LaravelIroLink[]> }
+
 export type LaravelMaterialityConfirmationPayload = {
+  dma_nlp_refs?: string[]
+  iro_reviews?: LaravelIroReview[]
+  dma_import_refs?: Record<string, number>
   expected_revision: number
   confirmed_topic_ids: number[]
   change_reasons?: Record<string, string[]>
@@ -411,8 +439,16 @@ export type LaravelGuidedAnswer = {
 }
 
 export type LaravelMaterialityConfirmation = {
+  dma_nlp_enabled?: boolean
+  dma_nlp_context?: string
+  iro_traceability_enabled?: boolean
+  iro_reviews?: LaravelIroReview[]
+  iro_evidence?: Array<{ import_id: number; iro_rows: LaravelDmaImport["iro_rows"] }>
+  sector_comparison_enabled?: true
+  sector_comparison_input_fingerprint?: string
   characterization_id: number
   is_confirmed: boolean
+  dma_import_enabled?: boolean
   confirmation_status: "confirmed" | "defaulted_from_p6"
   p6_anchor_date: string | null
   p6_topic_ids: number[]
@@ -425,6 +461,7 @@ export type LaravelMaterialityConfirmation = {
   }
   topics: LaravelMaterialityTopic[]
   confirmation: {
+    dma_import_refs?: Record<string, number>
     revision: number
     reviewed_topic_ids: number[]
     universe_attestation: LaravelMaterialityUniverseAttestation | null
@@ -436,6 +473,7 @@ export type LaravelMaterialityConfirmation = {
     guided_answers: Record<string, LaravelGuidedAnswer>
   }
   preview: {
+    provisional?: boolean
     material_topic_count: number
     activated_esrs_standards: string[]
     datapoint_estimate: {
@@ -460,6 +498,7 @@ export type LaravelMaterialityConfirmation = {
 }
 
 export type LaravelEsrsDatapoint = {
+  related_datapoints?: Array<{ id: string; label: string }>
   display?: { locale: "es" | "en"; name: string; data_type: string; disclosure_requirement_title?: string | null; qualification?: string | null; conditional_or_alternative: string; phase_in: Record<string, string>; applicability_reason: string; mapping_basis: string; limitations: string[] }
   id: string
   name: string
@@ -482,6 +521,11 @@ export type LaravelEsrsDatapointBlock = {
 }
 
 export type LaravelEsrsDatapointCorpus = {
+  dma_nlp_enabled?: boolean
+  dma_nlp_p8_revision?: number
+  dma_nlp_imports?: Array<Pick<LaravelDmaImport, "id" | "iro_rows">>
+  p9_authority_digest?: string
+  iro_context_v1?: LaravelIroContext
   locale: "es" | "en"
   characterization_id: number
   material_topic_ids: number[]
@@ -517,6 +561,7 @@ export type LaravelDatapointFeedback = {
 }
 
 export type LaravelEsrsDatapointResponse = {
+  previous_status?: LaravelEsrsDatapointResponseStatus
   datapoint_id: string
   status: LaravelEsrsDatapointResponseStatus
   value?: string
@@ -527,6 +572,8 @@ export type LaravelEsrsDatapointResponse = {
 }
 
 export type LaravelEsrsDatapointResponses = {
+  p9_authority_digest?: string
+  authority_review_required?: boolean
   source_digest: string
   learning_authority_digest: string
   learning_feedback: LaravelDatapointFeedback
@@ -554,6 +601,8 @@ export type LaravelEsrsDatapointResponses = {
 }
 
 export type LaravelEsrsDatapointResponsesPayload = {
+  expected_authority_digest?: string
+  authority_review_confirmed?: boolean
   learning_feedback?: LaravelDatapointFeedback
   expected_revision: number
   responses: LaravelEsrsDatapointResponse[]
@@ -712,6 +761,8 @@ export type LaravelReportReadiness = {
   workflow_complete: boolean
   report_content_status: "incomplete" | "ready" | string
   report_content_ready: boolean
+  report_scope_integrity_enabled?: boolean
+  ixbrl_package_enabled?: boolean
   sections: Record<string, LaravelReportSection>
   downloads: Record<string, LaravelReportDownload>
   next_actions: string[]
@@ -795,6 +846,7 @@ export type LaravelReportDraft = {
   datapoints: LaravelReportDraftDatapoints
   exports: Record<string, LaravelReportDownload>
   limitations: LaravelReportLimitation[]
+  report_scope_integrity_enabled?: boolean
 }
 
 export type LaravelReportingFactValue = string | boolean | null | Record<string, string>
@@ -889,6 +941,8 @@ export type LaravelReportSnapshotApproval = {
   approved_at: string | null
 }
 
+export type LaravelReportScopeStaleReason = "scope_identity_missing" | "ig3_corpus_changed" | "ar16_dr_mapping_changed" | "report_scope_changed" | "scope_assets_unavailable"
+
 export type LaravelReportSnapshot = {
   id: number
   characterization_id: number
@@ -954,11 +1008,15 @@ export async function laravelApi<T>(path: string, options: LaravelApiOptions = {
     headers: inputHeaders,
     method = "GET",
     timeoutMs = defaultTimeoutMs,
+    abortSignal,
     ...requestInit
   } = options
   const headers = new Headers(inputHeaders)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const abort = () => controller.abort()
+  if (abortSignal?.aborted) abort()
+  abortSignal?.addEventListener("abort", abort, { once: true })
 
   headers.set("Accept", headers.get("Accept") ?? "application/json")
   headers.set("X-Requested-With", headers.get("X-Requested-With") ?? "XMLHttpRequest")
@@ -1025,6 +1083,7 @@ export async function laravelApi<T>(path: string, options: LaravelApiOptions = {
     return payload as T
   } finally {
     clearTimeout(timeout)
+    abortSignal?.removeEventListener("abort", abort)
   }
 }
 
@@ -1411,8 +1470,8 @@ export function updateLaravelDoubleMaterialityGuideState(
 export function previewLaravelMaterialityConfirmation(
   payload: { candidate_topic_ids: number[] },
   options: Omit<LaravelApiOptions, "body" | "method"> = {},
-): Promise<LaravelApiEnvelope<{ preview: LaravelMaterialityConfirmation["preview"] }>> {
-  return laravelApi<LaravelApiEnvelope<{ preview: LaravelMaterialityConfirmation["preview"] }>>("/materiality-confirmation/preview", {
+): Promise<LaravelApiEnvelope<{ preview: LaravelMaterialityConfirmation["preview"]; provisional?: boolean; iro_candidates?: Record<string, LaravelIroCandidate[]> }>> {
+  return laravelApi<LaravelApiEnvelope<{ preview: LaravelMaterialityConfirmation["preview"]; provisional?: boolean; iro_candidates?: Record<string, LaravelIroCandidate[]> }>>("/materiality-confirmation/preview", {
     ...options,
     body: payload,
     method: "POST",
@@ -1478,4 +1537,105 @@ export function getLaravelLocale() {
 }
 export function updateLaravelLocale(locale: "es" | "en", csrfToken: string) {
   return laravelApi<LaravelApiEnvelope<LaravelLocaleContext>>("/locale", { method: "PUT", body: { locale }, csrfToken })
+}
+
+export type LaravelDmaSuggestion = {
+  topic_id: number
+  suggestion: "material" | "no_material" | "review"
+  reason_code: "conflicting_flags" | "at_least_one_material_iro" | "all_iros_not_material" | "incomplete_assessment"
+  dimension: "impact" | "financial" | "both" | null
+  iro_count: number
+  iro_rows: number[]
+  supporting_iro_rows: number[]
+  impact_scores: number[]
+  financial_scores: number[]
+  impact_flags: Array<boolean | null>
+  financial_flags: Array<boolean | null>
+  stakeholder_rows: number[]
+  stakeholder_count: number
+  stakeholder_support_count: number
+  stakeholder_opposition_count: number
+}
+export type LaravelDmaImport = {
+  id: number; characterization_id: number; user_id: number; uploaded_at: string
+  sources: Record<string, { original_name: string; sha256: string; bytes: number }>
+  schema_version: "dma_import_v1"
+  iro_rows: Array<{ iro_id?: string; canonical_type?: string; row: number; topic_id: number; iro_description: string; impact_materiality_score: string;
+    financial_materiality_score: string; threshold_result: string; evidence_reference: string }>
+  suggestions: LaravelDmaSuggestion[]
+}
+export function getLaravelDmaImport(id: number, importIds: number[] = []): Promise<LaravelApiEnvelope<LaravelDmaImport | null> & { referenced_imports?: LaravelDmaImport[] }> {
+  const query = new URLSearchParams()
+  for (const importId of importIds) query.append('import_ids[]', String(importId))
+  return laravelApi(`/characterizations/${id}/dma-imports${query.size ? `?${query}` : ''}`, { method: "GET" })
+}
+export function uploadLaravelDmaImport(id: number, body: FormData, options: Omit<LaravelApiOptions, "body" | "method"> = {}): Promise<LaravelApiEnvelope<LaravelDmaImport>> {
+  return laravelApi(`/characterizations/${id}/dma-imports`, { ...options, body, method: "POST" })
+}
+
+export type XbrlIndicator = {
+  label: string; description: string; language: string
+  standard?: string | null; dr?: string | null
+  value_type?: string | null; unit?: string | null; period_type?: string | null
+}
+export type XbrlIdentificationCandidate = {
+  qname: string; rank: number; score: number
+  validation_status: "map_only" | "unverified" | "verified_taxonomy" | "incompatible"
+  validation_reasons: string[]
+}
+export type XbrlIdentificationRun = {
+  id: number; subject_key: string; reporting_fact_id: number | null; datapoint_id: string | null
+  input_json: { indicator: XbrlIndicator }; created_at: string
+  model_version: string; artifact_sha256: string; catalog_sha256: string
+  response_json: { candidates: XbrlIdentificationCandidate[]; abstained: boolean; reason_codes: string[] }
+  reviews: { sequence: number; candidate_qname: string; decision: "accepted" | "rejected"; reviewer_id: number; created_at: string; reason: string }[]
+}
+export function getXbrlIdentifications(page = 1) {
+  return laravelApi<LaravelApiEnvelope<{ runs: XbrlIdentificationRun[]; page: number; last_page: number }>>(`/report/xbrl-identifications?page=${page}`, { cache: "no-store" })
+}
+export function identifyXbrlConcept(body: { indicator: XbrlIndicator; reporting_fact_id?: number; datapoint_id?: string }, csrfToken?: string) {
+  return laravelApi<LaravelApiEnvelope<XbrlIdentificationRun>>("/report/xbrl-identifications", { method: "POST", body, csrfToken, timeoutMs: 15000 })
+}
+export function reviewXbrlIdentification(runId: number, body: { candidate_qname: string; decision: "accepted" | "rejected"; reason: string; expected_sequence: number }, csrfToken?: string) {
+  return laravelApi<LaravelApiEnvelope<XbrlIdentificationRun>>(`/report/xbrl-identifications/${runId}/reviews`, { method: "POST", body, csrfToken })
+}
+
+
+export type LaravelSectorCounts = { n_scored: number; n_material: number }
+export type LaravelSectorComparison = {
+  version: "sector-comparison-v1"
+  characterization_id: number
+  input_fingerprint: string
+  artifact_sha256: string
+  built_at: string
+  sector_taxonomy: "NACE Rev.2.1 / CNAE-2025"
+  min_support: 5
+  hashes: { labels: string; masks: string; companies: string; encoding: string; topic_mapping: string }
+  provenance: { label_kind: "automatic" | "human" | "mixed" | "synthetic"; source_reference: string; authorization_reference: string }
+  coverage_period: { start: string; end: string }
+  global_population_companies: number
+  comparisons: Array<{
+    section: string | null
+    population_companies: number
+    topics: Array<{ topic_id: string; source: "sector" | "global_fallback" | "insufficient_data"; low_confidence: boolean; proportion: number | null; sector: LaravelSectorCounts; global_counts: LaravelSectorCounts }>
+  }>
+}
+export function getLaravelSectorComparison(id: number, abortSignal?: AbortSignal): Promise<LaravelApiEnvelope<LaravelSectorComparison>> {
+  return laravelApi(`/characterizations/${id}/sector-comparison`, { method: "GET", cache: "no-store", timeoutMs: 5000, abortSignal })
+}
+
+export type DmaNlpCandidate = {
+  candidate_id: string; iro_id: string; level: 'topic' | 'dr' | 'datapoint'; id: string; label: string; score: number
+  spans: Array<{ start: number; end: number; quote: string; catalogue_ref: string }>
+  decision: 'accepted' | 'rejected' | null; in_scope: boolean; related_datapoint_ids?: string[]
+}
+export type DmaNlpEvidence = { run_id: number; import_id: number; candidate: DmaNlpCandidate; source: { iro_description: string }; source_sha256: string }
+export type DmaNlpRun = { id: number; import_id: number; stage: 'p8' | 'p9'; context_digest: string; p8_revision: number; candidates: DmaNlpCandidate[]
+  result: { model_sha256: string; catalogue_sha256: string; iros: Array<{ iro_id: string; levels: Record<string, { abstention: string | null }> }> } }
+export type DmaNlpInput = { stage: 'p8' | 'p9'; locale: 'es' | 'en'; iro_ids: string[]; expected_context: string; expected_revision: number }
+export function analyseLaravelDma(id: number, importId: number, body: DmaNlpInput, csrfToken?: string) {
+  return laravelApi<LaravelApiEnvelope<DmaNlpRun>>(`/characterizations/${id}/dma-imports/${importId}/nlp-runs`, { method: 'POST', body, csrfToken, timeoutMs: 15000 })
+}
+export function reviewLaravelDma(id: number, runId: number, body: { candidate_id: string; decision: 'accepted' | 'rejected'; expected_context: string; expected_revision: number }, csrfToken?: string) {
+  return laravelApi<LaravelApiEnvelope<DmaNlpRun>>(`/characterizations/${id}/dma-nlp-runs/${runId}/reviews`, { method: 'POST', body, csrfToken })
 }

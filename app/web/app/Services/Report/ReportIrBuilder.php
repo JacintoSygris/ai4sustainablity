@@ -35,9 +35,10 @@ class ReportIrBuilder
     /**
      * @return array<string, mixed>
      */
-    public function build(Characterization $characterization): array
+    public function build(Characterization $characterization, ?XbrlConceptMap $mapping = null, ?array $capturedScope = null): array
     {
-        $corpus = $this->corpus->build($characterization);
+        $mapping ??= $this->xbrl->capture();
+        $corpus = $capturedScope ?? $this->corpus->build($characterization);
         $inScopeDrKeys = $this->inScopeDrKeys($corpus);
         $omissions = $this->notMaterial->resolve($characterization);
 
@@ -49,7 +50,7 @@ class ReportIrBuilder
 
             $chapters[] = ($block['key'] ?? null) === 'e1_not_material_explanation'
                 ? $this->e1ExceptionChapter($block)
-                : $this->chapter($block, $inScopeDrKeys, $corpus);
+                : $this->chapter($block, $inScopeDrKeys, $corpus, $mapping);
         }
 
         $disclaimers = [
@@ -66,7 +67,7 @@ class ReportIrBuilder
         ];
         $companyProfile = Arr::get($characterization->form_data ?? [], 'company_profile');
         if (is_array($companyProfile)) {
-            foreach (['entity_identifier', 'entity_identifier_scheme'] as $key) {
+            foreach (['entity_identifier', 'entity_identifier_scheme', 'reporting_period_start', 'reporting_period_end'] as $key) {
                 if (array_key_exists($key, $companyProfile)) {
                     $company[$key] = $companyProfile[$key];
                 }
@@ -75,9 +76,12 @@ class ReportIrBuilder
 
         $ir = [
             'schema_version' => 'p10_ir_v1',
+            ...(isset($corpus['iro_context_v1']) ? ['iro_context_v1' => $corpus['iro_context_v1']] : []),
+            ...(Arr::get($characterization->form_data ?? [], 'materiality_confirmation.dma_import_evidence', []) !== []
+                ? ['dma_import_evidence' => Arr::get($characterization->form_data, 'materiality_confirmation.dma_import_evidence')] : []),
             'asset_versions' => [
                 'ig3' => Arr::get($corpus, 'generation.workbook_version'),
-                'xbrl' => $this->xbrl->version(),
+                'xbrl' => $mapping->version(),
                 'related_dr' => $this->relatedDr->version(),
             ],
             'company' => $company,
@@ -86,6 +90,9 @@ class ReportIrBuilder
             'disclaimers' => $disclaimers,
         ];
 
+        if ((bool) config('xbrl_suggestions.overlay_enabled', false)) {
+            $ir['xbrl_mapping'] = $mapping->frozen();
+        }
         $ir['version_hash'] = hash('sha256', json_encode($ir, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
         return $ir;
@@ -120,13 +127,46 @@ class ReportIrBuilder
             throw new DomainException('report_snapshot_missing_facts');
         }
 
+        if (ReportScopeAssets::required($snapshot)) {
+            foreach ($facts as $fact) {
+                try {
+                    ReportFactValue::scalar($fact);
+                    ReportVisiblePresentation::withVisibleDimensions('', $fact['dimensions'] ?? [], 'es', true);
+                    if (! is_array($fact['evidence_refs'] ?? []) || ! array_is_list($fact['evidence_refs'] ?? [])) throw new DomainException('approved_snapshot_invalid');
+                    foreach ($fact['evidence_refs'] ?? [] as $ref) {
+                        if (! is_array($ref) || ! is_string($ref['value'] ?? null)) throw new DomainException('approved_snapshot_invalid');
+                        ReportDisplayProjection::assertXmlText($ref['value']);
+                    }
+                } catch (\RuntimeException|\TypeError) {
+                    throw new DomainException('approved_snapshot_invalid');
+                }
+            }
+        }
+
         $characterization = $this->hydrateFrozenCharacterization($characterizationPayload);
-        $layout = $this->build($characterization);
+        $frozenMapping = Arr::get($snapshotJson, 'source_manifest.xbrl_mapping');
+        // Legacy approvals authorize the static map, never a subsequently enabled overlay.
+        $mapping = is_array($frozenMapping)
+            ? XbrlConceptMap::fromFrozen($frozenMapping) : $this->xbrl->capture(false);
+        if ($snapshot->stale_state === ReportSnapshot::STALE_STALE) throw new ReportScopeException('approved_snapshot_stale');
+        $scope = null;
+        if (ReportScopeAssets::required($snapshot)) {
+            if (($snapshotJson['schema_version'] ?? null) !== 'report_snapshot_v2') throw new ReportScopeException('scope_identity_missing');
+            $assets = ReportScopeAssets::capture();
+            $scope = $this->corpus->buildPreview($characterization, $assets);
+            $differences = $assets->differences($snapshotJson['source_manifest']['scope'], $scope);
+            if ($differences !== []) throw new ReportScopeException($differences[0]);
+        }
+        // Validate captured assets, then render the approved IRO graph even after flag rollback.
+        // Legacy frozen characterizations need no new P8 authority to reconstruct their scope.
+        $frozenCorpus = Arr::get($snapshotJson, 'source_manifest.p9_context_v1.corpus');
+        $presentationCorpus = $frozenCorpus ?? $scope ?? $this->corpus->buildPreview($characterization);
+        $layout = $this->build($characterization, $mapping, $presentationCorpus);
         unset($layout['version_hash']);
 
         $completedDatapointIds = $this->contentScope->completedDatapointIds(
             $characterization,
-            $this->corpus->build($characterization),
+            $presentationCorpus,
         );
         $completedDatapointSet = array_fill_keys($completedDatapointIds, true);
         $claimableFacts = array_values(array_filter(
@@ -144,7 +184,9 @@ class ReportIrBuilder
         $materialityTrace = $this->notMaterial->resolve($characterization);
         $ir = [
             'schema_version' => 'report_ir_v1',
+            ...(isset($layout['iro_context_v1']) ? ['iro_context_v1' => $layout['iro_context_v1']] : []),
             'source' => [
+                ...($scope !== null ? ['scope' => $snapshotJson['source_manifest']['scope']] : []),
                 'report_snapshot_id' => $snapshot->id,
                 'report_approval_id' => $approval->id,
                 'snapshot_hash' => $snapshot->snapshot_hash,
@@ -155,7 +197,10 @@ class ReportIrBuilder
             'claims' => $claims,
             'content_readiness' => $contentReadiness,
             'fact_decisions' => $factDecisions,
+            ...($scope !== null ? ['display_labels' => ['en' => array_column($assets->corpus['datapoints'], 'name', 'id')]] : []),
             'materiality_trace' => $materialityTrace,
+            ...(Arr::get($characterization->form_data ?? [], 'materiality_confirmation.dma_import_evidence', []) !== []
+                ? ['dma_import_evidence' => Arr::get($characterization->form_data, 'materiality_confirmation.dma_import_evidence')] : []),
             'asset_versions' => $layout['asset_versions'],
             'company' => $layout['company'],
             'omission_section' => $layout['omission_section'],
@@ -163,6 +208,12 @@ class ReportIrBuilder
             'disclaimers' => $layout['disclaimers'],
         ];
 
+        if (isset($snapshotJson['source_manifest']['xbrl_identifications'])) {
+            $ir['xbrl_identifications'] = $snapshotJson['source_manifest']['xbrl_identifications'];
+        }
+        if (is_array($frozenMapping)) {
+            $ir['xbrl_mapping'] = $mapping->frozen();
+        }
         $ir['version_hash'] = hash('sha256', $this->canonicalJson($ir));
 
         return $ir;
@@ -265,6 +316,20 @@ class ReportIrBuilder
         $factualChapters = [];
 
         foreach ($chapters as $chapter) {
+            // Mandatory user narrative from the frozen P8 decision, not a fact
+            // datapoint: it must survive even though it has no claim or slot.
+            if (($chapter['block_key'] ?? null) === 'e1_not_material_explanation') {
+                foreach ($chapter['sections'] as &$section) {
+                    foreach ($section['blocks'] as &$block) {
+                        $block['guidance'] = [];
+                    }
+                    unset($block);
+                }
+                unset($section);
+                $factualChapters[] = $chapter;
+                continue;
+            }
+
             if (! isset($chapter['sections']) || ! is_array($chapter['sections'])) {
                 continue;
             }
@@ -377,7 +442,7 @@ class ReportIrBuilder
      * @param  array<string, mixed>  $corpus
      * @return array<string, mixed>
      */
-    private function chapter(array $block, array $inScopeDrKeys, array $corpus): array
+    private function chapter(array $block, array $inScopeDrKeys, array $corpus, XbrlConceptMap $mapping): array
     {
         $sections = [];
         foreach ($block['disclosure_requirements'] ?? [] as $dr) {
@@ -385,7 +450,7 @@ class ReportIrBuilder
             $blocks = [];
 
             foreach ($this->datapointsForDr($block, $drKey) as $dp) {
-                $concept = $this->xbrl->conceptFor($dp['id']);
+                $concept = $mapping->conceptFor($dp['id']);
                 $guidance = $this->guidance->guidanceFor($dp['id'], $drKey);
                 $blocks[] = [
                     'datapoint_id' => $dp['id'],
@@ -447,7 +512,7 @@ class ReportIrBuilder
                     'assertions' => [$block['explanation'] ?? ''],
                     'slots' => [],
                     'guidance' => [
-                        'text' => 'Nota: este bloque recoge la explicación obligatoria de por qué E1 (Cambio climático) se excluyó tras la evaluación de doble materialidad, conforme a ESRS 2 IRO-2 párrafo 33 y la nota de exención de E1. No es un texto de orientación certificado.',
+                        'text' => 'Nota: este bloque recoge la explicación obligatoria de por qué E1 (Cambio climático) se excluyó tras la evaluación de doble importancia relativa, conforme a NEIS 2 IRO-2 párrafo 33 y la nota de exención de E1. No es un texto de orientación certificado.',
                         'provenance_tier' => 'generic_scaffold',
                         'authoritative' => false,
                         'citations' => [],

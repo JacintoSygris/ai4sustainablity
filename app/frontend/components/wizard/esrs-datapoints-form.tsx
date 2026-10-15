@@ -1,4 +1,15 @@
 "use client"
+import type { DmaNlpRun, DmaNlpCandidate } from "@/lib/laravel-api"
+import { DmaNlpPanel } from "@/components/wizard/dma-nlp-panel"
+import { nlpIndicatorTarget } from "@/lib/dma-nlp-state.mjs"
+
+import { XbrlIdentificationPanel } from "@/components/wizard/xbrl-identification-panel"
+import { datapointIdentificationSubject } from "@/lib/xbrl-identification-state.mjs"
+
+import { iroCards, isIroAuthorityConflict, invalidateIroSaveQueue, iroConflictMessage } from "@/lib/iro-traceability.mjs"
+import { ConceptRelations } from "@/components/wizard/concept-relations"
+import { completeStudyStep } from "@/lib/usability-study.mjs"
+import { useStudyError } from "@/lib/use-study-error"
 
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
 
@@ -69,6 +80,7 @@ type DatapointRow = {
 
 type DraftResponse = {
   learning_review?: LaravelDatapointReview
+  previous_status?: LaravelEsrsDatapointResponseStatus
   status: LaravelEsrsDatapointResponseStatus
   value: string
   evidence_reference: string
@@ -108,14 +120,21 @@ export function EsrsDatapointsForm() {
   const [localeLoadFailed, setLocaleLoadFailed] = useState(false)
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [xbrlRuntimeEnabled, setXbrlRuntimeEnabled] = useState(false)
   const [csrfToken, setCsrfToken] = useState<string>()
+  const p9AuthorityRef = useRef<string | undefined>(undefined)
+  const [authorityReviewRequired, setAuthorityReviewRequired] = useState(false)
+  const [authorityReviewConfirmed, setAuthorityReviewConfirmed] = useState(false)
   const [corpus, setCorpus] = useState<LaravelEsrsDatapointCorpus | null>(null)
+  const [expandedStandards, setExpandedStandards] = useState<Record<string, boolean>>({})
+  const [expandedRequirements, setExpandedRequirements] = useState<Record<string, boolean>>({})
   const [expandedDatapoints, setExpandedDatapoints] = useState<Record<string, boolean>>({})
   const [bulkMessage, setBulkMessage] = useState<{ label: string; count: number; triage: NonNullable<DraftResponse["triage"]> } | null>(null)
   const [drafts, setDrafts] = useState<Record<string, DraftResponse>>({})
   const learningAuthorityRef = useRef<string>("")
   const draftsRef = useRef<Record<string, DraftResponse>>({})
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(5, errorMessage)
 
   // F2 new state (additive)
   const [characterizationId, setCharacterizationId] = useState<number | null>(null)
@@ -126,7 +145,20 @@ export function EsrsDatapointsForm() {
   const [isDirty, setIsDirty] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [autoSaveError, setAutoSaveError] = useSystemMessage(null)
+  useStudyError(5, autoSaveError)
   const [showIntro, setShowIntro] = useState(true)
+  const openNlpIndicator = (candidate: DmaNlpCandidate) => {
+    if (!corpus) return
+    const points = Object.values(corpus.blocks).flatMap(block => block.datapoints ?? [])
+    const target = nlpIndicatorTarget(candidate, points)
+    if (!target) return
+    setViewMode("respond"); setObligationFilter("all")
+    setExpandedStandards(current => ({ ...current, [target.standard]: true }))
+    setExpandedRequirements(current => ({ ...current, [target.dr]: true }))
+    setExpandedDatapoints(current => ({ ...current, [target.id]: true }))
+    setTimeout(() => document.getElementById(target.editorId)?.focus(), 0)
+  }
+
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false)
   const [recoveryIsConflict, setRecoveryIsConflict] = useState(false)
   const [pendingRecoveryDrafts, setPendingRecoveryDrafts] = useState<PendingRecovery | null>(null)
@@ -161,10 +193,14 @@ export function EsrsDatapointsForm() {
           return
         }
 
+        setXbrlRuntimeEnabled(sessionResponse.data.xbrl_runtime_identification_enabled === true)
         setCsrfToken(sessionResponse.data.csrf_token)
         const corpusData = workspaceResponse.data
         const responsesData = workspaceResponse.response_state
         setCorpus(corpusData)
+        p9AuthorityRef.current = corpusData?.p9_authority_digest
+        setAuthorityReviewRequired(responsesData?.authority_review_required ?? false)
+        setAuthorityReviewConfirmed(false)
         setCharacterizationId(responsesData?.characterization_id ?? corpusData?.characterization_id ?? null)
         setServerUpdatedAt(responsesData?.updated_at ?? null)
         saveQueueRef.current = createResponseSaveQueue(responsesData?.revision ?? 0)
@@ -201,6 +237,10 @@ export function EsrsDatapointsForm() {
           return
         }
 
+        if (isIroAuthorityConflict(error)) {
+          setErrorMessage(systemCopy(iroConflictMessage(error)))
+          return
+        }
         setErrorMessage(systemCopy("No se han podido cargar los datos normativos del paso 5 desde la plataforma."))
       } finally {
         if (mounted && generation === loadGenerationRef.current) {
@@ -365,7 +405,7 @@ export function EsrsDatapointsForm() {
 
   function installConflictRecovery(error: unknown) {
     const conflict = parseDatapointResponsesConflict(error)
-    if (!conflict) return false
+    if (!conflict && !invalidateIroSaveQueue(error, saveQueueRef.current)) return false
 
     // A 409 response alone cannot establish the displayed corpus. Preserve the
     // local mirror and reload the coherent publication before offering recovery.
@@ -379,12 +419,12 @@ export function EsrsDatapointsForm() {
     learningAuthorityRef.current = ""
     setCorpus(null)
     reload()
-    setAutoSaveError(systemCopy("Las respuestas cambiaron en otra pestaña. Recarga la versión actualizada para recuperar tus cambios."))
+    setAutoSaveError(systemCopy(isIroAuthorityConflict(error) ? iroConflictMessage(error) : "Las respuestas cambiaron en otra pestaña. Recarga la versión actualizada para recuperar tus cambios."))
     return true
   }
 
   async function performAutoSave() {
-    if (!characterizationId || !csrfToken) return
+    if (!characterizationId || !csrfToken || (authorityReviewRequired && !authorityReviewConfirmed)) return
     if (!isDirty && !dirtyRef.current) return
     setAutoSaveError(null)
     try {
@@ -411,9 +451,10 @@ export function EsrsDatapointsForm() {
 
   function enqueueCurrentSave() {
     if (!learningAuthorityRef.current || !saveQueueRef.current.isActive()) throw new Error("Coherent snapshot required")
+    if (authorityReviewRequired && !authorityReviewConfirmed) throw new Error("iro_review_required")
     const editVersion = editVersionRef.current
     const learningFeedback = datapointFeedbackPacket(draftsRef.current, learningAuthorityRef.current)
-    const responses = compactDrafts(draftsRef.current).map((draft) => {
+    const responses = compactDrafts(draftsRef.current, authorityReviewRequired && authorityReviewConfirmed).map((draft) => {
       const response = { ...draft }
       delete response.learning_review
       return response
@@ -426,12 +467,26 @@ export function EsrsDatapointsForm() {
         updateLaravelEsrsDatapointResponses(
           {
             expected_revision: payload.expected_revision,
+            ...(p9AuthorityRef.current ? { expected_authority_digest: p9AuthorityRef.current, authority_review_confirmed: authorityReviewConfirmed } : {}),
             responses: payload.responses,
             learning_feedback: learningFeedback,
           },
           { csrfToken },
         ),
     )
+  }
+
+  async function handleNlpReview(_run: DmaNlpRun, candidate: DmaNlpCandidate) {
+    openNlpIndicator(candidate)
+    const expected = corpus?.p9_authority_digest
+    if (!expected) return
+    try {
+      const response = await getLaravelEsrsDatapointWorkspace()
+      if (response.data?.p9_authority_digest === expected && p9AuthorityRef.current === expected) {
+        setCorpus(current => current && current.p9_authority_digest === expected
+          ? { ...current, iro_context_v1: response.data!.iro_context_v1 } : current)
+      }
+    } catch { setErrorMessage(systemCopy("No se pudo actualizar la lista de indicadores propuestos.")) }
   }
 
   function checkRecovery(charId: number, serverUpdated: string | null, currentServerDrafts: Record<string, DraftResponse>, loadedCorpus: LaravelEsrsDatapointCorpus | null, context: RecoveryContext) {
@@ -506,6 +561,7 @@ export function EsrsDatapointsForm() {
         setIsDirty(false)
         dirtyRef.current = false
         preserveUnansweredReviewMirror(characterizationId)
+        if (continueToReport) completeStudyStep(5)
         if (continueToReport) {
           router.push("/wizard/step-6")
         } else {
@@ -530,6 +586,7 @@ export function EsrsDatapointsForm() {
 
   return (
     <div className="min-w-0 flex-1 space-y-6">
+      <XbrlIdentificationPanel enabled={xbrlRuntimeEnabled} csrfToken={csrfToken} subjects={Object.values(corpus?.blocks ?? {}).flatMap(block => block.datapoints ?? []).map(point => datapointIdentificationSubject(point, locale))} />
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{tr("Datos normativos NEIS")}</h1>
@@ -556,6 +613,34 @@ export function EsrsDatapointsForm() {
         </div>
       ) : null}
 
+      {corpus?.dma_nlp_enabled && corpus.p9_authority_digest && <Card><CardContent className="space-y-3 pt-6">
+        {(corpus.dma_nlp_imports ?? []).map(record => <DmaNlpPanel key={`${record.id}|${corpus.p9_authority_digest}`} enabled
+          characterizationId={corpus.characterization_id} record={record} stage="p9" context={corpus.p9_authority_digest!}
+          revision={corpus.dma_nlp_p8_revision ?? 0} csrfToken={csrfToken} disabled={saving || authorityReviewRequired}
+          onReviewed={handleNlpReview} />)}
+        <h3>{tr("Indicadores NEIS propuestos")}</h3>
+        {corpus.iro_context_v1?.dma_nlp?.shortlist.map(entry => <div key={`${entry.run_id}|${entry.candidate.candidate_id}`}>
+          <p>{entry.source.iro_description}</p>
+          <Button type="button" variant="link" onClick={() => openNlpIndicator({ ...entry.candidate, decision: 'accepted', in_scope: true })}>{entry.candidate.id} · {tr("Abrir respuesta del indicador")}</Button>
+        </div>)}
+      </CardContent></Card>}
+      {corpus?.iro_context_v1 && <Card><CardContent className="space-y-3 pt-6">
+        <h2>{tr("Contexto IRO revisado")}</h2><p>{tr("Se mantienen todas las obligaciones NEIS")}</p>
+        {iroCards(corpus.iro_context_v1, locale).map(card => <section key={card.review.iro_id} className="border p-3">
+          <h3>{card.review.description}</h3><p>{tr("Indicadores vinculados al IRO")}</p>
+          {card.links.map(link => <div key={link.datapoint_id}>
+            <button type="button" className="underline" onClick={() => {
+              setExpandedStandards(current => ({ ...current, [link.esrs]: true }))
+              setExpandedRequirements(current => ({ ...current, [link.dr]: true }))
+              setObligationFilter("all"); setExpandedDatapoints(current => ({ ...current, [link.datapoint_id]: true }))
+              setTimeout(() => document.getElementById(`${link.datapoint_id}-status`)?.focus(), 0)
+            }}>{link.datapoint_id} · {link.dr}</button>
+            <ul>{link.questions.map(question => <li key={question.id}>{question.text}</li>)}</ul>
+          </div>)}
+        </section>)}
+        {authorityReviewRequired && <label className="block" role="status"><input type="checkbox" checked={authorityReviewConfirmed}
+          onChange={event => setAuthorityReviewConfirmed(event.target.checked)} /> {tr("He revisado las respuestas conservadas con el contexto actual")}</label>}
+      </CardContent></Card>}
       {loadingInitial || (corpus && corpus.locale !== locale) ? (
         <Card>
           <CardContent className="space-y-3 pt-6 text-sm text-muted-foreground">
@@ -729,7 +814,7 @@ export function EsrsDatapointsForm() {
               const allRequirements = groupRowsByDisclosureRequirement(allStandardRows, locale) as typeof requirements
               const markedCount = allStandardRows.filter(({ datapoint }) => drafts[datapoint.id]?.triage).length
               return (
-                <Collapsible key={group.standard} defaultOpen={group.standard === "ESRS 2"} className="rounded-lg border border-border bg-card">
+                <Collapsible key={group.standard} open={expandedStandards[group.standard] ?? group.standard === "ESRS 2"} onOpenChange={open => setExpandedStandards(current => ({ ...current, [group.standard]: open }))} className="rounded-lg border border-border bg-card">
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/40 p-3">
                     <CollapsibleTrigger className="group flex min-w-0 items-center gap-2 text-left font-semibold">
                       <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
@@ -744,7 +829,7 @@ export function EsrsDatapointsForm() {
                       const allRequirementRows = allRequirements.find((item) => item.key === requirement.key)?.rows ?? requirement.rows
                       const groupLabel = `${tr(group.standard)} · ${requirement.label}`
                       return (
-                        <Collapsible key={requirement.key} defaultOpen className="overflow-hidden rounded-md border border-border">
+                        <Collapsible key={requirement.key} open={expandedRequirements[requirement.key] ?? true} onOpenChange={open => setExpandedRequirements(current => ({ ...current, [requirement.key]: open }))} className="overflow-hidden rounded-md border border-border">
                           <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/30 px-3 py-2">
                             <CollapsibleTrigger className="group flex items-center gap-2 text-left text-sm font-medium">
                               <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
@@ -775,6 +860,7 @@ export function EsrsDatapointsForm() {
                                           <ChevronDown className="mt-1 h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
                                           <div className="min-w-0 space-y-1">
                                             <p className="text-xs text-muted-foreground">{datapoint.id} · {datapointSubtitle(datapoint, locale)}</p>
+                                            {corpus.iro_context_v1?.by_datapoint[datapoint.id]?.map(link => <p key={link.iro_id} className="text-xs">{`IRO ${link.iro_id}`}</p>)}
                                             <h3 className="text-sm font-medium text-foreground [overflow-wrap:anywhere]">{datapointDisplayName(datapoint, locale)}</h3>
                                             <p className="text-xs text-muted-foreground">{badge.label} · {responseLabel(draft.status, locale)}</p>
                                           </div>
@@ -792,6 +878,7 @@ export function EsrsDatapointsForm() {
                                         </div>
                                         {phaseLabel ? <p className="text-xs text-amber-800">{phaseLabel}</p> : null}
                                         {applicability.limitations.length > 0 ? <p className="text-xs text-amber-800">{applicability.limitations.join(" ")}</p> : null}
+                                        <ConceptRelations items={datapoint.related_datapoints} kind="datapoints" locale={locale} />
                                         <fieldset className="space-y-2">
                                           <legend className="text-sm font-medium">{reviewEnglish ? "Review this disclosure" : "Revisión del dato"}</legend>
                                           <p className="text-xs text-muted-foreground">{reviewEnglish ? "This review does not remove reporting obligations. Answer both questions to record a decision; an unanswered question leaves it unreviewed." : "Esta revisión no elimina las obligaciones del informe. Contesta ambas preguntas para registrar una decisión; si falta una, queda sin revisar."}</p>

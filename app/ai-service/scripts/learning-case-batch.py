@@ -151,6 +151,15 @@ def canonical_witness(request):
 if __name__ == '__main__':
     try:
         sys.exit(main())
+    except ModuleNotFoundError as error:
+        # Fixed dependency names only: keep operator diagnostics useful without
+        # exposing exception text, paths, environment values or training input.
+        dependency = (error.name or '').split('.')[0]
+        known = {'numpy', 'pandas', 'jsonschema', 'optuna', 'sklearn', 'mlflow',
+                 'joblib', 'scipy', 'learning_production_registry', 'wp13_feedback_bridge'}
+        suffix = ':' + dependency if dependency in known else ''
+        print('learning_batch.dependency_missing' + suffix, file=sys.stderr)
+        sys.exit(3)
     except Exception as error:
         code = str(error)
         print(code if code.startswith(('learning_','registry.','adapter.')) and len(code)<120 else 'learning_batch.child_failed:'+type(error).__name__,file=sys.stderr)

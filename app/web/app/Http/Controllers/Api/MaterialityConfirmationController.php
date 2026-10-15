@@ -9,6 +9,8 @@ use App\Services\CharacterizationPredictionMapper;
 use App\Services\CharacterizationStateTransaction;
 use App\Services\EsrsDatapointCorpusBuilder;
 use App\Support\DoubleMaterialityProcessState;
+use App\Services\Dma\P8Authority;
+use App\Services\Dma\IroContextProjector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
@@ -108,8 +110,21 @@ class MaterialityConfirmationController extends Controller
         }
 
         $this->rejectDuplicateJsonMembers($rawContent);
+        if (P8Authority::enabled() && array_diff(array_keys($request->all()), [
+            'expected_revision', 'confirmed_topic_ids', 'reviewed_topic_ids', 'universe_attestation',
+            'change_reasons', 'change_reason_notes', 'dimensions', 'guided_answers',
+            'e1_not_material_explanation', 'dma_import_refs', 'iro_reviews', 'dma_nlp_refs',
+        ]) !== []) {
+            throw ValidationException::withMessages(['iro_reviews' => __('Unexpected review properties are not accepted.')]);
+        }
+
 
         $validated = $request->validate([
+            'dma_nlp_refs' => [\App\Services\Dma\DmaNlpRecommendations::enabled() ? 'sometimes' : 'missing', 'array', 'list', 'max:1000'],
+            'dma_nlp_refs.*' => ['required', 'string', 'regex:/\A[1-9][0-9]*\|[a-f0-9]{64}\z/D', 'distinct:strict'],
+            'iro_reviews' => [P8Authority::enabled() ? 'present' : 'missing', 'array', 'list', 'max:1000'],
+            'dma_import_refs' => [config('services.dma_import.enabled', false) ? 'sometimes' : 'missing', 'array', 'max:'.self::MAX_TOPIC_COUNT],
+            'dma_import_refs.*' => ['integer:strict', 'min:1', 'max:'.self::MAX_JAVASCRIPT_SAFE_INTEGER],
             'expected_revision' => ['required', 'integer:strict', 'min:0', 'max:'.self::MAX_JAVASCRIPT_SAFE_INTEGER],
             'confirmed_topic_ids' => ['present', 'array', 'list', 'max:'.self::MAX_TOPIC_COUNT],
             'confirmed_topic_ids.*' => ['integer:strict', 'min:1', 'distinct:strict', 'exists:esrs_topics,id'],
@@ -183,8 +198,8 @@ class MaterialityConfirmationController extends Controller
             }
         }
 
-        $characterizationId = Characterization::forUser($request->user()->id)->firstOrFail()->id;
-        $outcome = $stateTransactions->run($characterizationId, function (Characterization $characterization) use ($validated): array {
+        $outcome = $stateTransactions->runForUser($request->user()->id, function (?Characterization $characterization) use ($validated, $datapoints): array {
+            abort_if($characterization === null, 404);
             $currentRevision = $this->confirmationRevision($characterization);
 
             if ($validated['expected_revision'] !== $currentRevision) {
@@ -285,6 +300,35 @@ class MaterialityConfirmationController extends Controller
                 DoubleMaterialityProcessState::fromFormData($formData)
             );
 
+            $nlpEvidence = \App\Services\Dma\DmaNlpRecommendations::enabled()
+                ? app(\App\Services\Dma\DmaNlpRecommendations::class)->confirmationEvidence($characterization, $validated['dma_nlp_refs'] ?? [], $reviewedTopicIds, $validated['iro_reviews'] ?? [], $currentRevision + 1)
+                : ($storedConfirmation['dma_nlp_evidence'] ?? []);
+            $references = $validated['dma_import_refs'] ?? \App\Services\Dma\DmaImportEvidence::references($storedConfirmation['dma_import_evidence'] ?? []);
+            if (P8Authority::enabled()) {
+                $clone = clone $characterization;
+                $previewData = $formData;
+                Arr::set($previewData, 'materiality_confirmation.confirmed_topic_ids', $confirmedTopicIds);
+                $clone->forceFill(['form_data' => $previewData]);
+                $previewCorpus = $datapoints->buildPreview($clone);
+                $datapoints->assertMappingAvailable($previewCorpus);
+                $dmaEvidence = app(\App\Services\Dma\DmaImportEvidence::class)->resolve(
+                    $characterization, $references, $reviewedTopicIds, $validated['iro_reviews'],
+                    app(IroContextProjector::class)->candidates($previewCorpus), $confirmedTopicIds, $currentRevision + 1,
+                    \App\Services\Dma\DmaNlpRecommendations::enabled() ? $nlpEvidence : []);
+            } else {
+                $dmaEvidence = array_key_exists('dma_import_refs', $validated)
+                    ? app(\App\Services\Dma\DmaImportEvidence::class)->resolve($characterization, $references, $reviewedTopicIds)
+                    : ($storedConfirmation['dma_import_evidence'] ?? []);
+            }
+
+            foreach ($nlpEvidence as &$entry) {
+                foreach ($dmaEvidence as $source) {
+                    if ((int) $source['import_id'] !== (int) $entry['import_id']) { continue; }
+                    $entry['reviewed_context'] = collect($source['iro_reviews'] ?? [])
+                        ->firstWhere('iro_id', $entry['candidate']['iro_id']) ?? $entry['reviewed_context'];
+                }
+            }
+            unset($entry);
             Arr::set($formData, 'materiality_confirmation', [
                 'revision' => $currentRevision + 1,
                 'confirmed_topic_ids' => $confirmedTopicIds,
@@ -298,12 +342,17 @@ class MaterialityConfirmationController extends Controller
                 'p6_snapshot' => [
                     'topic_ids' => $p6TopicIds,
                     'captured_at' => now()->toJSON(),
+                    ...(P8Authority::enabled() ? ['submission_generation' => (int) $characterization->submission_generation] : []),
                 ],
                 'e1_not_material_explanation' => $validated['e1_not_material_explanation'] ?? null,
                 'confirmed_at' => now()->toJSON(),
+                ...($dmaEvidence !== [] ? ['dma_import_evidence' => $dmaEvidence] : []),
+                ...($nlpEvidence !== [] ? ['dma_nlp_evidence' => $nlpEvidence] : []),
             ]);
 
+            $formData = app(\App\Services\LearningFeedbackDataset::class)->seal($characterization, $formData, 'materiality_confirmation');
             $characterization->forceFill(['form_data' => $formData])->save();
+            app(\App\Services\LearningBanditFeedback::class)->capture($characterization);
 
             return ['conflict' => false, 'characterization_id' => $characterization->id];
         });
@@ -326,7 +375,7 @@ class MaterialityConfirmationController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->firstOrFail();
 
         $validated = $request->validate([
-            'candidate_topic_ids' => ['present', 'array'],
+            'candidate_topic_ids' => ['present', 'array', ...(P8Authority::enabled() ? ['list', 'max:89'] : [])],
             'candidate_topic_ids.*' => ['integer', 'distinct', 'exists:esrs_topics,id'],
         ]);
 
@@ -342,6 +391,7 @@ class MaterialityConfirmationController extends Controller
         return response()->json([
             'data' => [
                 'preview' => $this->datapointPreview($clone, $datapoints),
+                ...(P8Authority::enabled() ? ['provisional' => true, 'iro_candidates' => app(IroContextProjector::class)->candidates((new \App\Support\EsrsDisplayCatalogue)->project($datapoints->buildPreview($clone), app()->getLocale()))] : []),
             ],
         ]);
     }
@@ -363,7 +413,7 @@ class MaterialityConfirmationController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function confirmationState(Characterization $characterization, EsrsDatapointCorpusBuilder $datapoints): array
+    public function confirmationState(Characterization $characterization, EsrsDatapointCorpusBuilder $datapoints): array
     {
         $p6TopicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
         $confirmation = Arr::get($characterization->form_data ?? [], 'materiality_confirmation', []);
@@ -403,10 +453,20 @@ class MaterialityConfirmationController extends Controller
             $universeAttestation,
         );
 
+        $authorityStale = false;
+        if (P8Authority::enabled() && $isConfirmed) {
+            try { app(P8Authority::class)->assertCurrent($characterization); }
+            catch (\Illuminate\Http\Exceptions\HttpResponseException) { $authorityStale = true; }
+        }
+
         return [
             'characterization_id' => $characterization->id,
             'is_confirmed' => $isConfirmed,
-            'is_stale' => $this->isStaleConfirmation($isConfirmed, $p6Snapshot, $p6TopicIds),
+            ...(\App\Services\Dma\DmaNlpRecommendations::enabled() ? ['dma_nlp_enabled' => true, 'dma_nlp_context' => \App\Services\Dma\DmaNlpRecommendations::p8Context($characterization)] : []),
+            ...(P8Authority::enabled() ? ['iro_traceability_enabled' => true,
+                'iro_reviews' => array_merge([], ...array_map(fn ($record) => $record['iro_reviews'] ?? [], $confirmation['dma_import_evidence'] ?? [])),
+                'iro_evidence' => array_map(fn ($record) => [...$record, 'iro_rows' => app(\App\Services\Dma\DmaCsvParser::class)->identifyRows($record['iro_rows'], (int) $characterization->id, $record['sources']['iro_file']['sha256'])], $confirmation['dma_import_evidence'] ?? [])] : []),
+            'is_stale' => $authorityStale || $this->isStaleConfirmation($isConfirmed, $p6Snapshot, $p6TopicIds),
             'confirmation_status' => $isConfirmed
                 ? self::CONFIRMATION_STATUS_CONFIRMED
                 : self::CONFIRMATION_STATUS_DEFAULTED_FROM_P6,
@@ -433,8 +493,14 @@ class MaterialityConfirmationController extends Controller
                 'guided_answers' => $guidedAnswers,
                 'e1_not_material_explanation' => Arr::get($confirmation, 'e1_not_material_explanation'),
                 'confirmed_at' => Arr::get($confirmation, 'confirmed_at'),
+                ...(config('services.dma_import.enabled', false) ? ['dma_import_refs' => \App\Services\Dma\DmaImportEvidence::references($confirmation['dma_import_evidence'] ?? [])] : []),
             ],
             'preview' => $preview,
+            ...(config('services.dma_import.enabled', false) ? ['dma_import_enabled' => true] : []),
+            ...(config('services.sector_comparison.enabled', false) ? [
+                'sector_comparison_enabled' => true,
+                'sector_comparison_input_fingerprint' => \App\Services\SectorComparisonGateway::fingerprint($characterization),
+            ] : []),
         ];
     }
 
@@ -473,6 +539,8 @@ class MaterialityConfirmationController extends Controller
 
         return [
             'type' => 'p8_decision_sheet',
+            ...(Arr::get($characterization->form_data ?? [], 'materiality_confirmation.dma_import_evidence', []) !== []
+                ? ['dma_import_evidence' => Arr::get($characterization->form_data, 'materiality_confirmation.dma_import_evidence')] : []),
             'characterization_id' => $characterization->id,
             'is_confirmed' => $state['is_confirmed'],
             'confirmation_status' => $state['confirmation_status'],
@@ -1582,11 +1650,12 @@ class MaterialityConfirmationController extends Controller
      */
     private function datapointPreview(Characterization $characterization, EsrsDatapointCorpusBuilder $datapoints): array
     {
-        $corpus = $datapoints->build($characterization);
+        $corpus = P8Authority::enabled() ? $datapoints->buildPreview($characterization) : $datapoints->build($characterization);
         $summary = $corpus['summary'];
         $totalDatapoints = $summary['total_datapoint_count'];
 
         return [
+            ...(P8Authority::enabled() ? ['provisional' => true] : []),
             'material_topic_count' => count($corpus['material_topic_ids']),
             'activated_esrs_standards' => $corpus['activated_esrs_standards'],
             'datapoint_estimate' => [
@@ -1622,7 +1691,7 @@ class MaterialityConfirmationController extends Controller
     {
         $topics = EsrsTopic::whereIn('id', $topicIds)->get()->keyBy('id');
 
-        return collect($topicIds)
+        $summaries = collect($topicIds)
             ->map(fn (int $id) => $topics->get($id))
             ->filter()
             ->map(fn (EsrsTopic $topic) => [
@@ -1643,5 +1712,7 @@ class MaterialityConfirmationController extends Controller
             ])
             ->values()
             ->all();
+
+        return app(\App\Repositories\ConceptRelationsRepository::class)->decorateTopics($summaries);
     }
 }

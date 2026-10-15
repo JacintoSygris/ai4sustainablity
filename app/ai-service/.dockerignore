@@ -3,8 +3,27 @@
 !Dockerfile.public
 !requirements.public.txt
 !public_model_app.py
+# Includes DMA text modules; generated models and evaluations remain excluded.
 !public_runtime/
+# Includes DMA text modules; generated models and evaluations remain excluded.
 !public_runtime/**
 !model-artifacts/
 !model-artifacts/gpt41/
 !model-artifacts/gpt41/**
+# Optional learning hooks: listed file by file so src/tests and the synthetic
+# learning-case modules stay out of the build context.
+!src/learning_activation.py
+!src/learning_gate_metrics.py
+!src/learning_serving_adapter.py
+!src/esrs_standard.py
+!learning-gate-metrics-v1.schema.json
+!src/learning_activation_cli.py
+!src/learning_production_cli.py
+!src/learning_production_registry.py
+!src/learning_production_runtime.py
+!src/feedback_bandit.py
+!src/feedback_bandit_registry.py
+!src/wp13_feedback_bridge.py
+!src/wp13_feedback_training.py
+!src/train/__init__.py
+!src/train/masked_multilabel.py

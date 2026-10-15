@@ -3,9 +3,9 @@
 import { ui , formatUi } from "@/lib/i18n/messages.mjs"
 import { useLocale } from "@/components/locale-provider"
 
-import { useMemo, useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useId, useMemo, useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   suggestTopicResult,
@@ -50,6 +50,7 @@ const EXP_LABEL: Record<SignalAnswer["exposicion"], string> = {
 }
 
 export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, onResult }: TopicSignalAssistantProps) {
+  const assistantId = useId()
   const { locale } = useLocale()
   const tr = (message: string) => ui(locale, message)
 
@@ -76,6 +77,11 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
     if (answer) onResult(answer)
   }
 
+  const confirmSignals = () => {
+    const answer = buildGuidedAnswerForUserEdit(signals, note, true)
+    if (answer) onResult(answer)
+  }
+
   const currentExp = signals.exposicion
   const expTrace = exposicionDefault === "fuerte" && currentExp === "descartada" ? tr("Descartada por ti") : null
 
@@ -89,60 +95,98 @@ export function TopicSignalAssistant({ topic, exposicionDefault, initialAnswer, 
       <div className="font-medium text-foreground">{topicTitle(topic, locale)} <Badge variant="outline" className="ml-1 align-middle">{topic.esrs_code}</Badge></div>
 
       {/* Impacto */}
-      <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar a personas o medioambiente?")}</div>
+      <fieldset>
+        <legend className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar a personas o medioambiente?")}</legend>
         <div className="flex flex-wrap gap-1">
           {(["bajo", "medio", "alto", "no_lo_se"] as const).map((v) => (
-            <Button key={v} type="button" size="sm" variant={signals.impacto === v ? "default" : "outline"} onClick={() => setSig("impacto", v)}>
+            <label key={v} className="flex cursor-pointer items-center gap-2 rounded border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input
+                type="radio"
+                name={`${assistantId}-impacto`}
+                value={v}
+                checked={signals.impacto === v}
+                onChange={() => setSig("impacto", v)}
+                className="accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              />
               {tr(IMPACT_LABEL[v])}
-            </Button>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* Financiero */}
-      <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar económicamente a la empresa?")}</div>
+      <fieldset>
+        <legend className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Cuánto puede afectar económicamente a la empresa?")}</legend>
         <div className="flex flex-wrap gap-1">
           {(["bajo", "medio", "alto", "no_lo_se"] as const).map((v) => (
-            <Button key={v} type="button" size="sm" variant={signals.financiero === v ? "default" : "outline"} onClick={() => setSig("financiero", v)}>
+            <label key={v} className="flex cursor-pointer items-center gap-2 rounded border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input
+                type="radio"
+                name={`${assistantId}-financiero`}
+                value={v}
+                checked={signals.financiero === v}
+                onChange={() => setSig("financiero", v)}
+                className="accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              />
               {tr(FIN_LABEL[v])}
-            </Button>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* Confianza (defaults Media) */}
-      <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Qué seguridad tienes sobre esta decisión?")}</div>
+      <fieldset>
+        <legend className="text-xs font-medium text-muted-foreground mb-1">{tr("¿Qué seguridad tienes sobre esta decisión?")}</legend>
         <div className="flex flex-wrap gap-1">
           {(["baja", "media", "alta"] as const).map((v) => (
-            <Button key={v} type="button" size="sm" variant={signals.confianza === v ? "default" : "outline"} onClick={() => setSig("confianza", v)}>
+            <label key={v} className="flex cursor-pointer items-center gap-2 rounded border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input
+                type="radio"
+                name={`${assistantId}-confianza`}
+                value={v}
+                checked={signals.confianza === v}
+                onChange={() => setSig("confianza", v)}
+                className="accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              />
               {tr(CONF_LABEL[v])}
-            </Button>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* Exposición (editable, seeded from default, trace when downgraded) */}
-      <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">{tr("Exposición (derivado de tu sector/cadena; editable)")}</div>
+      <fieldset>
+        <legend className="text-xs font-medium text-muted-foreground mb-1">{tr("Exposición (derivado de tu sector/cadena; editable)")}</legend>
         <div className="flex flex-wrap gap-1">
           {(["normal", "fuerte", "descartada"] as const).map((v) => (
-            <Button key={v} type="button" size="sm" variant={currentExp === v ? "default" : "outline"} onClick={() => setSig("exposicion", v)}>
+            <label key={v} className="flex cursor-pointer items-center gap-2 rounded border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input
+                type="radio"
+                name={`${assistantId}-exposicion`}
+                value={v}
+                checked={currentExp === v}
+                onChange={() => setSig("exposicion", v)}
+                className="accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              />
               {tr(EXP_LABEL[v])}
-            </Button>
+            </label>
           ))}
         </div>
         {expTrace ? <div className="mt-1 text-[10px] text-amber-600">{expTrace}</div> : null}
-      </div>
+      </fieldset>
 
       {/* Live suggestion */}
-      <div className="rounded bg-muted/60 px-2 py-1 text-xs text-foreground">{suggestionText}{suggestion.revisar ? tr(" (revisar)") : ""}</div>
+      <div role="status" aria-live="polite" aria-atomic="true" className="rounded bg-muted/60 px-2 py-1 text-xs text-foreground">{suggestionText}{suggestion.revisar ? tr(" (revisar)") : ""}</div>
+
+      <Button type="button" variant="outline" onClick={confirmSignals}>
+        {tr("Confirmar respuestas actuales")}
+      </Button>
 
       {/* Optional note max 300 */}
       <div>
+        <label htmlFor={`${assistantId}-note`} className="mb-1 block text-xs font-medium">{tr("Nota opcional (máx 300)")}</label>
         <Textarea
+          id={`${assistantId}-note`}
           placeholder={tr("Nota opcional (máx 300)")}
           value={note}
           maxLength={300}

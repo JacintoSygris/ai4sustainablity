@@ -3,6 +3,9 @@
 namespace App\Services\Report;
 
 use App\Models\ReportAuditEvent;
+use App\Models\Characterization;
+use App\Services\EsrsDatapointCorpusBuilder;
+use DomainException;
 use App\Models\ReportSnapshot;
 use Illuminate\Support\Facades\DB;
 
@@ -18,8 +21,46 @@ class ReportStalenessDetector
     public function detect(ReportSnapshot $snapshot): array
     {
         $characterization = $snapshot->characterization()->firstOrFail();
-        $live = $this->builder->buildCanonicalState($characterization);
         $reasons = [];
+        try {
+            $this->builder->assertFrozenSnapshotIntegrity($snapshot);
+            $live = $this->builder->buildCanonicalState($characterization, captureXbrl: false, captureScope: false, captureP9: false);
+        } catch (DomainException|ReportingProfileException) {
+            return ['is_stale' => true, 'stale_state' => ReportSnapshot::STALE_STALE, 'reasons' => ['approved_snapshot_invalid'], 'hashes' => []];
+        }
+        $assets = null;
+        if (ReportScopeAssets::required($snapshot)) {
+            if (($snapshot->snapshot_json['schema_version'] ?? null) !== 'report_snapshot_v2') {
+                $reasons[] = 'scope_identity_missing';
+            } else {
+                try {
+                    $assets = ReportScopeAssets::capture();
+                    // Normative differences must still be detected when P8 needs reconfirmation.
+                    $scope = app(EsrsDatapointCorpusBuilder::class)->buildPreview($characterization, $assets);
+                    $reasons = array_merge($reasons, $assets->differences($snapshot->source_manifest['scope'], $scope));
+                } catch (ReportScopeException|\Illuminate\Http\Exceptions\HttpResponseException) {
+                    $reasons[] = 'scope_assets_unavailable';
+                }
+            }
+        }
+        if (\App\Services\Dma\P8Authority::enabled()) {
+            try {
+                $corpusBuilder = app(EsrsDatapointCorpusBuilder::class);
+                $latest = $assets !== null
+                    ? $corpusBuilder->buildCaptured($characterization, $assets)
+                    : $corpusBuilder->build($characterization);
+                $frozen = $snapshot->source_manifest['p9_context_v1']['corpus'] ?? [];
+                if (($frozen['p9_authority_digest'] ?? null) !== $latest['p9_authority_digest']) { $reasons[] = 'p9_authority_changed'; }
+                foreach (['mapping', 'ig3', 'rules'] as $asset) {
+                    if (($frozen['p9_assets'][$asset] ?? null) !== $latest['p9_assets'][$asset]) { $reasons[] = 'p9_'.$asset.'_changed'; }
+                }
+                if (app(\App\Services\EsrsDatapointResponseState::class)->state($characterization, $latest)['authority_review_required']) {
+                    $reasons[] = 'iro_review_required';
+                }
+            } catch (\Illuminate\Http\Exceptions\HttpResponseException $exception) {
+                $reasons[] = $exception->getResponse()->getData(true)['code'] ?? 'p9_authority_unavailable';
+            }
+        }
 
         if ($live['characterization_hash'] !== $snapshot->characterization_hash) {
             $reasons[] = 'characterization_changed';
@@ -56,6 +97,7 @@ class ReportStalenessDetector
     public function refreshState(ReportSnapshot $snapshot): array
     {
         return DB::transaction(function () use ($snapshot): array {
+            Characterization::query()->whereKey($snapshot->characterization_id)->lockForUpdate()->firstOrFail();
             $locked = ReportSnapshot::query()
                 ->whereKey($snapshot->id)
                 ->lockForUpdate()

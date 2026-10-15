@@ -307,7 +307,7 @@ it('roundtrips the optional entity identifier through authenticated characteriza
     Bus::fake();
 
     $identifier = 'TEST0000000000000001';
-    $scheme = 'https://standards.iso.org/iso/17442';
+    $scheme = 'http://standards.iso.org/iso/17442';
     $topicId = EsrsTopic::first()->id;
 
     $this->actingAs($this->user)
@@ -421,7 +421,7 @@ it('preserves the entity identifier on subsequent authenticated characterization
     Bus::fake();
 
     $identifier = 'TEST0000000000000001';
-    $scheme = 'https://standards.iso.org/iso/17442';
+    $scheme = 'http://standards.iso.org/iso/17442';
     $topicId = EsrsTopic::first()->id;
 
     $this->actingAs($this->user)
@@ -880,3 +880,30 @@ it('submits successfully without any activity question answers', function () {
         ]))
         ->assertOk();
 });
+
+it('captures and clears explicit fiscal dates only when the package feature is enabled', function () {
+    Bus::fake();
+    $payload = validApiCharacterizationPayload(EsrsTopic::first()->id, [
+        'action' => 'save_draft',
+        'form_data' => ['company_profile' => ['reporting_period_start' => '2025-07-01', 'reporting_period_end' => '2026-06-30']],
+    ]);
+    $this->actingAs($this->user)->putJson('/api/characterization', $payload)->assertOk();
+    expect(data_get($this->user->characterization()->first()->form_data, 'company_profile.reporting_period_start'))->toBeNull();
+    config(['ixbrl.package_ui_enabled' => true]);
+    $this->putJson('/api/characterization', $payload)->assertOk()->assertJsonPath('data.form_data.company_profile.reporting_period_start', '2025-07-01')->assertJsonPath('data.form_data.company_profile.reporting_period_end', '2026-06-30');
+    $payload['form_data']['company_profile']['reporting_period_start'] = null;
+    $payload['form_data']['company_profile']['reporting_period_end'] = null;
+    $this->putJson('/api/characterization', $payload)->assertOk()->assertJsonPath('data.form_data.company_profile.reporting_period_start', null);
+});
+
+it('rejects invalid or incomplete fiscal dates without persisting them', function (array $dates) {
+    config(['ixbrl.package_ui_enabled' => true]);
+    $payload = validApiCharacterizationPayload(EsrsTopic::first()->id, ['action' => 'save_draft', 'form_data' => ['company_profile' => $dates]]);
+    $this->actingAs($this->user)->putJson('/api/characterization', $payload)->assertUnprocessable();
+    expect($this->user->characterization()->exists())->toBeFalse();
+})->with([
+    [['reporting_period_start' => '2025-07-01']],
+    [['reporting_period_start' => '2025-07-01', 'reporting_period_end' => '2025-01-01']],
+    [['reporting_period_start' => '2025-02-30', 'reporting_period_end' => '2026-06-30']],
+    [['reporting_period_start' => '<script>', 'reporting_period_end' => '2026-06-30']],
+]);

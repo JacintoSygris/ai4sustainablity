@@ -6,6 +6,7 @@ use App\Models\LearningAuthorizationRecord;
 use App\Models\LearningAuthorizationState;
 use App\Models\User;
 use DomainException;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 /** Private synthetic mechanism. No operational eligibility or HTTP caller. */
@@ -35,16 +36,38 @@ final class LearningAuthorizationLedger
     /** Internal account withdrawal; no authority, client command or new subject. */
     public function tombstoneForAccount(int $actor): void
     {
+        // Account erasure is also supported before the optional learning schema
+        // is installed. Do not gate this on engine enablement: old grants must
+        // still be withdrawn when the engine is disabled.
+        if (! Schema::hasTable('learning_authorization_states')) {
+            return;
+        }
+
         // Keep the account/first-row fence throughout enumeration and transitions.
         // Nested transactions remain subordinate to the supported deletion transaction.
         $this->transactions->runForUser($actor, function () use ($actor): void {
             $subjects = LearningAuthorizationState::query()->where('user_id', $actor)->orderBy('id')->get();
+            if (! Schema::hasTable('learning_authorization_records')) {
+                // Partially installed schema: deny every owned projection rather
+                // than leave a granted orphan after the user FK becomes null.
+                LearningAuthorizationState::query()->where('user_id', $actor)
+                    ->update(['status' => 'deleted', 'promotion_allowed' => false]);
+                return;
+            }
             foreach ($subjects as $subject) {
                 $command = $this->digest(['learning-ledger:account-deletion:v1', $actor,
                     $subject->subject_digest, $subject->generation]);
                 // Accepted transition reconciles even already-terminal history.
-                $this->tombstone($actor, $subject->learning_company_group_id, $subject->purpose,
-                    $subject->generation, $command);
+                try {
+                    $this->tombstone($actor, $subject->learning_company_group_id, $subject->purpose,
+                        $subject->generation, $command);
+                } catch (DomainException $error) {
+                    if ($error->getMessage() !== 'learning_ledger.incoherent') { throw $error; }
+                    // A corrupt learning receipt must never veto account erasure.
+                    // Retain its integrity failure, without treating it as a grant.
+                    $subject->forceFill(['status' => 'deleted'])->save();
+                    \Illuminate\Support\Facades\Log::warning('learning.erasure_incoherent_ledger');
+                }
             }
         });
     }

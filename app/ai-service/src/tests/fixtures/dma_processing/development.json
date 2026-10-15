@@ -1,0 +1,499 @@
+{
+  "synthetic": true,
+  "label_status": "provisional_pending_human_review",
+  "split": "development",
+  "cases": [
+    {
+      "id": "factory_water_es",
+      "family": "factory_water",
+      "locale": "es",
+      "description": "El impacto de nuestras operaciones se relaciona con el consumo total de agua.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "factory_water_en",
+      "family": "factory_water",
+      "locale": "en",
+      "description": "The impact of our operations concerns total water consumption.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "factory_outfall_es",
+      "family": "factory_outfall",
+      "locale": "es",
+      "description": "Los vertidos totales de agua de la fábrica afectan al río.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "13"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_12"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "factory_outfall_en",
+      "family": "factory_outfall",
+      "locale": "en",
+      "description": "The factory total water discharges affect the river.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "13"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_12"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "repair_design_es",
+      "family": "repair_design",
+      "locale": "es",
+      "description": "La reparabilidad de los productos condiciona el diseño de los equipos.",
+      "declared_topic": "26",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "26"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "repair_design_en",
+      "family": "repair_design",
+      "locale": "en",
+      "description": "Reparability of products influences equipment design.",
+      "declared_topic": "26",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "26"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "chemical_waste_es",
+      "family": "chemical_waste",
+      "locale": "es",
+      "description": "La cantidad total de residuos peligrosos generados plantea un impacto.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_15"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "chemical_waste_en",
+      "family": "chemical_waste",
+      "locale": "en",
+      "description": "The total amount of hazardous waste generated creates an impact.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_15"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "isotope_waste_es",
+      "family": "isotope_waste",
+      "locale": "es",
+      "description": "La cantidad total de residuos radiactivos requiere seguimiento.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_16"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "isotope_waste_en",
+      "family": "isotope_waste",
+      "locale": "en",
+      "description": "The total amount of radioactive waste needs monitoring.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_16"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "office_energy_es",
+      "family": "office_energy",
+      "locale": "es",
+      "description": "El consumo total de energía de las operaciones propias genera costes.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "office_energy_en",
+      "family": "office_energy",
+      "locale": "en",
+      "description": "Total energy consumption related to own operations causes costs.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "vehicle_scope1_es",
+      "family": "vehicle_scope1",
+      "locale": "es",
+      "description": "Las emisiones brutas de GEI de alcance 1 de los vehículos generan impactos.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "2"
+        ],
+        "dr": [
+          "E1-6"
+        ],
+        "datapoint": [
+          "E1-6_07"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "vehicle_scope1_en",
+      "family": "vehicle_scope1",
+      "locale": "en",
+      "description": "Gross Scope 1 greenhouse gas emissions from vehicles create impacts.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "2"
+        ],
+        "dr": [
+          "E1-6"
+        ],
+        "datapoint": [
+          "E1-6_07"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "solar_generation_es",
+      "family": "solar_generation",
+      "locale": "es",
+      "description": "La producción de energía renovable ofrece oportunidades.",
+      "declared_topic": "3",
+      "units": [
+        "bilingual_text_inference"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_17"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "solar_generation_en",
+      "family": "solar_generation",
+      "locale": "en",
+      "description": "Renewable energy production creates opportunities.",
+      "declared_topic": "3",
+      "units": [
+        "bilingual_text_inference"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_17"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "tank_inventory_es",
+      "family": "tank_inventory",
+      "locale": "es",
+      "description": "El agua total almacenada en los depósitos debe medirse.",
+      "declared_topic": "11",
+      "units": [
+        "import_provenance"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_04"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "tank_inventory_en",
+      "family": "tank_inventory",
+      "locale": "en",
+      "description": "The total water stored in tanks needs measurement.",
+      "declared_topic": "11",
+      "units": [
+        "import_provenance"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_04"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "music_es",
+      "family": "music",
+      "locale": "es",
+      "description": "El cuarteto ensaya una sonata al atardecer.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "music_en",
+      "family": "music",
+      "locale": "en",
+      "description": "The quartet rehearses a sonata at dusk.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "negated_factory_es",
+      "family": "negated_factory",
+      "locale": "es",
+      "description": "No generamos residuos radiactivos.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "negated_factory_en",
+      "family": "negated_factory",
+      "locale": "en",
+      "description": "We do not generate radioactive waste.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "uncertain_factory_es",
+      "family": "uncertain_factory",
+      "locale": "es",
+      "description": "Quizás haya residuos peligrosos o bien radiactivos.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "uncertain_factory_en",
+      "family": "uncertain_factory",
+      "locale": "en",
+      "description": "Maybe there is hazardous or radioactive waste.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    }
+  ]
+}

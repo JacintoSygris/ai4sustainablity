@@ -1,0 +1,668 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "learning-gate-metrics-v1.schema.json",
+  "title": "Predeclared learning gate protocol, aggregate report and safe administrative projection",
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "properties": {
+        "min_companies": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "min_positives": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "min_negatives": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "precision_delta": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "replicates": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 10000
+        },
+        "confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "min_companies",
+        "min_positives",
+        "min_negatives",
+        "precision_delta",
+        "replicates",
+        "confidence",
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "ci": {
+      "type": "object",
+      "properties": {
+        "lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "valid_replicates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unavailable_reason": {
+          "enum": [
+            null,
+            "zero_denominator",
+            "insufficient_valid_replicates"
+          ]
+        }
+      },
+      "required": [
+        "lower",
+        "upper",
+        "valid_replicates",
+        "unavailable_reason"
+      ],
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unavailable_reason": {
+          "enum": [
+            null,
+            "zero_denominator",
+            "insufficient_valid_replicates"
+          ]
+        },
+        "ci": {
+          "$ref": "#/$defs/ci"
+        }
+      },
+      "required": [
+        "value",
+        "ci"
+      ],
+      "additionalProperties": false
+    },
+    "scores": {
+      "type": "object",
+      "properties": {
+        "tp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "precision": {
+          "$ref": "#/$defs/metric"
+        },
+        "recall": {
+          "$ref": "#/$defs/metric"
+        },
+        "f1": {
+          "$ref": "#/$defs/metric"
+        }
+      },
+      "required": [
+        "tp",
+        "fp",
+        "fn",
+        "tn",
+        "precision",
+        "recall",
+        "f1"
+      ],
+      "additionalProperties": false
+    },
+    "section": {
+      "type": "object",
+      "properties": {
+        "positive_support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "negative_support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predictors": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "$ref": "#/$defs/scores"
+            },
+            "comparator": {
+              "$ref": "#/$defs/scores"
+            },
+            "candidate": {
+              "$ref": "#/$defs/scores"
+            }
+          },
+          "required": [
+            "base",
+            "comparator",
+            "candidate"
+          ],
+          "additionalProperties": false
+        },
+        "paired_delta": {
+          "type": "object",
+          "properties": {
+            "precision": {
+              "$ref": "#/$defs/metric"
+            },
+            "recall": {
+              "$ref": "#/$defs/metric"
+            },
+            "f1": {
+              "$ref": "#/$defs/metric"
+            }
+          },
+          "required": [
+            "precision",
+            "recall",
+            "f1"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "positive_support",
+        "negative_support",
+        "unknown_support",
+        "predictors",
+        "paired_delta"
+      ],
+      "additionalProperties": false
+    },
+    "set_report": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "enum": [
+            "keys",
+            "standards"
+          ]
+        },
+        "companies": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "micro": {
+          "$ref": "#/$defs/section"
+        },
+        "per_topic": {
+          "type": "object",
+          "patternProperties": {
+            "^(esrs_[a-z0-9_]+|[ESG][0-9]?)$": {
+              "$ref": "#/$defs/section"
+            }
+          },
+          "additionalProperties": false,
+          "maxProperties": 256
+        }
+      },
+      "required": [
+        "unit",
+        "companies",
+        "micro"
+      ],
+      "additionalProperties": false
+    },
+    "report": {
+      "type": "object",
+      "properties": {
+        "heldout": {
+          "$ref": "#/$defs/set_report"
+        },
+        "gold_oos": {
+          "$ref": "#/$defs/set_report"
+        }
+      },
+      "required": [
+        "heldout"
+      ],
+      "additionalProperties": false
+    },
+    "fixed": {
+      "type": "object",
+      "properties": {
+        "heldout": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "gold_oos": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "heldout"
+      ],
+      "additionalProperties": false
+    },
+    "primary": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "const": "heldout.keys.micro.precision"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            null,
+            "insufficient_evidence",
+            "improvement_not_demonstrated"
+          ]
+        }
+      },
+      "required": [
+        "endpoint",
+        "threshold",
+        "passed",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "legacy_set": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "enum": [
+            "heldout",
+            "gold_oos"
+          ]
+        },
+        "unit": {
+          "enum": [
+            "keys",
+            "standards"
+          ]
+        },
+        "cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "positive_support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "served_true_positives": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_true_positives": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lost_true_positives": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "served_recall": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "candidate_recall": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "cases",
+        "positive_support",
+        "served_true_positives",
+        "candidate_true_positives",
+        "lost_true_positives",
+        "served_recall",
+        "candidate_recall"
+      ],
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "learning-gate-metrics-v1"
+        },
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "rule": {
+          "const": "zero-report-key-recall-loss"
+        },
+        "sets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/legacy_set"
+          }
+        },
+        "gold_oos": {
+          "enum": [
+            "evaluated",
+            "unavailable"
+          ]
+        },
+        "fixed_sha256": {
+          "$ref": "#/$defs/fixed"
+        },
+        "baseline_identity": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "zero_positive_loss": {
+          "type": "boolean"
+        },
+        "primary": {
+          "$ref": "#/$defs/primary"
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        },
+        "report": {
+          "$ref": "#/$defs/report"
+        },
+        "failure_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "insufficient_evidence",
+              "improvement_not_demonstrated",
+              "positive_loss"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schema",
+        "protocol_sha256",
+        "passed",
+        "rule",
+        "sets",
+        "gold_oos",
+        "fixed_sha256",
+        "baseline_identity",
+        "zero_positive_loss",
+        "primary",
+        "policy",
+        "report",
+        "failure_reasons"
+      ],
+      "additionalProperties": false
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "artifact_sha256": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "policy_sha256": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "runtime_config": {
+          "type": "object"
+        },
+        "serving_identity_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "profile",
+        "artifact_sha256",
+        "policy_sha256",
+        "runtime_config",
+        "serving_identity_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "protocol": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "learning-gate-metrics-v1"
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        },
+        "fixed_sha256": {
+          "$ref": "#/$defs/fixed"
+        },
+        "axes": {
+          "type": "object",
+          "properties": {
+            "heldout": {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "enum": [
+                    "keys",
+                    "standards"
+                  ]
+                },
+                "keys": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(esrs_[a-z0-9_]+|[ESG][0-9]?)$"
+                  }
+                }
+              },
+              "required": [
+                "unit",
+                "keys"
+              ],
+              "additionalProperties": false
+            },
+            "gold_oos": {
+              "type": "object",
+              "properties": {
+                "unit": {
+                  "enum": [
+                    "keys",
+                    "standards"
+                  ]
+                },
+                "keys": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(esrs_[a-z0-9_]+|[ESG][0-9]?)$"
+                  }
+                }
+              },
+              "required": [
+                "unit",
+                "keys"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "heldout"
+          ],
+          "additionalProperties": false
+        },
+        "selected": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "effective": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "effective_model_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baseline": {
+          "$ref": "#/$defs/identity"
+        },
+        "code_sha256": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "dataset_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "created_at": {
+          "type": "number",
+          "minimum": 0
+        },
+        "decision_ids": {
+          "type": "object",
+          "properties": {
+            "heldout": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1000000,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "gold_oos": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1000000,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "heldout"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema",
+        "policy",
+        "fixed_sha256",
+        "axes",
+        "selected",
+        "effective",
+        "effective_model_sha256",
+        "baseline",
+        "code_sha256",
+        "dataset_sha256",
+        "created_at",
+        "decision_ids"
+      ],
+      "additionalProperties": false
+    },
+    "administrative_projection": {
+      "$ref": "#/$defs/receipt"
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/protocol"
+    },
+    {
+      "$ref": "#/$defs/receipt"
+    }
+  ]
+}

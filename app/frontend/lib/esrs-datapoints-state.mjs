@@ -73,7 +73,7 @@ export function emptyDraft() {
   }
 }
 
-export function compactDrafts(drafts) {
+export function compactDrafts(drafts, authorityReviewConfirmed = false) {
   return Object.entries(drafts ?? {})
     .map(([datapoint_id, draft]) => {
       const facts = compactFacts(draft?.facts)
@@ -81,7 +81,9 @@ export function compactDrafts(drafts) {
         datapoint_id,
         evidence_reference: trimOptional(draft?.evidence_reference),
         note: trimOptional(draft?.note),
-        status: draft?.status ?? "draft",
+        status: authorityReviewConfirmed && draft?.status === "draft"
+          && ["completed", "not_applicable"].includes(draft?.previous_status)
+          ? draft.previous_status : draft?.status ?? "draft",
         value: trimOptional(draft?.value),
         ...(draft?.learning_review ? { learning_review: draft.learning_review } : {}),
       }
@@ -591,6 +593,8 @@ export function patchDatapointDrafts(drafts, datapointIds, patch) {
   const next = { ...drafts }
   for (const id of new Set(datapointIds)) {
     next[id] = { ...emptyDraft(), ...drafts[id], ...patch }
+    // An explicit status supersedes its pre-authority status.
+    if (Object.hasOwn(patch, "status")) delete next[id].previous_status
   }
   return next
 }

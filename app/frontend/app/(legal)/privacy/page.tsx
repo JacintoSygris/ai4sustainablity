@@ -1,3 +1,4 @@
+import { learningPrivacy } from "@/lib/learning-copy.mjs"
 import { ui } from "@/lib/i18n/messages.mjs"
 import { getLaravelServerLocale } from "@/lib/laravel-server"
 export async function generateMetadata() {
@@ -16,7 +17,7 @@ export default async function PrivacyPage() {
     <article className="space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">{tr("Política de privacidad")}</h1>
-        <p className="text-sm text-muted-foreground">{tr("Versión: 26/09/2026")}</p>
+        <p className="text-sm text-muted-foreground">{tr("Versión: 08/10/2026")}</p>
       </header>
 
       <section className="space-y-3">
@@ -61,6 +62,12 @@ export default async function PrivacyPage() {
         <h2 className="text-xl font-semibold text-foreground">{tr("Cuánto tiempo conservamos tus datos")}</h2>
         <p className="text-muted-foreground">
           {" "}{tr("Conservamos tus respuestas y tus documentos mientras mantengas tu cuenta activa y no los elimines. Si solicitas borrar un documento mientras se está extrayendo, la solicitud se rechaza temporalmente y tendrás que volver a intentarlo cuando termine la extracción. Cuando una baja se acepta, la eliminación física puede quedar pendiente de completar y se gestiona hasta finalizar. Las trazas técnicas pueden conservar el identificador, la fecha de borrado y los temas tratados, pero no las citas ni las páginas; se conserva únicamente lo necesario, salvo aquello que deba mantenerse por una obligación legal.")}{" "}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">{tr(learningPrivacy[0])}</h2>
+        {learningPrivacy.slice(1).map(text => <p key={text} className="text-muted-foreground">{tr(text)}</p>)}
+        <a className="text-primary underline" href="/profile#learning-consent">{tr("Gestionar consentimiento de aprendizaje")}</a>
       </section>
 
       <section className="space-y-3">

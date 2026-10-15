@@ -60,7 +60,7 @@ it('smokes the python characterization api without changing persisted gateway co
     Http::assertSent(function ($request) {
         return $request->url() === 'http://ai-service.test/predict'
             && $request['company_name'] === 'I4S API Smoke'
-            && $request['sector_list'] === ['Agriculture']
+            && $request['sector_list'] === ['A']
             && $request['employees_total'] === 150
             && $request['annual_turnover_million_euro'] === 6.0
             && $request['stock_listed'] === false

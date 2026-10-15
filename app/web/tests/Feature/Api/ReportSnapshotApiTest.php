@@ -458,3 +458,23 @@ function reportSnapshotApiFact(Characterization $characterization, array $overri
         'blocking_reasons' => [],
     ], $overrides));
 }
+
+it('freezes NLP decisions and verbatim evidence independently of live tables and flags', function () {
+    $f = \Tests\Support\DmaNlpFixture::make($this, 'consumer_repair_es');
+    \Tests\Support\DmaNlpFixture::confirm($this, $f);
+    \Tests\Support\DmaNlpFixture::fake(); $run = \Tests\Support\DmaNlpFixture::analyse($this, $f);
+    \Tests\Support\DmaNlpFixture::review($this, $f, $run, 'E5-5_03')->assertOk();
+    \Tests\Support\DmaNlpFixture::prepareReport($this, $f);
+    $id = $this->postJson('/api/report/snapshot')->assertCreated()->json('data.id');
+    $this->postJson('/api/report/snapshots/'.$id.'/approve', ['single_person_declaration' => 'Synthetic NLP declaration'])->assertSuccessful();
+    $snapshot = \App\Models\ReportSnapshot::findOrFail($id);
+    $frozen = $snapshot->source_manifest['p9_context_v1']['corpus']['iro_context_v1'];
+    config(['services.dma_nlp.enabled' => false, 'services.dma_import.iro_traceability_enabled' => false]);
+    // Historical rendering consumes only the approved snapshot; live data is deliberately changed.
+    $data = $f['record']->fresh()->form_data; $data['dma_nlp_evidence'] = []; $f['record']->update(['form_data' => $data]);
+    $ir = app(\App\Services\Report\ReportIrBuilder::class)->buildFromApprovedSnapshot($snapshot);
+    expect($ir['iro_context_v1'])->toBe($frozen)
+        ->and($ir['iro_context_v1']['dma_nlp']['shortlist'][0]['candidate']['id'])->toBe('E5-5_03');
+    $bundle = app(\App\Services\Report\EvidenceBundleBuilder::class)->build($ir);
+    expect($bundle['iro_context_v1'])->toBe($frozen);
+});

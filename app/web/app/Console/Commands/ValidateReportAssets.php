@@ -23,6 +23,7 @@ class ValidateReportAssets extends Command
         'data/atomizer_support_rules_v1.json',
         'data/related_dr_map_esrs2023_v1.json',
         'data/esrs_datapoints_ig3.json',
+        'data/esrs_concept_relations_v1.json',
     ];
 
     private const BANNED_TERM_SCAN_ASSETS = [
@@ -45,6 +46,10 @@ class ValidateReportAssets extends Command
             if (hash('sha256', file_get_contents($file)) !== trim(file_get_contents($sha))) {
                 $failures[] = "checksum_mismatch:{$asset}";
             }
+        }
+
+        if ((new \App\Repositories\ConceptRelationsRepository())->load() === null) {
+            $failures[] = 'invalid_concept_relations';
         }
 
         // Gate 2: banned-term scan across vendored text.

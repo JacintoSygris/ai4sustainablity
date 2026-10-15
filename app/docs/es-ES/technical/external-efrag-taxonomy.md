@@ -69,6 +69,20 @@ P10 muestra a la persona autenticada el nombre de taxonomía, la versión, el pe
 
 Un resultado `validated_candidate` sólo indica que pasaron las comprobaciones técnicas configuradas. No acredita que el informe sea completo, correcto, asegurado, presentado o aceptado por una autoridad.
 
+## Caché de Arelle y paquete candidato iXBRL
+
+`ESRS_ARELLE_CACHE_DIRECTORY` admite una ruta absoluta externa con una caché aprovisionada de las dependencias públicas XBRL/W3C que Arelle necesita para validar sin red. Como el ZIP y el manifiesto, la caché queda fuera del checkout, de las imágenes y del almacenamiento de Laravel, y el usuario de servicio solo necesita leerla.
+
+`ESRS_ARELLE_COMMAND` debe ser la ruta absoluta de un ejecutable; un nombre de orden o una ruta relativa bloquean el candidato con `xhtml_ixbrl_arelle_unavailable`. Laravel ejecuta Arelle sin shell y con un entorno mínimo (`PATH=/usr/local/bin:/usr/bin:/bin`, `LANG=C.UTF-8` y un `TMPDIR` privado), sin heredar las variables de la aplicación. Le pasa `--validationExitCode`, `--disablePersistentConfig`, `--xdgConfigHome` con un directorio temporal, `--logFile` con un registro JSON, `--packages` con el ZIP del manifiesto y, si está configurada, `--cacheDirectory`. Estas opciones corresponden a `arelle-release` 2.46.1, la versión fijada para la herramienta de evidencia en `app/ai-service/scripts/ixbrl/requirements-validation.txt`. La imagen web instala la versión fijada en `app/web/requirements-arelle.txt` (2.45.1), una combinación no comprobada: antes de activar el candidato, verifique que el Arelle instalado acepta estas opciones. Si no las acepta, el candidato se bloquea con `xhtml_ixbrl_arelle_validation_failed`.
+
+El candidato XHTML/iXBRL (`GET /api/report/xhtml-ixbrl-candidate`) y el paquete candidato iXBRL (`IXBRL_PACKAGE_UI_ENABLED=true`, `GET /api/report/ixbrl-package`) usan este mismo manifiesto, la misma taxonomía y el mismo Arelle. Ambos exigen además, en la versión factual aprobada, fechas explícitas de inicio y fin del periodo y un LEI válido según MOD-97. P5 solo captura las fechas con `IXBRL_PACKAGE_UI_ENABLED=true`. Con los valores predeterminados, aunque la taxonomía y Arelle estén aprovisionados, el candidato responde 409 con `xhtml_ixbrl_context_missing`, y `GET /api/report/ixbrl-package` responde 404. Después de capturar las fechas, apruebe de nuevo la versión factual: las versiones aprobadas anteriormente no se reescriben.
+
+En P10, el botón «Candidato iXBRL provisional» solo aparece con `IXBRL_PACKAGE_UI_ENABLED=true`, el flujo completo, el contenido del informe preparado y el estado `verified` de `GET /api/report/taxonomy`. Mientras la taxonomía externa está bloqueada, el botón permanece oculto y P10 muestra el motivo.
+
+La herramienta de operador `app/ai-service/scripts/ixbrl/validate_with_arelle.py`, que valida una muestra sintética, no descarga la taxonomía EFRAG. Exige `--taxonomy-package` con el ZIP oficial situado fuera del repositorio y `--confirm-external-taxonomy-rights`; sin esa confirmación termina antes de generar nada. Descarga la UTR pública, y Arelle resuelve en una caché externa los esquemas públicos XBRL/W3C antes de validar sin red. Escribe la evidencia por defecto en `<scratch>/evidence/arelle-validation.json` y `.md`, rechaza un `--evidence-prefix` dentro del repositorio y registra `taxonomy_package_source: operator_supplied`, sin URL de descarga.
+
+Configuración, representación, contenido del ZIP y la herramienta de evidencia con Arelle: [Paquete candidato iXBRL provisional](../../ixbrl-candidate-package.md) (en castellano).
+
 ## Paquetes genéricos country y codelist-common: instalación separada
 
 Estos paquetes tienen una configuración independiente de EFRAG. Los consumidores probados son únicamente `XbrlCountryTaxonomyPackage` y `XbrlCodelistCommonTaxonomyPackage`, mediante `verifiedPath()`. No se ha verificado su integración con Arelle; no cambian el modelo de taxonomía ni el requisito externo de EFRAG descrito arriba.

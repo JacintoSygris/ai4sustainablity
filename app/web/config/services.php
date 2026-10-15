@@ -74,6 +74,17 @@ return [
         ],
     ],
 
+    'sector_comparison' => [
+        'enabled' => (bool) env('SECTOR_COMPARISON_ENABLED', false),
+    ],
+
+    'dma_nlp' => ['enabled' => (bool) env('DMA_NLP_ENABLED', false)],
+
+    'dma_import' => [
+        'enabled' => (bool) env('DMA_IMPORT_ENABLED', false),
+        'iro_traceability_enabled' => (bool) env('IRO_TRACEABILITY_ENABLED', false),
+    ],
+
     'p6_document_upload' => [
         'enabled' => (bool) env('P6_DOCUMENT_UPLOAD_ENABLED', false),
         'ai_worker_timeout' => env('P6_AI_WORKER_TIMEOUT_SECONDS', 180),
@@ -118,6 +129,10 @@ return [
         'user_name' => env('PRIVATE_DEV_USER_NAME', 'I4S Dev'),
     ],
 
+    'concept_relations' => [
+        'enabled' => env('CONCEPT_RELATIONS_ENABLED', false),
+    ],
+
     'esrs_datapoints' => [
         'matter_dr_mapping_path' => env('ESRS_MATTER_DR_MAPPING_PATH'),
     ],
@@ -126,6 +141,7 @@ return [
         'generic_xbrl_root' => env('XBRL_GENERIC_TAXONOMY_ROOT'),
         'external_taxonomy_manifest_path' => env('ESRS_EXTERNAL_TAXONOMY_MANIFEST_PATH'),
         'arelle_command' => env('ESRS_ARELLE_COMMAND'),
+        'arelle_cache_directory' => env('ESRS_ARELLE_CACHE_DIRECTORY'),
     ],
 
 ];

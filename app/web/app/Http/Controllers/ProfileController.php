@@ -120,6 +120,7 @@ class ProfileController extends Controller
                 ->all() ?? [];
 
             $this->learningLedger->tombstoneForAccount($lockedUser->id);
+            app(\App\Services\LearningDataLifecycle::class)->withdraw($lockedUser);
 
             $characterization?->delete();
             DB::table('password_reset_tokens')->where('email', $lockedUser->email)->delete();

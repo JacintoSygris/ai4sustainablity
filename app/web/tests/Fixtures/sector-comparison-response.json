@@ -1,0 +1,1278 @@
+{
+  "min_support": 5,
+  "version": "sector-comparison-v1",
+  "artifact_sha256": "dfe408ba3ec89e86b97328f039ed8459ecbe293b2702d6f218a32f812e1a682e",
+  "built_at": "2026-10-09T07:09:21.554382+00:00",
+  "hashes": {
+    "labels": "d6ce620d18dc6b0bae6906c6d65ac56d210e32a31432760f27e42862e10eff8f",
+    "masks": "bbdae4cb2bc28777339764a9a70ce920750827e6ea2e838631440d196b0dbb30",
+    "companies": "24fa404497bc1a4316723565ae014660f65d4fa55239193b84812c2e6a4bdd02",
+    "encoding": "3b8270b65cdca2b0e40bae67dc35d5f9454c894e7cda50265555e845231d28c9",
+    "topic_mapping": "45cca343b77c479ccdd2e6b904afb367f2efda2e0796fda69ac00d663bd2b73f"
+  },
+  "provenance": {
+    "label_kind": "synthetic",
+    "source_reference": "synthetic-fixture",
+    "authorization_reference": "test-only"
+  },
+  "coverage_period": {
+    "start": "2025-01-01",
+    "end": "2025-12-31"
+  },
+  "sector_taxonomy": "NACE Rev.2.1 / CNAE-2025",
+  "global_population_companies": 6,
+  "comparisons": [
+    {
+      "section": "K",
+      "population_companies": 5,
+      "topics": [
+        {
+          "topic_id": "1",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.6,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 3
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 3
+          }
+        },
+        {
+          "topic_id": "2",
+          "source": "global_fallback",
+          "low_confidence": true,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 4,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 5,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "3",
+          "source": "insufficient_data",
+          "low_confidence": true,
+          "proportion": null,
+          "sector": {
+            "n_scored": 0,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 0,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "4",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "5",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "6",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "7",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "8",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "9",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "10",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "11",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "12",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "13",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "14",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "15",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "16",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "17",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "18",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "19",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "20",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "21",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "22",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "23",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "24",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "25",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "26",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "27",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "28",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "29",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "30",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "31",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "32",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "33",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "34",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "35",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "36",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "37",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "38",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "39",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "40",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "41",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "42",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "43",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "44",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "45",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "46",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "47",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "48",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "49",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "50",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "51",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "52",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "53",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "54",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "55",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "56",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "57",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "58",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "59",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "60",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "61",
+          "source": "insufficient_data",
+          "low_confidence": true,
+          "proportion": null,
+          "sector": {
+            "n_scored": 0,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 0,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "62",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "63",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "64",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "65",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "66",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "67",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "68",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "69",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "70",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "71",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "72",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "73",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "74",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "75",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "76",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "77",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "78",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "79",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "80",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "81",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "82",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "83",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "84",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "85",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "86",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "87",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "88",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        },
+        {
+          "topic_id": "89",
+          "source": "sector",
+          "low_confidence": false,
+          "proportion": 0.0,
+          "sector": {
+            "n_scored": 5,
+            "n_material": 0
+          },
+          "global_counts": {
+            "n_scored": 6,
+            "n_material": 0
+          }
+        }
+      ]
+    }
+  ]
+}

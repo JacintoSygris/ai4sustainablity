@@ -24,6 +24,7 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
+            if (\App\Services\Dma\P8Authority::enabled()) { \App\Services\Dma\P8Authority::reject('p8_confirmation_required'); }
             return response()->json(['data' => null]);
         }
 
@@ -33,6 +34,8 @@ class EsrsDatapointController extends Controller
             $corpus['learning_authority_digest'] = $state['learning_authority_digest'];
             // Authority is derived from canonical source bytes before locale projection.
             $corpus = app(\App\Support\EsrsDisplayCatalogue::class)->project($corpus, app()->getLocale());
+
+            $corpus = app(\App\Repositories\ConceptRelationsRepository::class)->decorateCorpus($corpus);
 
             return response()->json(['snapshot_version' => 'p9-workspace-v1', 'data' => $corpus, 'response_state' => $state]);
         });
@@ -63,6 +66,7 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
+            if (\App\Services\Dma\P8Authority::enabled()) { \App\Services\Dma\P8Authority::reject('p8_confirmation_required'); }
             return response()->json(['message' => __('No characterization found.')], 404);
         }
 
@@ -100,6 +104,7 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
+            if (\App\Services\Dma\P8Authority::enabled()) { \App\Services\Dma\P8Authority::reject('p8_confirmation_required'); }
             return response()->json(['message' => __('No characterization found.')], 404);
         }
 
@@ -120,6 +125,7 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
+            if (\App\Services\Dma\P8Authority::enabled()) { \App\Services\Dma\P8Authority::reject('p8_confirmation_required'); }
             return response()->json(['data' => null]);
         }
 
@@ -138,10 +144,13 @@ class EsrsDatapointController extends Controller
         $characterization = Characterization::forUser($request->user()->id)->first();
 
         if (! $characterization) {
+            if (\App\Services\Dma\P8Authority::enabled()) { \App\Services\Dma\P8Authority::reject('p8_confirmation_required'); }
             return response()->json(['message' => __('No characterization found.')], 404);
         }
 
         $validated = $request->validate([
+            'expected_authority_digest' => [\App\Services\Dma\P8Authority::enabled() ? 'required' : 'sometimes', 'string', 'size:64'],
+            'authority_review_confirmed' => ['sometimes', 'boolean:strict'],
             'expected_revision' => ['required', 'integer', 'min:0'],
             'responses' => ['present', 'array'],
             'responses.*.datapoint_id' => ['required', 'string', 'distinct'],
@@ -176,6 +185,16 @@ class EsrsDatapointController extends Controller
         ): array {
             $corpus = $builder->build($lockedCharacterization);
             $currentRevision = $responseState->revision($lockedCharacterization);
+            $pending = false;
+            if (\App\Services\Dma\P8Authority::enabled()) {
+                if (! hash_equals($corpus['p9_authority_digest'], $validated['expected_authority_digest'])) {
+                    \App\Services\Dma\P8Authority::reject('p8_confirmation_stale');
+                }
+                $pending = $responseState->state($lockedCharacterization, $corpus)['authority_review_required'];
+                if ($pending && ($validated['authority_review_confirmed'] ?? false) !== true) {
+                    \App\Services\Dma\P8Authority::reject('iro_review_required');
+                }
+            }
 
             if ((int) $validated['expected_revision'] !== $currentRevision) {
                 return [
@@ -217,6 +236,7 @@ class EsrsDatapointController extends Controller
             }
 
             $formData = $lockedCharacterization->form_data ?? [];
+            $previousAuthorityDigest = Arr::get($formData, 'esrs_datapoint_responses.p9_authority_digest');
             $storedResponses = Arr::get($formData, 'esrs_datapoint_responses.responses', []);
             $storedResponses = is_array($storedResponses) ? $storedResponses : [];
             $orphanedResponses = array_diff_key($storedResponses, array_flip($allowedDatapointIds));
@@ -226,10 +246,12 @@ class EsrsDatapointController extends Controller
             Arr::set($formData, 'esrs_datapoint_responses', [
                 'schema_version' => EsrsDatapointResponseState::SCHEMA_VERSION,
                 'revision' => $nextRevision,
+                ...(isset($corpus['p9_authority_digest']) ? ['p9_authority_digest' => $corpus['p9_authority_digest']] : []),
                 'updated_at' => now()->toJSON(),
                 'responses' => array_replace($orphanedResponses, $normalizedResponses),
                 ...($feedback === null ? [] : ['learning_feedback' => $feedback]),
             ]);
+            $formData = app(\App\Services\LearningFeedbackDataset::class)->seal($lockedCharacterization, $formData, 'esrs_datapoint_responses');
             $lockedCharacterization->forceFill(['form_data' => $formData])->save();
 
             ReportAuditEvent::create([
@@ -242,6 +264,18 @@ class EsrsDatapointController extends Controller
                     'revision' => $nextRevision,
                     'response_count' => count($normalizedResponses),
                     'datapoint_ids' => array_keys($normalizedResponses),
+                    // Derived from the locked, persisted answers, never from client previous_status.
+                    ...($pending ? ['authority_review' => [
+                        'confirmed' => true,
+                        'previous_digest' => $previousAuthorityDigest,
+                        'current_digest' => $corpus['p9_authority_digest'],
+                        'restored_statuses' => array_map(
+                            static fn (array $response): string => $response['status'],
+                            array_filter($normalizedResponses, static fn (array $response, string $id): bool =>
+                                in_array($response['status'], ['completed', 'not_applicable'], true)
+                                && ($storedResponses[$id]['status'] ?? null) === $response['status'], ARRAY_FILTER_USE_BOTH),
+                        ),
+                    ]] : []),
                 ],
             ]);
 

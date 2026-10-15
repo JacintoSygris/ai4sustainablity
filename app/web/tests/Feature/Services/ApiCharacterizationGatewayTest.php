@@ -194,7 +194,7 @@ it('adds new-format crosswalk fields from P5 characterization data', function ()
 
     Http::assertSent(function ($request) {
         return $request->url() === 'http://ai-service.test/predict'
-            && $request['products_services'] === ['A', 'C']
+            && $request['products_services'] === ['J']
             && $request['subsidiaries_regions'] === ['EU', 'LATAM'];
     });
 });

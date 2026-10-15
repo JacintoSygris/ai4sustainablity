@@ -18,7 +18,7 @@ beforeEach(function () {
         'services.learning_p6_base_source_clock.enabled' => false,
         'services.learning_p8_source_clock.enabled' => false,
         'services.learning_p9_source_clock.enabled' => true]);
-    Schema::create('learning_p9_source_revisions', function (Blueprint $table) {
+    if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions', function (Blueprint $table) {
         $table->foreignId('characterization_id')->primary()->constrained('characterizations')->cascadeOnDelete();
         $table->unsignedBigInteger('generation');
         $table->unsignedBigInteger('revision');

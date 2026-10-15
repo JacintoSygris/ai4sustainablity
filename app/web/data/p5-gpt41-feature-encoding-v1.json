@@ -1,0 +1,88 @@
+{
+  "version": "p5-gpt41-encoding-v1",
+  "sector_taxonomy": "NACE Rev.2.1 / CNAE-2025",
+  "product_taxonomy": "training-pipeline products_services codes A-L (not NACE; pipeline not distributed)",
+  "products_by_p5_type": {
+    "physical_product_manufacturing": [
+      "A"
+    ],
+    "physical_product_retail": [
+      "C"
+    ],
+    "professional_services": [
+      "D"
+    ],
+    "technical_services": [
+      "D",
+      "G"
+    ],
+    "software_digital_services": [
+      "F"
+    ],
+    "construction_installations": [
+      "G"
+    ],
+    "logistics_transport_storage": [
+      "B"
+    ],
+    "finance_insurance": [
+      "E"
+    ],
+    "energy_utilities": [
+      "K"
+    ],
+    "agrifood": [
+      "J"
+    ],
+    "health_life_sciences": [
+      "I",
+      "F"
+    ],
+    "education_training": [
+      "I"
+    ],
+    "hospitality_tourism": [
+      "H"
+    ],
+    "mixed": [],
+    "not_sure": []
+  },
+  "regions_by_p5_region": {
+    "eu": [
+      "EU"
+    ],
+    "north_america": [
+      "NA"
+    ],
+    "latin_america": [
+      "LATAM"
+    ],
+    "asia": [
+      "APAC"
+    ],
+    "middle_east_africa": [
+      "MENA",
+      "SSA"
+    ],
+    "oceania": [
+      "APAC"
+    ]
+  },
+  "unsupported_sector_codes": [
+    "P",
+    "Q",
+    "U",
+    "V"
+  ],
+  "unsupported_product_codes": [
+    "J"
+  ],
+  "policy": {
+    "unsupported": "Retain semantic code; zero corresponding flags; report degraded coverage. Never substitute another industry.",
+    "mixed_or_unknown_product": "No product flags; missing products_services. L means none of the listed products, not unknown.",
+    "agrifood": "J (agricultural activity); P5 does not establish food manufacturing, so do not infer A.",
+    "technical_services": "D and G cover engineering and maintenance in the combined P5 option.",
+    "health_life_sciences": "I and F cover social/health services and scientific activities in the combined P5 option.",
+    "size": "YAML employee bands; 5000 belongs to LARGE (overlapping YAML endpoint resolved to first band). 1000_plus is a lower-bound estimate, not a known upper band."
+  }
+}

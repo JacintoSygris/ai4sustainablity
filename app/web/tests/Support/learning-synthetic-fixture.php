@@ -231,7 +231,7 @@ function t11Schema(): void {
             $t->longText('draft_text');
         });
 
-Schema::create('learning_p9_source_revisions',function(Blueprint $t){$t->foreignId('characterization_id')->primary()->constrained('characterizations', indexName: DB::connection()->getTablePrefix().'fk20')->cascadeOnDelete();$t->unsignedBigInteger('generation');$t->unsignedBigInteger('revision');$t->string('epoch',64);$t->string('digest',64);});
+if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions',function(Blueprint $t){$t->foreignId('characterization_id')->primary()->constrained('characterizations', indexName: DB::connection()->getTablePrefix().'fk20')->cascadeOnDelete();$t->unsignedBigInteger('generation');$t->unsignedBigInteger('revision');$t->string('epoch',64);$t->string('digest',64);});
 }
 
 trait T11NativeApplication {

@@ -24,6 +24,12 @@ class Ar16MatterDrMappingRepository
             return null;
         }
 
+        return is_array($payload) ? $this->normalize($payload) : null;
+    }
+
+    /** Normalize the already captured input without reading the filesystem. */
+    public function normalize(array $payload): ?array
+    {
         if (Arr::get($payload, 'source.status') !== 'approved') {
             return null;
         }

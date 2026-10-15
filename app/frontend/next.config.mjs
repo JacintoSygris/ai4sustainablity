@@ -60,6 +60,10 @@ const nextConfig = {
           destination: `${laravelApiOrigin}/logout`,
         },
         {
+          source: "/profile/learning-consent",
+          destination: `${laravelApiOrigin}/profile/learning-consent`,
+        },
+        {
           source: "/profile",
           destination: `${laravelApiOrigin}/profile`,
         },

@@ -54,3 +54,21 @@ test('healthz does not leak framework name or secret-like values', function () {
     sort($keys);
     expect($keys)->toBe(['app_release', 'db', 'queue_recent', 'status', 'time']);
 });
+
+test('health probe accepts the configured trusted host and rejects the loopback host', function () {
+    config([
+        'app.url' => 'https://sostenibilidad.example.org',
+        'app.enforce_trusted_hosts' => true,
+        'app.trusted_hosts' => ['sostenibilidad.example.org'],
+    ]);
+    try {
+        // Symfony's test request takes Host from the URI, unlike curl's separate
+        // transport address and Host header. Both requests stay in-process.
+        $this->withHeaders(['X-Forwarded-Proto' => 'https'])
+            ->getJson('http://sostenibilidad.example.org:8080/healthz')->assertOk()->assertJsonPath('db', 'ok');
+
+        $this->getJson('http://127.0.0.1:8080/healthz')->assertStatus(400);
+    } finally {
+        \Illuminate\Http\Request::setTrustedHosts([]);
+    }
+});

@@ -817,11 +817,13 @@
     },
     "MDR-A_11": {
       "concept_id": "esrs:FinancialResourcesAllocatedToActionPlanCapEx",
+      "required_context": ["future_period_or_time_horizon"],
       "taggable_state": "mapped",
       "reason_code": null
     },
     "MDR-A_12": {
       "concept_id": "esrs:FinancialResourcesAllocatedToActionPlanOpEx",
+      "required_context": ["future_period_or_time_horizon"],
       "taggable_state": "mapped",
       "reason_code": null
     },

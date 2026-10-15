@@ -168,10 +168,10 @@ final class ReportVisiblePresentation
     }
 
     /** @param array<string, mixed> $claim */
-    public static function claimValue(array $claim, string $locale = 'es'): ?string
+    public static function claimValue(array $claim, string $locale = 'es', bool $allowUnknownDimensions = false): ?string
     {
         $dimensions = array_key_exists('dimensions', $claim) ? $claim['dimensions'] : [];
-        self::withVisibleDimensions('', $dimensions, $locale);
+        self::withVisibleDimensions('', $dimensions, $locale, $allowUnknownDimensions);
 
         if (($claim['nil'] ?? false) === true) {
             return null;
@@ -183,7 +183,7 @@ final class ReportVisiblePresentation
         }
 
         if (is_bool($value)) {
-            return self::withVisibleDimensions($value ? ($locale === 'en' ? 'Yes' : 'Sí') : 'No', $dimensions, $locale);
+            return self::withVisibleDimensions($value ? ($locale === 'en' ? 'Yes' : 'Sí') : 'No', $dimensions, $locale, $allowUnknownDimensions);
         }
 
         $valueType = (string) ($claim['value_type'] ?? '');
@@ -201,7 +201,7 @@ final class ReportVisiblePresentation
                     ? self::formatDecimalString($value, $decimals, $locale, ! $calendarYear)
                     : number_format($value, $decimals, $locale === 'en' ? '.' : ',', $calendarYear ? '' : ($locale === 'en' ? ',' : '.')));
             if ($calendarYear) {
-                return self::withVisibleDimensions($formatted, $dimensions, $locale);
+                return self::withVisibleDimensions($formatted, $dimensions, $locale, $allowUnknownDimensions);
             }
 
             $singular = is_string($value) ? preg_match('/^[+-]?0*1(?:\.0*)?$/D', $value) === 1 : abs($value) == 1;
@@ -214,11 +214,11 @@ final class ReportVisiblePresentation
                 : self::visibleUnit($unit, $singular);
             $displayValue = $displayUnit === '' ? $formatted : $formatted.' '.$displayUnit;
 
-            return self::withVisibleDimensions($displayValue, $dimensions, $locale);
+            return self::withVisibleDimensions($displayValue, $dimensions, $locale, $allowUnknownDimensions);
         }
 
         if (is_string($value)) {
-            return self::withVisibleDimensions($value, $dimensions, $locale);
+            return self::withVisibleDimensions($value, $dimensions, $locale, $allowUnknownDimensions);
         }
 
         throw new RuntimeException('Unsupported factual value type.');
@@ -333,9 +333,9 @@ final class ReportVisiblePresentation
         };
     }
 
-    private static function withVisibleDimensions(string $value, mixed $dimensions, string $locale = 'es'): string
+    public static function withVisibleDimensions(string $value, mixed $dimensions, string $locale = 'es', bool $allowUnknownDimensions = false): string
     {
-        if (! is_array($dimensions)) {
+        if (! is_array($dimensions) || ! array_is_list($dimensions)) {
             throw new RuntimeException('Unsupported factual dimension shape.');
         }
 
@@ -343,30 +343,45 @@ final class ReportVisiblePresentation
             return $value;
         }
 
-        usort($dimensions, function (mixed $left, mixed $right): int {
+        foreach ($dimensions as $dimension) {
+            if (! is_array($dimension) || ! is_string($dimension['axis'] ?? null) || ! is_string($dimension['member'] ?? null)
+                || trim($dimension['axis']) === '' || trim($dimension['member']) === '') {
+                throw new RuntimeException('Unsupported factual dimension shape.');
+            }
+        }
+
+        usort($dimensions, function (mixed $left, mixed $right) use ($allowUnknownDimensions): int {
             $leftAxis = is_array($left) ? (string) ($left['axis'] ?? '') : '';
             $rightAxis = is_array($right) ? (string) ($right['axis'] ?? '') : '';
 
             return (self::DIMENSION_AXIS_ORDER[$leftAxis] ?? PHP_INT_MAX)
-                <=> (self::DIMENSION_AXIS_ORDER[$rightAxis] ?? PHP_INT_MAX);
+                <=> (self::DIMENSION_AXIS_ORDER[$rightAxis] ?? PHP_INT_MAX)
+                ?: ($allowUnknownDimensions
+                    ? (strcmp($leftAxis, $rightAxis) ?: strcmp($left['member'], $right['member']))
+                    : 0);
         });
 
         $labels = [];
         foreach ($dimensions as $dimension) {
-            if (! is_array($dimension)) {
+            if (! is_array($dimension) || ! is_string($dimension['axis'] ?? null) || ! is_string($dimension['member'] ?? null)
+                || trim($dimension['axis']) === '' || trim($dimension['member']) === '') {
                 throw new RuntimeException('Unsupported factual dimension shape.');
             }
 
             $axis = (string) ($dimension['axis'] ?? '');
             $member = (string) ($dimension['member'] ?? '');
             $label = self::dimensionMemberLabel($axis, $member);
-            if ($label === null) {
-                throw new RuntimeException('Unsupported factual dimension label.');
+            if ($label === null && ! $allowUnknownDimensions) throw new RuntimeException('Unsupported factual dimension label.');
+            if ($allowUnknownDimensions) {
+                ReportDisplayProjection::assertXmlText($axis);
+                ReportDisplayProjection::assertXmlText($member);
             }
+            $known = $label !== null;
+            $label ??= $axis.': '.$member;
 
             // Only closed system-code axes have translated display values. Free-text axes/members stay verbatim.
             $systemAxis = in_array($axis, ['waste_stream', 'hazard_class', 'treatment_type', 'gender', 'contract_type', 'country', 'esrs:CountryAxis'], true);
-            if ($locale === 'en' && $systemAxis) {
+            if ($locale === 'en' && $systemAxis && $known) {
                 $label = preg_match('/^País ([A-Z]{2})$/', $label, $code) === 1
                     ? 'Country '.$code[1]
                     : (new ReportDisplayProjection('en'))->text($label);

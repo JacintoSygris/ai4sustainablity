@@ -143,7 +143,7 @@ final class RunLearningBatch extends Command
                 $row->issuer_state=$cursor; $row->context_digest=$context; $row->save(); return $prior;
             });
             $root=dirname(base_path());
-            $python=$root.'/ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python');
+            $python=config('learning_engine.synthetic_python');
             // Fixed trusted local launcher; no executable, shell or path supplied by a user.
             $mode=config('services.learning_batch.adversarial_mode','');
             if (!in_array($mode,['','timeout','crash','malformed','oversized','receipt_generation'],true)) { throw new DomainException('learning_batch.mode_invalid'); }
@@ -438,7 +438,7 @@ final class RunLearningBatch extends Command
         $root=dirname(base_path()); $started=hrtime(true)/1e9; $deadline=$started+6; $process=null;
         try {
             self::assertDeadline($deadline,'learning_batch.witness_timeout');
-            $process=proc_open([$root.'/ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python'),'-B',$root.'/ai-service/scripts/learning-case-batch.py','--witness'],[
+            $process=proc_open([config('learning_engine.synthetic_python'),'-B',$root.'/ai-service/scripts/learning-case-batch.py','--witness'],[
                 0=>['file',$artifact.'/input.json','r'],1=>['file',$artifact.'/stdout.log','w'],2=>['file',$artifact.'/stderr.log','w'],
             ],$pipes,$root.'/ai-service',array_replace(array_diff_key(getenv(),['I4S_BATCH_NATIVE_ARTIFACT_ROOT'=>true]),$nativeMetadata,[
                 'PYTHONPATH'=>$root.'/ai-service/src'.PATH_SEPARATOR.$root.'/ai-service/src/tests','PYTHONDONTWRITEBYTECODE'=>'1',

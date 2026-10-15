@@ -1,6 +1,31 @@
 <?php
 use App\Models\Characterization;
 use App\Services\LearningP6Snapshot;
+
+it('binds the optional feedback policy while rejecting unknown or inconsistent policies', function () {
+    $legacy = t06bFrame();
+    $snapshot = new LearningP6Snapshot;
+    $before = $snapshot->project(t06bModel($legacy));
+    $frame = $legacy;
+    $identity = &$frame['mapping_metadata']['python']['serving_identity'];
+    $identity['policy_sha256']['feedback_bandit'] = str_repeat('d', 64);
+    $identity['runtime_config']['policy_active']['feedback_bandit'] = true;
+    $bound = $snapshot->project(t06bModel($frame));
+    unset($identity);
+    expect($bound['p6_snapshot']['model_digest'])->toBe($before['p6_snapshot']['model_digest'])
+        ->and($bound['p6_snapshot']['policy_digest'])->not->toBe($before['p6_snapshot']['policy_digest']);
+    foreach (['hash-only', 'flag-only', 'nonbool', 'unknown'] as $variant) {
+        $bad = $frame;
+        $i = &$bad['mapping_metadata']['python']['serving_identity'];
+        if ($variant === 'hash-only') { unset($i['runtime_config']['policy_active']['feedback_bandit']); }
+        if ($variant === 'flag-only') { unset($i['policy_sha256']['feedback_bandit']); }
+        if ($variant === 'nonbool') { $i['runtime_config']['policy_active']['feedback_bandit'] = 1; }
+        if ($variant === 'unknown') { $i['runtime_config']['policy_active']['unapproved_policy'] = true; }
+        expect(fn () => $snapshot->project(t06bModel($bad)))->toThrow(InvalidArgumentException::class);
+        unset($i);
+    }
+    expect($snapshot->project(t06bModel($legacy)))->toBe($before);
+});
 // Fixture namespace: t06b-synthetic-only; synthetic_only=true; promotion_allowed=false.
 function t06bFrame(): array {
     return ['status'=>'completed','model_profile'=>'synthetic_v1','mapping_metadata'=>['python'=>['serving_identity'=>[

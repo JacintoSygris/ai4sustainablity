@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { readFileSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import * as recoveryState from "../lib/materiality-confirmation-state.mjs"
+import * as dmaState from "../lib/dma-import-state.mjs"
+import * as iroState from "../lib/iro-traceability.mjs"
 import * as recoveryDraft from "../lib/materiality-confirmation-draft.mjs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -36,7 +38,9 @@ function runCurrentRecovery({ server, local = {}, raw }) {
   }).outputText
   const observed = {}, storage = new Map()
   const bindings = {
-    ...recoveryState, ...recoveryDraft,
+    ...recoveryState, ...recoveryDraft, ...dmaState, ...iroState,
+    iroReviews: local.iro_reviews_draft ?? iroState.hydrateIroReviews(server.iro_reviews),
+    dmaImportRefs: local.dma_import_refs ?? server.confirmation.dma_import_refs ?? {},
     confirmation: server, conflictedDraftRaw: raw,
     reviewedTopics: new Set(local.reviewed_topic_ids ?? server.confirmation.reviewed_topic_ids),
     selectedTopics: new Set(local.selected_topic_ids ?? server.confirmed_topic_ids),
@@ -49,7 +53,7 @@ function runCurrentRecovery({ server, local = {}, raw }) {
     getDraftKey: () => "draft", conflictDraftKey: () => "conflict",
     recoveryStorage: { setItem(k, v) { storage.set(k, v) }, removeItem(k) { storage.delete(k) } },
   }
-  for (const name of ["SelectedTopics", "ChangeReasons", "ChangeNotes", "E1Explanation", "GuidedDrafts", "Dimensions", "ReviewedTopics", "ReviewedUniverse", "Mode", "HasUserChosenMode", "ConflictedDraftRaw"]) {
+  for (const name of ["IroReviews", "SelectedTopics", "ChangeReasons", "ChangeNotes", "E1Explanation", "GuidedDrafts", "Dimensions", "ReviewedTopics", "ReviewedUniverse", "Mode", "HasUserChosenMode", "ConflictedDraftRaw", "DmaImportRefs"]) {
     bindings[`set${name}`] = value => { observed[name] = value }
   }
   new Function(...Object.keys(bindings), `${callback}\nrecoverConflictedDraft()`)(...Object.values(bindings))
@@ -78,7 +82,9 @@ function runCurrentAutosave(server, observed) {
   const end = source.indexOf("  const p6TopicIds = useMemo", start)
   assert.ok(start >= 0 && end > start)
   let persisted
-  const bindings = { ...recoveryState, ...recoveryDraft, confirmation: server,
+  const bindings = { ...recoveryState, ...recoveryDraft,
+    iroReviews: observed.IroReviews ?? iroState.hydrateIroReviews(server.iro_reviews),
+    dmaImportRefs: observed.DmaImportRefs ?? server.confirmation.dma_import_refs ?? {}, confirmation: server,
     useEffect: fn => fn(), draftReadyFor: { current: server.characterization_id }, draftDirty: { current: true },
     selectedTopics: observed.SelectedTopics, reviewedTopics: observed.ReviewedTopics, reviewedUniverse: observed.ReviewedUniverse,
     changeReasons: observed.ChangeReasons, changeNotes: observed.ChangeNotes, e1Explanation: observed.E1Explanation,
@@ -384,7 +390,7 @@ test("server dimensions survive local draft reload and the next P8 payload", () 
 
   const source = readFileSync(join(root, "components/wizard/final-topics-selection.tsx"), "utf8")
   assert.match(source, /const \[dimensions, setDimensions\] = useState<Dimensions>/)
-  assert.match(source, /\.\.\.\(conf\.confirmation\.dimensions \?\? \{\}\)[\s\S]*\.\.\.\(localDraft\?\.dimensions \?\? \{\}\)/)
+  assert.match(source, /setDimensions\(localDraft\?\.dimensions \?\? conf\.confirmation\.dimensions \?\? \{\}\)/)
   assert.match(source, /mergeMaterialityDimensions\(dimensions, guidedDrafts\)/)
 })
 
@@ -552,4 +558,16 @@ test("Laravel client and OpenAPI expose the same nullable derived labels and sto
   assert.deepEqual(attestation.properties.version.enum, [1])
   assert.deepEqual(attestation.properties.mode.enum, ["direct", "guided"])
   assert.equal(attestation.additionalProperties, false)
+})
+
+
+test("DMA recovery retains server and local import references in the actual callback and autosave", () => {
+  const { server, raw, local } = recoveryFixture()
+  server.dma_import_enabled = true
+  server.confirmation.dma_import_refs = { 28: 7 }
+  local.dma_import_refs = { 31: 8 }
+  const result = runCurrentRecovery({ server, local, raw: JSON.stringify({ ...JSON.parse(raw), dma_import_refs: { 4: 9 } }) })
+  assert.deepEqual(result.observed.DmaImportRefs, { 28: 7, 31: 8, 4: 9 })
+  assert.deepEqual(result.persisted.dma_import_refs, result.observed.DmaImportRefs)
+  assert.deepEqual(runCurrentAutosave(server, result.observed).dma_import_refs, result.observed.DmaImportRefs)
 })

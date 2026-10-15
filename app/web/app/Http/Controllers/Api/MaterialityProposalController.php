@@ -149,6 +149,11 @@ class MaterialityProposalController extends Controller
             $state['document_evidence'] = $this->documentEvidencePresenter->present($characterization);
         }
 
+        if (config('services.sector_comparison.enabled', false)) {
+            $state['sector_comparison_enabled'] = true;
+            $state['sector_comparison_input_fingerprint'] = \App\Services\SectorComparisonGateway::fingerprint($characterization);
+        }
+
         return $state;
     }
 

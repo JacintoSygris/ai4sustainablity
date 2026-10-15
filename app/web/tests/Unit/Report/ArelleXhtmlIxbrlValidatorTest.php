@@ -185,9 +185,23 @@ file_put_contents($capturePath, json_encode([
 if ((int) getenv('I4S_ARELLE_SLEEP') > 0) {
     sleep((int) getenv('I4S_ARELLE_SLEEP'));
 }
+$logIndex = array_search('--logFile', $argvList, true);
+$output = getenv('I4S_ARELLE_OUTPUT');
+$ok = $output !== '' && ! preg_match('/error|fatal|invalid|fail/i', $output);
+if (is_int($logIndex)) file_put_contents($argvList[$logIndex + 1], json_encode(['log' => [[
+    'code' => 'info', 'level' => $ok ? 'info' : 'error',
+    'message' => ['text' => $ok ? 'validated in 0.01 secs' : $output],
+]]], JSON_THROW_ON_ERROR));
 fwrite(STDOUT, getenv('I4S_ARELLE_OUTPUT'));
 exit((int) getenv('I4S_ARELLE_EXIT'));
 PHP);
+    $script = file_get_contents($binary);
+    $script = str_replace("getenv('I4S_ARELLE_CAPTURE')", var_export($capturePath, true), $script);
+    $script = str_replace("getenv('I4S_ARELLE_EXIT')", var_export($exitCode, true), $script);
+    $script = str_replace("getenv('I4S_ARELLE_OUTPUT')", var_export($output, true), $script);
+    $script = str_replace("getenv('I4S_ARELLE_SLEEP')", var_export($sleepSeconds, true), $script);
+    file_put_contents($binary, $script);
+
     chmod($binary, 0700);
     putenv('I4S_ARELLE_CAPTURE='.$capturePath);
     putenv('I4S_ARELLE_EXIT='.$exitCode);
@@ -210,3 +224,53 @@ function arelleValidatorTempFile(string $name, string $contents): string
 
     return $path;
 }
+
+it('does not forward application environment secrets to Arelle', function () {
+    $previous = getenv('I4S_ARELLE_TEST_SECRET');
+    putenv('I4S_ARELLE_TEST_SECRET=synthetic-sentinel');
+    try {
+        $capture = arelleValidatorTempFile('child-secret.json', '');
+        $binary = arelleValidatorFixtureBinary($capture, 0, 'validation successful');
+        file_put_contents($binary, str_replace('$argvList = $argv;', '$argvList = $argv; if (getenv("I4S_ARELLE_TEST_SECRET") !== false) exit(8);', file_get_contents($binary)));
+        config(['services.report.arelle_command' => [PHP_BINARY, '-n', $binary]]);
+        (new ArelleXhtmlIxbrlValidator)->validate('<html/>', $this->profile, arelleValidatorManifestFixture());
+        expect(file_get_contents($capture))->not->toBe('');
+    } finally {
+        putenv($previous === false ? 'I4S_ARELLE_TEST_SECRET' : 'I4S_ARELLE_TEST_SECRET='.$previous);
+    }
+});
+
+it('terminates a child that exceeds the live budget through JSON only and releases its lock', function () {
+    $capture = arelleValidatorTempFile('json-only-capture.json', '');
+    $binary = arelleValidatorFixtureBinary($capture, 0, 'validation successful');
+    $script = file_get_contents($binary);
+    $script = str_replace('$logIndex = array_search', <<<'PHP'
+$logPath = $argvList[array_search('--logFile', $argvList, true) + 1];
+file_put_contents($logPath, str_repeat('x', 2048));
+sleep(6);
+file_put_contents($capturePath, 'child-survived');
+exit(0);
+$logIndex = array_search
+PHP, $script);
+    file_put_contents($binary, $script);
+    config(['services.report.arelle_command' => [PHP_BINARY, '-n', $binary]]);
+    $start = hrtime(true);
+    expect(fn () => (new ArelleXhtmlIxbrlValidator(10, 1024))->validate('<html/>', $this->profile, arelleValidatorManifestFixture()))
+        ->toThrow(XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_arelle_validation_failed');
+    expect((hrtime(true) - $start) / 1e9)->toBeLessThan(3);
+    $record = json_decode(file_get_contents($capture), true, flags: JSON_THROW_ON_ERROR);
+    expect(is_dir(dirname($record['xhtml_path'])))->toBeFalse();
+    $lock = \Illuminate\Support\Facades\Cache::lock('i4s:report:arelle-validation', 5);
+    expect($lock->get())->toBeTrue();
+    $lock->release();
+});
+
+it('applies one aggregate budget to JSON and stream captures', function () {
+    $capture = arelleValidatorTempFile('aggregate-capture.json', '');
+    $binary = arelleValidatorFixtureBinary($capture, 0, str_repeat('x', 1100));
+    $script = str_replace("'validated in 0.01 secs'", "'validated in 0.01 secs'.str_repeat('x', 1100)", file_get_contents($binary));
+    file_put_contents($binary, $script);
+    config(['services.report.arelle_command' => [PHP_BINARY, '-n', $binary]]);
+    expect(fn () => (new ArelleXhtmlIxbrlValidator(maxOutputBytes: 2048))->validate('<html/>', $this->profile, arelleValidatorManifestFixture()))
+        ->toThrow(XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_arelle_validation_failed');
+});

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Characterization;
 use App\Models\EsrsTopic;
 use App\Support\CharacterizationOptions;
+use App\Services\Report\ReportScopeAssets;
 use Illuminate\Support\Arr;
 
 class EsrsDatapointCorpusBuilder
@@ -33,6 +34,65 @@ class EsrsDatapointCorpusBuilder
      */
     public function build(Characterization $characterization): array
     {
+        return $this->buildFromInputs($characterization, null);
+    }
+
+    public function buildCaptured(Characterization $characterization, ReportScopeAssets $assets): array
+    {
+        return $this->buildFromInputs($characterization, $assets);
+    }
+
+    private function buildFromInputs(Characterization $characterization, ?ReportScopeAssets $assets): array
+    {
+        if (! \App\Services\Dma\P8Authority::enabled()) { return $this->buildNormative($characterization, $assets); }
+        $authority = app(\App\Services\Dma\P8Authority::class);
+        $p8 = $authority->assertCurrent($characterization);
+        $corpus = $this->buildNormative($characterization, $assets);
+        $this->assertMappingAvailable($corpus);
+        $inferred = \App\Services\Dma\DmaNlpIroContextProjector::hasAssociations($p8['dma_import_evidence'] ?? []);
+        $projector = $inferred ? \App\Services\Dma\DmaNlpIroContextProjector::class : \App\Services\Dma\IroContextProjector::class;
+        $corpus['iro_context_v1'] = app($projector)->project($p8['dma_import_evidence'] ?? [], $corpus);
+        $corpus['p9_assets'] = [
+            'mapping' => $corpus['mapping_snapshot_digest'],
+            'ig3' => $corpus['ig3_snapshot_digest'],
+            'scope' => \App\Services\Dma\P8Authority::hash($corpus['blocks']),
+            'rules' => \App\Services\Dma\P8Authority::hash([
+                \App\Services\Dma\IroContextProjector::VERSION,
+                hash_file('sha256', __DIR__.'/Dma/IroContextProjector.php'),
+                $corpus['iro_context_v1']['guidance_sha256'],
+                ...($inferred ? [hash_file('sha256', __DIR__.'/Dma/DmaNlpIroContextProjector.php')] : []),
+            ]),
+        ];
+        $corpus['p9_authority_digest'] = $authority->digest($characterization, $corpus['p9_assets']);
+        if (\App\Services\Dma\DmaNlpRecommendations::enabled()) {
+            $corpus['dma_nlp_enabled'] = true;
+            $corpus['dma_nlp_p8_revision'] = $p8['revision'];
+            $corpus['dma_nlp_imports'] = array_map(fn ($item) => ['id' => $item['import_id'], 'iro_rows' => $item['iro_rows']], $p8['dma_import_evidence'] ?? []);
+            $corpus['iro_context_v1']['dma_nlp'] = \App\Services\Dma\DmaNlpRecommendations::project($characterization->form_data['dma_nlp_evidence'] ?? [], $corpus['p9_authority_digest']);
+        }
+        if (isset($characterization->form_data['dma_nlp_evidence'])) { $corpus['iro_context_v1']['dma_nlp_history'] = array_values($characterization->form_data['dma_nlp_evidence']); }
+        if (isset($p8['dma_nlp_evidence'])) { $corpus['iro_context_v1']['dma_nlp_topic_evidence'] = $p8['dma_nlp_evidence']; }
+        return $corpus;
+    }
+
+    /** Read-only P8 estimate; never produces a write/export authority digest. */
+    public function buildPreview(Characterization $characterization, ?ReportScopeAssets $assets = null): array
+    {
+        $corpus = $this->buildNormative($characterization, $assets);
+        $corpus['provisional'] = true;
+        return $corpus;
+    }
+
+    public function assertMappingAvailable(array $corpus): void
+    {
+        if (($corpus['generation']['coverage_status'] ?? null) !== 'dr_level'
+            || ($corpus['generation']['matter_to_dr_mapping_status'] ?? null) !== 'loaded') {
+            \App\Services\Dma\P8Authority::reject('p9_mapping_unavailable');
+        }
+    }
+
+    private function buildNormative(Characterization $characterization, ?ReportScopeAssets $assets = null): array
+    {
         $p6TopicIds = $this->topicIds($characterization->esrs_topic_ids ?? []);
         $employeeCount = $this->employeeCountAssessment($characterization);
         $lessThan750 = $employeeCount['less_than_750'] === true;
@@ -42,9 +102,10 @@ class EsrsDatapointCorpusBuilder
         $confirmation = is_array($confirmation) ? $confirmation : [];
         $materialTopicIds = $this->topicIds(Arr::get($confirmation, 'confirmed_topic_ids', $p6TopicIds));
         $activatedStandards = $this->activatedStandards($materialTopicIds);
-        $source = $this->source();
+        $source = $assets?->corpus ?? $this->source();
+        if (\App\Services\Dma\P8Authority::enabled()) { $this->assertSourceStructure($source); }
         $datapoints = $source['datapoints'];
-        $approvedMatterDrMapping = $this->matterDrMappingRepository->approved();
+        $approvedMatterDrMapping = $assets?->mapping ?? $this->matterDrMappingRepository->approved();
         $validatedMatterDrMapping = $this->validatedMatterDrMapping(
             $materialTopicIds,
             $approvedMatterDrMapping,
@@ -71,13 +132,14 @@ class EsrsDatapointCorpusBuilder
         $summary = $this->summary($allSelectedDatapoints, $alwaysRequired, $topical, $minimumDisclosureRequirements, $lessThan750);
         $e1ExceptionBlock = $this->e1ExceptionBlock(
             $characterization,
-            $this->e1BaselineTopicIds($confirmation, $p6TopicIds),
+            $this->e1BaselineTopicIds($confirmation),
             $materialTopicIds
         );
 
         return [
             'characterization_id' => $characterization->id,
             // Witness of the exact normalized map accepted by this build, including null.
+            ...(\App\Services\Dma\P8Authority::enabled() ? ['ig3_snapshot_digest' => \App\Services\Dma\P8Authority::hash($source)] : []),
             'mapping_snapshot_digest' => hash('sha256', json_encode($approvedMatterDrMapping, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
             'material_topic_ids' => $materialTopicIds,
             'activated_esrs_standards' => $activatedStandards,
@@ -459,17 +521,50 @@ class EsrsDatapointCorpusBuilder
             $this->assertNativeFixture();
             return $this->nativeFixtureSource;
         }
-        static $source = null;
-
-        if ($source === null) {
-            $source = json_decode(
-                file_get_contents(base_path('data/esrs_datapoints_ig3.json')),
-                true,
-                flags: JSON_THROW_ON_ERROR
-            );
+        if (\App\Services\Dma\P8Authority::enabled()) {
+            $path = config('report_scope.corpus_path', base_path('data/esrs_datapoints_ig3.json'));
+            if (! is_string($path) || ! is_readable($path)) { \App\Services\Dma\P8Authority::reject('p9_mapping_unavailable'); }
+            try {
+                $current = json_decode(\Illuminate\Support\Facades\File::get($path), true, flags: JSON_THROW_ON_ERROR);
+            } catch (\JsonException|\Illuminate\Contracts\Filesystem\FileNotFoundException) {
+                \App\Services\Dma\P8Authority::reject('p9_mapping_unavailable');
+            }
+            $this->assertSourceStructure($current);
+            return $current;
         }
+        return ReportScopeAssets::readCorpus();
+    }
 
-        return $source;
+    /** Validate the entire input before filtering: malformed unselected rows are unsafe too. */
+    private function assertSourceStructure(mixed $source): void
+    {
+        $reject = fn () => \App\Services\Dma\P8Authority::reject('p9_mapping_unavailable');
+        if (! is_array($source) || ! is_array($source['source'] ?? null)
+            || ! is_array($source['datapoints'] ?? null) || ! array_is_list($source['datapoints'])
+            || $source['datapoints'] === []) {
+            $reject();
+        }
+        foreach (['name', 'url', 'sha256', 'workbook_version', 'downloaded_at', 'note'] as $key) {
+            if (! is_string($source['source'][$key] ?? null) || trim($source['source'][$key]) === '') { $reject(); }
+        }
+        if (! preg_match('/\A[0-9a-f]{64}\z/i', $source['source']['sha256'])) { $reject(); }
+        $seen = [];
+        foreach ($source['datapoints'] as $row) {
+            if (! is_array($row)) { $reject(); }
+            foreach (['id', 'esrs', 'name', 'inclusion_type'] as $key) {
+                if (! is_string($row[$key] ?? null) || trim($row[$key]) === '') { $reject(); }
+            }
+            // IG-3 legitimately contains null DRs, data types and optional annotations.
+            // A missing member is not the same as an explicitly empty annotation.
+            foreach (['dr', 'paragraph', 'related_ar', 'data_type', 'conditional_or_alternative',
+                'appendix_b', 'phase_in_less_than_750', 'phase_in_all'] as $key) {
+                if (! array_key_exists($key, $row) || ($row[$key] !== null && ! is_string($row[$key]))) { $reject(); }
+            }
+            if (! is_bool($row['may_disclose'] ?? null)
+                || ! in_array($row['inclusion_type'], ['always_required', 'materiality_based', 'minimum_disclosure_requirement'], true)
+                || isset($seen[$row['id']])) { $reject(); }
+            $seen[$row['id']] = true;
+        }
     }
 
     /**
@@ -872,17 +967,17 @@ class EsrsDatapointCorpusBuilder
      * about whatever P6 proposes today — P6 re-runs, so the live ids drift. Using
      * the live ids here while the omission statements use the snapshot would let one
      * document assert "E1 se evaluó y no se consideró material" while this block
-     * silently stops applying. Same baseline, or the report contradicts itself.
+     * silently stops applying. With no snapshot, only a stored explanation can
+     * establish this exception; the current live proposal is not evidence.
      *
      * @param  array<string, mixed>  $confirmation
-     * @param  array<int, int>  $liveP6TopicIds
      * @return array<int, int>
      */
-    private function e1BaselineTopicIds(array $confirmation, array $liveP6TopicIds): array
+    private function e1BaselineTopicIds(array $confirmation): array
     {
         $snapshotIds = Arr::get($confirmation, 'p6_snapshot.topic_ids');
 
-        return is_array($snapshotIds) ? $this->topicIds($snapshotIds) : $liveP6TopicIds;
+        return is_array($snapshotIds) ? $this->topicIds($snapshotIds) : [];
     }
 
     /**
@@ -894,8 +989,10 @@ class EsrsDatapointCorpusBuilder
     {
         $p6HadE1 = EsrsTopic::whereIn('id', $p6TopicIds)->where('esrs_code', 'E1')->exists();
         $materialHasE1 = EsrsTopic::whereIn('id', $materialTopicIds)->where('esrs_code', 'E1')->exists();
-        $applies = $p6HadE1 && ! $materialHasE1;
         $explanation = Arr::get($characterization->form_data ?? [], 'materiality_confirmation.e1_not_material_explanation');
+        // Legacy confirmations without a P6 snapshot still retain the user's
+        // explanation. A later live proposal must never hide that narrative.
+        $applies = ! $materialHasE1 && ($p6HadE1 || filled($explanation));
 
         return [
             'key' => 'e1_not_material_explanation',

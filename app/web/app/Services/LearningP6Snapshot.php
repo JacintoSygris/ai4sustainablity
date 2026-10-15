@@ -219,7 +219,14 @@ final class LearningP6Snapshot
             throw new InvalidArgumentException('learning_p6.score_invalid');
         }
         $flags = $this->map($runtime['policy_active']);
-        $this->keys($flags, ['label_thresholds','crc_recall_floor','sector_guard']);
+        // Preserve historical three-policy identities byte-for-byte. New Python
+        // responses may additionally bind the opt-in feedback policy, including shadow.
+        $expectedFlags = ['label_thresholds','crc_recall_floor','sector_guard'];
+        if (array_key_exists('feedback_bandit', $flags)) { $expectedFlags[] = 'feedback_bandit'; }
+        $this->keys($flags, $expectedFlags);
+        if (array_key_exists('feedback_bandit', $identity['policy_sha256']) && ! array_key_exists('feedback_bandit', $flags)) {
+            throw new InvalidArgumentException('learning_p6.policy_binding_invalid');
+        }
         foreach ($flags as $name => $active) {
             if (! is_bool($active) || $active !== array_key_exists($name, $identity['policy_sha256'])) {
                 throw new InvalidArgumentException('learning_p6.policy_binding_invalid');
@@ -266,7 +273,7 @@ final class LearningP6Snapshot
         }
         $value = $this->map($value);
         foreach ($value as $key => $sha) {
-            $valid = is_string($key) && ($policy ? in_array($key,['label_thresholds','crc_recall_floor','sector_guard'],true)
+            $valid = is_string($key) && ($policy ? in_array($key,['label_thresholds','crc_recall_floor','sector_guard','feedback_bandit'],true)
                 : preg_match('/\A[A-Za-z0-9_.-]{1,128}\z/', $key) === 1 && ! in_array($key,['.','..'],true));
             if (! $valid) {
                 throw new InvalidArgumentException('learning_p6.dictionary_key_invalid');

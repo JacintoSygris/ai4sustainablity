@@ -290,8 +290,8 @@ export function snapshotDownloadBlockers(snapshot) {
     return ["Prepara una versión factual."]
   }
 
-  if (snapshot.stale_state !== "fresh") {
-    return ["Prepara una versión actualizada."]
+  if (!snapshotApprovalAllowed(snapshot)) {
+    return snapshotStaleMessages(snapshot)
   }
 
   if (!snapshot.is_approved) {
@@ -299,4 +299,30 @@ export function snapshotDownloadBlockers(snapshot) {
   }
 
   return []
+}
+
+
+const scopeChangedReasons = new Set([
+  "ig3_corpus_changed", "ar16_dr_mapping_changed", "report_scope_changed", "scope_assets_unavailable",
+])
+
+export function snapshotStaleMessages(snapshot) {
+  const reasons = snapshot?.stale_reasons ?? []
+  if (reasons.includes("scope_identity_missing")) {
+    return ["Esta versión histórica no permite verificar el alcance aprobado."]
+  }
+  if (reasons.some((reason) => scopeChangedReasons.has(reason))) {
+    return ["El alcance ha cambiado. Revisa los datos y prepara una nueva versión para aprobarla."]
+  }
+  return ["Prepara una versión actualizada."]
+}
+
+export function snapshotApprovalAllowed(snapshot) {
+  return !!snapshot && snapshot.stale_state === "fresh" && (snapshot.stale_reasons ?? []).length === 0
+}
+
+export function xhtmlPresentationAvailable(readiness, snapshot) {
+  return readiness?.report_scope_integrity_enabled === true
+    && readiness?.workflow_complete === true && readiness?.report_content_ready === true
+    && snapshotApprovalAllowed(snapshot) && snapshot.is_approved === true
 }

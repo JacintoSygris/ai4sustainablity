@@ -11,6 +11,7 @@ use App\Models\ReportSnapshot;
 use App\Services\EsrsDatapointCorpusBuilder;
 use App\Services\Report\ReportContentReadiness;
 use App\Services\Report\ReportContentScope;
+use App\Services\Report\ReportScopeAssets;
 use App\Services\Report\ReportSnapshotBuilder;
 use App\Services\Report\ReportStalenessDetector;
 use Illuminate\Http\JsonResponse;
@@ -111,14 +112,12 @@ class ReportSnapshotController extends Controller
             $contentReadiness,
             $contentScope,
             $datapoints,
+            $reportSnapshot,
         ): array {
+            Characterization::query()->whereKey($reportSnapshot->characterization_id)->lockForUpdate()->firstOrFail();
             $lockedSnapshot = ReportSnapshot::query()
                 ->where('user_id', $request->user()->id)
                 ->whereKey($snapshot)
-                ->lockForUpdate()
-                ->firstOrFail();
-            Characterization::query()
-                ->whereKey($lockedSnapshot->characterization_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -145,6 +144,11 @@ class ReportSnapshotController extends Controller
                 ], 409)];
             }
 
+            // Fresh capture immediately before the approval write, after readiness work.
+            $finalState = $detector->refreshState($lockedSnapshot);
+            if ($finalState['is_stale']) {
+                return ['response' => response()->json(['code' => 'report_stale', 'reasons' => $finalState['reasons']], 409)];
+            }
             $existingApproval = ReportApproval::query()
                 ->where('report_snapshot_id', $lockedSnapshot->id)
                 ->first();
@@ -182,6 +186,15 @@ class ReportSnapshotController extends Controller
                 ],
             ]);
 
+            if (\App\Services\Dma\P8Authority::enabled()) {
+                $finalStaleness = $detector->detect($lockedSnapshot);
+                if ($finalStaleness['is_stale']) {
+                    throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                        'message' => __('The report snapshot is stale.'), 'code' => 'report_stale',
+                        'reasons' => $finalStaleness['reasons'],
+                    ], 409));
+                }
+            }
             return ['approval' => $approval, 'created' => true];
         });
 
@@ -271,7 +284,9 @@ class ReportSnapshotController extends Controller
         $characterization = Characterization::query()->findOrFail($snapshot->characterization_id);
         $expectedDatapointIds = $contentScope->completedDatapointIds(
             $characterization,
-            $datapoints->build($characterization),
+            ReportScopeAssets::required($snapshot)
+                ? $datapoints->buildCaptured($characterization, ReportScopeAssets::capture())
+                : $datapoints->build($characterization),
         );
         $assessment = $contentReadiness->assess($facts, $expectedDatapointIds);
 

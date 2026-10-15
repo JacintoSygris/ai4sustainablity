@@ -19,7 +19,7 @@ use InvalidArgumentException;
  */
 final class Wp13P8FeedbackExport
 {
-    public function export(Collection $characterizations, array $topicIds): array
+    public function export(Collection $characterizations, array $topicIds, bool $reviewedUniverse = false): array
     {
         $topicIds = $this->ids($topicIds);
         if ($topicIds === []) {
@@ -35,14 +35,20 @@ final class Wp13P8FeedbackExport
             $seen[$source->id] = true;
         }
 
-        return $characterizations->sortBy('id')->map(function (Characterization $source) use ($topicIds): array {
+        return $characterizations->sortBy('id')->map(function (Characterization $source) use ($topicIds, $reviewedUniverse): array {
             $confirmation = $this->confirmation($source);
             $topics = [];
             foreach ($topicIds as $id) {
                 $answer = $confirmation['guided_answers'][$id] ?? [];
                 $result = $answer['final_result'] ?? null;
                 $known = ($answer['revisar'] ?? null) === false && in_array($result, ['material', 'no_material'], true);
-                $topics[$id] = ['value' => $known ? (int) ($result === 'material') : null, 'mask' => (int) $known];
+                $value = $known ? (int) ($result === 'material') : null;
+                if ($reviewedUniverse && ($confirmation['universe_attestation']['reviewed_universe'] ?? false) === true
+                    && in_array($id, $confirmation['reviewed_topic_ids'] ?? [], true)) {
+                    $known = true;
+                    $value = (int) in_array($id, $confirmation['confirmed_topic_ids'], true);
+                }
+                $topics[$id] = ['value' => $value, 'mask' => (int) $known];
             }
 
             return [

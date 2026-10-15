@@ -661,7 +661,13 @@ test("every session-protected OpenAPI operation documents email_unverified witho
       if (!operation || !["get", "post", "put", "patch", "delete"].includes(method) || !operation.security?.length) continue
       const response409 = operation.responses?.["409"]
       assert.ok(response409, `${method.toUpperCase()} ${path} must document email_unverified 409`)
-      const expectedRef = path.startsWith("/api/learning-case/")
+      const expectedRef = path === "/api/characterizations/{characterization}/sector-comparison"
+        ? "#/components/responses/SectorComparisonConflictOrEmailUnverified"
+        : path === "/api/report/xhtml"
+        ? "#/components/responses/ReportScopeBlockedOrEmailUnverified"
+        : ["/api/report/ixbrl-package", "/api/report/xhtml-ixbrl-candidate"].includes(path)
+        ? "#/components/responses/IxbrlCandidateBlockedOrEmailUnverified"
+        : path.startsWith("/api/learning-case/")
         ? "#/components/responses/LearningCaseConflictOrEmailUnverified"
         : method === "put" && [
         "/api/materiality-proposal",
@@ -671,6 +677,15 @@ test("every session-protected OpenAPI operation documents email_unverified witho
         ? "#/components/responses/OptimisticConcurrencyOrEmailUnverified"
         : "#/components/responses/EmailUnverified"
       assert.equal(response409.$ref, expectedRef, `${method.toUpperCase()} ${path} must preserve its exact 409 meanings`)
+      if (expectedRef === "#/components/responses/SectorComparisonConflictOrEmailUnverified") {
+        assert.deepEqual(resolveRef(expectedRef).content["application/json"].schema.oneOf.map(branch => branch.$ref),
+          ["#/components/schemas/SectorComparisonInputsChangedBody", "#/components/schemas/EmailUnverifiedBody"])
+        assert.equal(resolveRef("#/components/schemas/SectorComparisonInputsChangedBody").properties.code.const, "sector_comparison_inputs_changed")
+      }
+      if (expectedRef === "#/components/responses/IxbrlCandidateBlockedOrEmailUnverified") {
+        assert.deepEqual(resolveRef(expectedRef).content["application/json"].schema.oneOf.map(branch => branch.$ref),
+          ["#/components/schemas/IxbrlCandidateBlockedBody", "#/components/schemas/EmailUnverifiedBody"])
+      }
       if (expectedRef === "#/components/responses/OptimisticConcurrencyOrEmailUnverified") {
         const compositeSchema = resolveRef(expectedRef).content["application/json"].schema
         assert.deepEqual(

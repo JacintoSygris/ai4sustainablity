@@ -1,5 +1,5 @@
 import { ui } from "@/lib/i18n/messages.mjs"
-import { getLaravelServerLocale } from "@/lib/laravel-server"
+import { getLaravelServerLocale, getLaravelServerSession } from "@/lib/laravel-server"
 import { WizardSidebar } from "@/components/wizard/wizard-sidebar"
 import { FinalTopicsSelection } from "@/components/wizard/final-topics-selection"
 import { AcademyTips } from "@/components/wizard/academy-tips"
@@ -19,6 +19,7 @@ const importantNote = {
 
 export default async function Step4Page() {
   const locale = await getLaravelServerLocale()
+  const session = await getLaravelServerSession()
   const tr = (message: string) => ui(locale, message)
 
   const wizardSteps = wizardStepsForView(4)
@@ -27,7 +28,7 @@ export default async function Step4Page() {
     <div className="flex flex-col gap-8 lg:flex-row">
       <WizardSidebar steps={wizardSteps} currentStep={4} viewingStep={4} />
 
-      <FinalTopicsSelection />
+      <FinalTopicsSelection learningInvitationEnabled={session?.learning_consent_invitation === true} />
 
       <AcademyTips title={tr("Recuerde")} icon="warning" tips={tips} importantNote={importantNote} />
     </div>

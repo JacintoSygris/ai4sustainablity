@@ -77,6 +77,8 @@ La contraseña se solicita de forma oculta y cumple las mismas reglas de contras
 
 El siguiente bloque es una plantilla de referencia que el operador debe adaptar. No existe `compose.prod.yml` en el repositorio y este manual no afirma que exista.
 
+La plantilla no soporta el aprendizaje opcional: las imágenes no incluyen el entorno `.venv-learning` ni un volumen de estado compartido. Como `APP_ENV=production` lo activa por configuración, añada `LEARNING_DEPLOYED=false` a `config/web.env` y al entorno de `ai-service`. Para usar el aprendizaje, siga la [instalación nativa con Jenkins](#instalación-nativa-con-jenkins-y-aprendizaje-opcional).
+
 ```yaml
 services:
   caddy:
@@ -243,3 +245,57 @@ curl -fsS https://app.example.org/api/auth/register-config
 ## No usar entrypoint destructivo
 
 El `public-entrypoint.sh` incluido conserva los datos por defecto. Solo el valor explícito `I4S_RESET_DATABASE_ON_START=true` ejecuta `migrate:fresh`, con un aviso destacado: elimina todas las cuentas y datos. Mantenerlo ausente o en `false` en producción; no es una opción de despliegue ordinario.
+
+## Instalación nativa con Jenkins y aprendizaje opcional
+
+El aprendizaje opcional (motor supervisado y ajuste por retroalimentación) solo está soportado en una instalación nativa: checkout del repositorio, Laravel con PHP-FPM, worker y cron, Next y el servicio de propuestas como unidad systemd. El job de Jenkins lo opera la persona responsable de la instalación. El [runbook de activación](../../learning-activation-runbook.md) (en castellano) explica cada requisito, el panel `/admin/learning`, el apagado y la reversión.
+
+Precondición: copia de seguridad de la base, Python 3.13 en el servidor, acceso a PyPI o a una caché de ruedas, y un único usuario del sistema operativo para PHP-FPM, el worker, el cron y el servicio de propuestas. Si la lista no está completa, despliegue con `LEARNING_DEPLOYED=false` en Laravel y en el servicio de propuestas.
+
+Lista de aprovisionamiento del job:
+
+1. Construcción normal: `composer install` de despliegue, `pnpm install --frozen-lockfile` y `pnpm build`.
+2. `.venv-learning` construido con Python 3.13 desde el archivo con hashes:
+
+   ```sh
+   # Directorio: raíz del checkout
+   python3.13 -m venv app/ai-service/.venv-learning
+   app/ai-service/.venv-learning/bin/python -m pip install --require-hashes -r app/ai-service/requirements-learning.lock.txt
+   app/ai-service/.venv-learning/bin/python -B -c 'import sklearn, optuna, numpy, joblib, scipy, fastapi, uvicorn'
+   ```
+
+3. La unidad del servicio de propuestas se ejecuta desde ese entorno y con el mismo usuario, sin `PYTHONPATH` heredado: `WorkingDirectory=<checkout>/app/ai-service` y `ExecStart=<checkout>/app/ai-service/.venv-learning/bin/python -m uvicorn public_model_app:app --host 127.0.0.1 --port 8001`.
+4. `LEARNING_ENGINE_ROOT` absoluto, persistente, sin enlaces simbólicos y fuera del checkout, con modo `0700`, propiedad de ese usuario e idéntico en Laravel y en el servicio de propuestas.
+5. En Laravel y en el servicio de propuestas: `LEARNING_DEPLOYED=true` (o `APP_ENV=production`), `LEARNING_ENGINE_ENABLED=true`, `LEARNING_ENGINE_AUTHORITY=consent`, `LEARNING_ENGINE_SYNTHETIC_ONLY=false`, `LEARNING_ENGINE_SERVING_ENABLED=true`, `LEARNING_BANDIT_MODE=active` y el mismo `LEARNING_ENGINE_ROOT`; en el servicio de propuestas, `LEARNING_ENGINE_SHADOW_ENABLED=false`. Sin `ESRS_FEEDBACK_BANDIT_PATH`. `I4S_AI_NEW_FORMAT_SCORE_THRESHOLD` e `I4S_AI_ARTIFACT_DIR` sin definir, o iguales en ambos procesos.
+6. Solo en Laravel: `LEARNING_ENGINE_CODE_COMMIT=$GIT_COMMIT`, `LEARNING_ENGINE_SCHEDULED=true`, `LEARNING_ADMIN_USER_IDS` y `LEARNING_ENGINE_ADMIN_IDS` con los mismos IDs verificados, `CHARACTERIZATION_GATEWAY=api` con `CHARACTERIZATION_API_BASE_URL=http://127.0.0.1:8001`, `CHARACTERIZATION_AI_MODEL_PROFILE=new_format_732_v1_gpt41` y `CHARACTERIZATION_PREDICTION_MAPPING_PATH` vacío (para que Laravel use la correspondencia del perfil 732), y los conjuntos reservados (`LEARNING_ENGINE_HELDOUT_PATH`/`_SHA256`, opcionalmente `LEARNING_ENGINE_GOLD_PATH`/`_SHA256`) entregados mediante credenciales de Jenkins como archivos fuera de Git.
+7. `php artisan migrate --force` después de la copia de seguridad, nunca `migrate:fresh`; después `php artisan config:cache`.
+8. `DB_QUEUE_RETRY_AFTER=1800` o `REDIS_QUEUE_RETRY_AFTER=1800`, un `CACHE_STORE` compartido distinto de `array` y un worker supervisado:
+
+   ```sh
+   # Directorio: <checkout>/app/web
+   php artisan queue:work --queue=default,learning --timeout=1200 --tries=1
+   ```
+
+9. Una única entrada cron `* * * * * cd <checkout>/app/web && php artisan schedule:run` con el mismo usuario.
+10. Pertenencias empresariales verificadas mediante una etapa parametrizada de Jenkins que ejecuta `php artisan learning:assign-company` en el servidor, sin depender de un acceso interactivo.
+11. Reinicio del servicio de propuestas y `php artisan queue:restart` en cada despliegue.
+12. Comprobaciones de paridad que hacen fallar el job si no coinciden (véase abajo).
+13. Parámetros del job para el interruptor OFF: `LEARNING_ENGINE_ENABLED=false`, `LEARNING_ENGINE_SCHEDULED=false`, `LEARNING_ENGINE_SERVING_ENABLED=false`, `LEARNING_ENGINE_SHADOW_ENABLED=false` y `LEARNING_BANDIT_MODE=off` en ambos procesos, seguidos de `config:cache` y reinicios.
+
+Resultado esperado: el servicio de propuestas responde en `127.0.0.1:8001` desde `.venv-learning`, el scheduler y el worker registran latidos y el panel `/admin/learning` muestra en verde todas las comprobaciones.
+
+Comprobación:
+
+```sh
+# Directorio: <checkout>/app/ai-service
+PYTHONPATH=src .venv-learning/bin/python -c 'import learning_production_registry as r; print(r.digest({"versions": r.versions(), "code_sha256": r.code_hashes()}))'
+curl -fsS http://127.0.0.1:8001/healthz | python3 -c 'import json, sys; print(json.load(sys.stdin)["learning"]["runtime_sha256"])'
+curl -fsS http://127.0.0.1:8001/model-profiles | python3 -c 'import json, sys; print(json.load(sys.stdin)["serving_identity_sha256"])'
+# Directorio: <checkout>/app/web
+php artisan tinker --execute='echo app(App\Services\LearningPythonBridge::class)->run("status")["wp13"]["serving"]["baseline"]["serving_identity_sha256"] ?? "";'
+php artisan schedule:list
+# Configuración de aprendizaje que lee el propio servicio de propuestas
+curl -fsS http://127.0.0.1:8001/model-profiles | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin)["learning"], sort_keys=True))'
+```
+
+Las dos primeras líneas deben imprimir el mismo valor, y también la tercera y la cuarta. La segunda lee `learning.runtime_sha256` de `/healthz`; la tercera, el campo de primer nivel `serving_identity_sha256` de `/model-profiles`; la cuarta, `wp13.serving.baseline.serving_identity_sha256` del estado del puente de Laravel, la «Identidad base actual» del panel. Si el servicio no carga los módulos de aprendizaje, `learning` solo contiene `hooks_available: false` y la segunda orden falla; una huella que no puede calcularse es `null` y se imprime `None`. Ambos casos cuentan como diferencia. La última orden debe imprimir `{"bandit_mode": "active", "engine_enabled": true, "hooks_available": true, "serving_enabled": true}`. Después de un tick real y de la sonda de la cola, `/admin/learning` debe mostrar en verde `migrations`, `state_directory`, `python`, `scheduler`, `queue`, `queue_configuration`, `authority_lease`, `heldout` y `code_commit`. Cualquier release que cambie el código de servicio o de aprendizaje, o la versión de Python del servidor, invalida los candidatos supervisados promovidos hasta volver a entrenarlos y promoverlos.

@@ -29,6 +29,7 @@ const NON_VISUAL_IR_KEYS = [
     'claims',           // subtree: factual traceability; only safe values are visualized explicitly
     'claim_id',         // machine claim identifier
     'fact_id',          // machine fact identifier
+    'dma_import_evidence', // authenticated ADM source text; JSON evidence only, never report prose
     'evidence_refs',    // authenticated traceability; never visual DOCX text
     'source',           // snapshot/audit metadata; evidence bundle only
     'approval_status',  // audit state; evidence bundle only
@@ -94,12 +95,12 @@ function configureApprovedReportDrMapForKeys(EsrsTopic $topic, array $drKeys): v
  *
  * @param  array<string, mixed>  $ir
  */
-function assertEveryVisualLeafRendered(array $ir): void
+function assertEveryVisualLeafRendered(array $ir, ?array $visualTree = null): void
 {
     $text = docxVisibleText((new DocxRenderer())->render($ir));
 
     $missing = [];
-    foreach (array_unique(irVisualLeaves($ir)) as $leaf) {
+    foreach (array_unique(irVisualLeaves($visualTree ?? $ir)) as $leaf) {
         $normalized = preg_replace('/\s+/u', ' ', $leaf);
         if (! str_contains($text, $normalized)) {
             $missing[] = $leaf;
@@ -284,3 +285,72 @@ it('renders factual claim text while evidence refs stay out of visible text and 
     expect(docxEntry($bytes, 'word/document.xml'))->not->toContain('Evidence sentinel must never render');
     expect($bytes)->not->toContain('Evidence sentinel must never render');
 });
+
+it('reconciles the frozen E1 exception narrative in approved DOCX and HTML in both locales', function (bool $hasP6Snapshot) {
+    $e1 = EsrsTopic::where('esrs_code', 'E1')->firstOrFail();
+    $characterization = reportReadyCharacterization($this->user, $this->e2);
+    $explanation = 'Explicación sintética: García & Asociados <S.L.> evaluó E1; impacto bajo.';
+    $formData = $characterization->form_data;
+    $formData['materiality_confirmation']['e1_not_material_explanation'] = $explanation;
+    if ($hasP6Snapshot) {
+        $formData['materiality_confirmation']['p6_snapshot'] = ['topic_ids' => [$e1->id, $this->e2->id]];
+    } else {
+        unset($formData['materiality_confirmation']['p6_snapshot']);
+    }
+    // Live P6 already lacks E1. The frozen explanation remains authoritative.
+    $characterization->update(['form_data' => $formData, 'esrs_topic_ids' => [$this->e2->id]]);
+    \App\Models\ReportingFact::create([
+        'characterization_id' => $characterization->id,
+        'fact_id' => 'rf_e1_narrative_regression',
+        'schema_version' => \App\Models\ReportingFact::SCHEMA_VERSION,
+        'profile_id' => \App\Models\ReportingFact::PROFILE_ID,
+        'datapoint_id' => 'BP-1_01',
+        'applicability' => 'applicable',
+        'value_type' => 'text',
+        'value' => ['text' => 'Synthetic reviewed disclosure'],
+        'dimensions' => [],
+        'language' => 'es',
+        'nil' => false,
+        'evidence_refs' => [['type' => 'note', 'value' => 'Synthetic private support']],
+        'provenance' => 'api',
+        'approval_status' => 'reviewed',
+        'blocking_reasons' => [],
+    ]);
+    $snapshot = app(\App\Services\Report\ReportSnapshotBuilder::class)->create($characterization->fresh());
+    \App\Models\ReportApproval::create([
+        'report_snapshot_id' => $snapshot->id,
+        'user_id' => $this->user->id,
+        'role_mode' => \App\Models\ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
+        'preparer_user_id' => $this->user->id,
+        'reviewer_user_id' => $this->user->id,
+        'approver_user_id' => $this->user->id,
+        'single_person_declaration' => true,
+        'snapshot_hash' => $snapshot->snapshot_hash,
+        'approved_at' => now(),
+    ]);
+    $formData['materiality_confirmation']['e1_not_material_explanation'] = 'Live replacement must not render';
+    $formData['materiality_confirmation']['confirmed_topic_ids'][] = $e1->id;
+    $characterization->update(['form_data' => $formData]);
+
+    $ir = app(ReportIrBuilder::class)->buildFromApprovedSnapshot($snapshot->fresh());
+    $chapter = collect($ir['chapters'])->firstWhere('block_key', 'e1_not_material_explanation');
+    expect($chapter)->not->toBeNull();
+    expect($ir['claims'])->toHaveCount(1);
+    expect($chapter['sections'][0]['blocks'][0]['assertions'])->toBe([$explanation]);
+    expect($chapter['sections'][0]['blocks'][0]['slots'])->toBeEmpty();
+    expect($chapter['sections'][0]['blocks'][0]['guidance'])->toBeEmpty();
+
+    // Reuse the denylist reconciliation gate for every leaf of the mandatory
+    // narrative; factual labels and audit metadata have separate projections.
+    assertEveryVisualLeafRendered($ir, ['assertions' => $chapter['sections'][0]['blocks'][0]['assertions']]);
+    foreach (['es', 'en'] as $locale) {
+        $bytes = (new DocxRenderer())->render($ir, $locale);
+        $html = (new \App\Services\Report\HtmlReportRenderer())->render($ir, $locale);
+        expect(docxVisibleText($bytes))->toContain($explanation)
+            ->not->toContain('Live replacement must not render')
+            ->not->toContain('Título no disponible')->not->toContain('Title unavailable');
+        expect($html)->toContain(htmlspecialchars($explanation, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'))
+            ->not->toContain('Live replacement must not render')->not->toContain('<S.L.>')
+            ->not->toContain('Título no disponible')->not->toContain('Title unavailable');
+    }
+})->with([true, false]);

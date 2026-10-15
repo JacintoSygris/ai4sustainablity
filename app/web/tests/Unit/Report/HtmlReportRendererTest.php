@@ -1,6 +1,13 @@
 <?php
 
 use App\Services\Report\HtmlReportRenderer;
+use App\Services\Report\ReportDisplayProjection;
+
+it('selects coherent presentation from IR metadata without a Laravel container', function () {
+    expect(ReportDisplayProjection::coherent(['schema_version' => 'report_ir_v1']))->toBeFalse()
+        ->and(ReportDisplayProjection::coherent(\Tests\Support\ReportScopeFixture::presentationIr()))->toBeTrue()
+        ->and(ReportDisplayProjection::coherent(['schema_version' => 'p10_ir_v1', 'source' => ['scope' => []]]))->toBeFalse();
+});
 
 function minimalHtmlReportIr(array $overrides = []): array
 {

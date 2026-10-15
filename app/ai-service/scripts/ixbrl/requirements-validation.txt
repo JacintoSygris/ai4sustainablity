@@ -1,0 +1,2 @@
+# Isolated offline validation tooling only, never a serving dependency.
+arelle-release==2.46.1

@@ -34,4 +34,17 @@ La guía de instalación está en [app/docs/es-ES/technical/installation-local.m
 - [Manual técnico](app/docs/es-ES/technical/index.md)
 - [Integraciones](app/docs/es-ES/integrations/authentication.md)
 
-- [Motor de aprendizaje opcional](app/docs/es-ES/learning-engine.md): deshabilitado por defecto; comprobaciones técnicas sintéticas locales documentadas, sin prueba de activación, calidad o despliegue.
+- [Motor de aprendizaje opcional](app/docs/es-ES/learning-engine.md): apagado en local y en la composición incluida; activo por configuración en entornos desplegados (`APP_ENV=production|staging` o `LEARNING_DEPLOYED=true`); solo con consentimiento; promoción y reversión manuales en `/admin/learning`; los requisitos ausentes lo bloquean de forma visible.
+- [Métricas del control de aprendizaje](app/docs/learning-engine-production.md#métricas-del-control-de-promocion): precisión, sensibilidad, F1 e intervalos por empresa en el panel; mejora predeclarada y conservación de positivos; `LEARNING_GATE_METRICS_ENABLED=false` por defecto.
+- [Importación del ADM](app/docs/dma-import.md): `DMA_IMPORT_ENABLED`, apagado por defecto.
+- [Análisis local de textos IRO](app/docs/dma-import.md#análisis-local-de-textos-iro): propuestas revisadas de temas e indicadores; `DMA_NLP_ENABLED=false` en Laravel e `I4S_DMA_NLP_ENABLED=false` en Python; requiere trazabilidad IRO revisada.
+- [Contexto IRO en informes](app/docs/dma-import.md#contexto-iro-en-la-presentación-del-informe): presentación en HTML, DOCX y XHTML si consta en la instantánea aprobada; requiere una integración que aporte ese contexto.
+- [Relaciones entre conceptos](app/ai-service/docs/concept-relations.md): `CONCEPT_RELATIONS_ENABLED`, apagado por defecto.
+- [Comparación sectorial informativa](app/docs/sector-comparison.md): soporte por sector y referencia global de baja confianza durante la revisión de temas; `SECTOR_COMPARISON_ENABLED=false` en Laravel y `ESRS_SECTOR_COMPARISON_ENABLED=false` en Python.
+- [Sugerencias de conceptos XBRL](app/ai-service/docs/xbrl-concept-mapping.md): `XBRL_SUGGESTION_OVERLAY_ENABLED`, apagado por defecto.
+- [Identificación XBRL en ejecución](app/ai-service/docs/xbrl-concept-mapping.md#identificación-en-ejecución): candidatos revisados y evidencia congelada, sin etiquetado automático; `XBRL_RUNTIME_IDENTIFICATION_ENABLED=false` por defecto.
+- [Paquete candidato iXBRL](app/docs/ixbrl-candidate-package.md): `IXBRL_PACKAGE_UI_ENABLED`, apagado por defecto.
+- [Integridad del alcance y presentación del informe](app/docs/report-scope-integrity.md): aprobación vinculada a los activos y descarga XHTML de presentación; `REPORT_SCOPE_INTEGRITY_ENABLED`, apagado por defecto.
+- [Elegibilidad en la Taxonomía de la UE](app/docs/eu-taxonomy-eligibility.md): `EU_TAXONOMY_ELIGIBILITY_ENABLED`, apagado por defecto.
+- [Estudio de usabilidad](app/docs/usability-study-protocol.md): `USABILITY_STUDY_ENABLED`, apagado por defecto.
+- [Medición local Green Tech](app/ai-service/docs/green-tech-measurement.md): herramienta de línea de comandos; `GREENTECH_MEASUREMENT_ENABLED`, apagada por defecto.

@@ -24,6 +24,11 @@ beforeEach(function () {
     foreach (['I4S_GUIDED_ARELLE_CAPTURE', 'I4S_GUIDED_ARELLE_OUTPUT', 'I4S_GUIDED_ARELLE_EXIT'] as $name) {
         $this->guidedReportApiPreviousEnvironment[$name] = getenv($name);
     }
+    // Controller tests isolate external schema IO; the real package is validated separately with Arelle.
+    $mapped = (new \App\Services\Report\XbrlConceptMap)->conceptFor('BP-1_01')['concept_id'];
+    $this->mock(\App\Services\Report\TaxonomyConceptMetadata::class)->shouldReceive('load')->andReturn([
+        $mapped => ['type' => '{http://www.xbrl.org/2003/instance}monetaryItemType', 'period_type' => 'duration', 'abstract' => false],
+    ]);
     config(['services.private_dev.auto_login' => false]);
     config(['services.report.external_taxonomy_manifest_path' => null]);
     config(['services.report.arelle_command' => null]);
@@ -221,8 +226,10 @@ it('returns a validated xhtml ixbrl candidate attachment from a fresh approved s
 function guidedReportApiSetEntityIdentifier($characterization): void
 {
     $formData = $characterization->form_data;
-    $formData['company_profile']['entity_identifier'] = 'TESTGUIDEDID00000000';
-    $formData['company_profile']['entity_identifier_scheme'] = 'https://standards.iso.org/iso/17442';
+    $formData['company_profile']['entity_identifier'] = 'TEST0000000000000075';
+    $formData['company_profile']['entity_identifier_scheme'] = 'http://standards.iso.org/iso/17442';
+    $formData['company_profile']['reporting_period_start'] = '2025-07-01';
+    $formData['company_profile']['reporting_period_end'] = '2026-06-30';
     $characterization->update(['form_data' => $formData]);
 }
 
@@ -263,6 +270,83 @@ it('returns docx and factual evidence bundle from a fresh approved snapshot', fu
     expect($decisions['rf_guided_snapshot']['output_section'])->toBe('body');
     expect($decisions['rf_guided_not_applicable']['output_section'])->toBe('not_applicable_appendix');
 });
+
+it('attaches taxonomy declarations separately from approved snapshot claims', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiFact($characterization, ['fact_id' => 'rf_taxonomy_test', 'value' => ['text' => 'Synthetic approved NEIS fact']]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    config(['eu_taxonomy.enabled' => false]);
+    $before = $this->actingAs($this->user)->getJson('/api/guided-report/evidence-bundle')->assertOk()
+        ->assertJsonMissingPath('data.eu_taxonomy_eligibility')->json('data');
+    config(['eu_taxonomy.enabled' => true]);
+    $screen = app(\App\Services\EuTaxonomyEligibility::class)->screen($characterization->fresh());
+    $this->putJson('/api/report/eu-taxonomy', [
+        'source_hash' => $screen['source_hash'], 'revision' => 0,
+        'activities' => [['activity_id' => '32021R2139-I-5.1', 'turnover_share' => 10, 'capex_share' => null, 'opex_share' => 0]],
+    ])->assertOk();
+    $after = $this->getJson('/api/guided-report/evidence-bundle')->assertOk()
+        ->assertJsonPath('data.eu_taxonomy_eligibility.confirmed_activities.0.turnover_share', 10)
+        ->assertJsonPath('data.eu_taxonomy_eligibility.disclaimer', __('eu_taxonomy.disclaimer'))
+        ->assertJsonPath('data.eu_taxonomy_eligibility.scope', 'current_declarations_outside_approved_report_snapshot')->json('data');
+    expect($after['claims'])->toBe($before['claims']);
+    expect($after['approved_snapshot'])->toBe($before['approved_snapshot']);
+});
+
+it('excludes old entity and scope taxonomy declarations from both evidence bundles until reconfirmed', function (string $field, string $value) {
+    config(['eu_taxonomy.enabled' => true]);
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    $formData = $characterization->form_data;
+    $formData['company_profile']['reporting_scope'] = 'individual';
+    $formData['company_profile']['entity_identifier'] = 'SYNTHETICENTITY000001';
+    $formData['company_profile']['entity_identifier_scheme'] = 'https://standards.iso.org/iso/17442';
+    $characterization->update(['form_data' => $formData]);
+    guidedReportApiFact($characterization, ['fact_id' => 'rf_taxonomy_identity', 'value' => ['text' => 'Synthetic reviewed NEIS fact']]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    $screen = app(\App\Services\EuTaxonomyEligibility::class)->screen($characterization->fresh());
+    $payload = [
+        'source_hash' => $screen['source_hash'], 'revision' => 0,
+        'activities' => [['activity_id' => '32021R2139-I-5.1', 'turnover_share' => 10, 'capex_share' => null, 'opex_share' => 0]],
+    ];
+    $this->actingAs($this->user)->putJson('/api/report/eu-taxonomy', $payload)->assertOk();
+    $bundles = [
+        '/api/report/evidence-bundle' => 'data.bundle.eu_taxonomy_eligibility',
+        '/api/guided-report/evidence-bundle' => 'data.eu_taxonomy_eligibility',
+    ];
+    foreach ($bundles as $route => $path) {
+        $this->getJson($route)->assertOk()->assertJsonPath($path.'.confirmed_activities.0.turnover_share', 10);
+    }
+
+    $formData = $characterization->fresh()->form_data;
+    $formData['company_profile'][$field] = $value;
+    $characterization->update(['form_data' => $formData]);
+    $payload['revision'] = 1;
+    $this->putJson('/api/report/eu-taxonomy', $payload)->assertConflict();
+    // A fresh NEIS approval must not implicitly reconfirm the Taxonomy annex.
+    guidedReportApiApproveSnapshot($this->user, $characterization->fresh());
+    $current = app(\App\Services\EuTaxonomyEligibility::class)->screen($characterization->fresh());
+    foreach ($bundles as $route => $path) {
+        $this->getJson($route)->assertOk()
+            ->assertJsonPath($path.'.declaration_status', 'stale')
+            ->assertJsonPath($path.'.confirmed_activities', [])
+            ->assertJsonPath($path.'.previous_declarations.0.turnover_share', 10)
+            ->assertJsonPath($path.'.declared_context', $screen['source_context'])
+            ->assertJsonPath($path.'.source_context', $current['source_context']);
+    }
+
+    $payload['source_hash'] = $current['source_hash'];
+    $this->putJson('/api/report/eu-taxonomy', $payload)->assertOk();
+    foreach ($bundles as $route => $path) {
+        $this->getJson($route)->assertOk()
+            ->assertJsonPath($path.'.declaration_status', 'user_declared')
+            ->assertJsonPath($path.'.confirmed_activities.0.turnover_share', 10)
+            ->assertJsonPath($path.'.declared_context', $current['source_context']);
+    }
+})->with([
+    'company name' => ['company_name', 'Synthetic replacement entity'],
+    'LEI' => ['entity_identifier', 'SYNTHETICENTITY000002'],
+    'identifier scheme' => ['entity_identifier_scheme', 'urn:synthetic:replacement-scheme'],
+    'individual to consolidated group' => ['reporting_scope', 'consolidated_group'],
+]);
 
 it('returns factual html from a fresh approved snapshot without evidence or internal ids', function () {
     $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
@@ -465,7 +549,7 @@ it('blocks publication when facts change while Arelle is validating the candidat
     app()->bind(\App\Services\Report\ArelleXhtmlIxbrlValidator::class, fn () => new class($fact->id) extends \App\Services\Report\ArelleXhtmlIxbrlValidator {
         public function __construct(private readonly int $factId) {}
 
-        public function validate(string $xhtml, \App\Services\Report\ReportingProfile $profile, array $internalManifest): void
+        public function validate(string $xhtml, \App\Services\Report\ReportingProfile $profile, array $internalManifest, bool $reportPackage = false): void
         {
             ReportingFact::query()->whereKey($this->factId)->update(['value' => json_encode(['value' => '999.99'])]);
         }
@@ -650,9 +734,22 @@ file_put_contents(getenv('I4S_GUIDED_ARELLE_CAPTURE'), json_encode([
     'xhtml_exists_during_run' => is_file($xhtmlPath),
     'package_exists' => is_file($packagePath),
 ], JSON_THROW_ON_ERROR));
+$logIndex = array_search('--logFile', $argvList, true);
+$output = getenv('I4S_GUIDED_ARELLE_OUTPUT');
+$ok = $output !== '' && ! preg_match('/error|fatal|invalid|fail/i', $output);
+if (is_int($logIndex)) file_put_contents($argvList[$logIndex + 1], json_encode(['log' => [[
+    'code' => 'info', 'level' => $ok ? 'info' : 'error',
+    'message' => ['text' => $ok ? 'validated in 0.01 secs' : $output],
+]]], JSON_THROW_ON_ERROR));
 fwrite(STDOUT, getenv('I4S_GUIDED_ARELLE_OUTPUT'));
 exit((int) getenv('I4S_GUIDED_ARELLE_EXIT'));
 PHP);
+    $script = file_get_contents($binary);
+    $script = str_replace("getenv('I4S_GUIDED_ARELLE_CAPTURE')", var_export($capturePath, true), $script);
+    $script = str_replace("getenv('I4S_GUIDED_ARELLE_EXIT')", var_export($exitCode, true), $script);
+    $script = str_replace("getenv('I4S_GUIDED_ARELLE_OUTPUT')", var_export($output, true), $script);
+    file_put_contents($binary, $script);
+
     test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $binary];
     test()->guidedReportApiFixturePaths = [...test()->guidedReportApiFixturePaths, $capturePath];
     chmod($binary, 0700);
@@ -662,3 +759,64 @@ PHP);
 
     return [$binary, $capturePath];
 }
+
+it('requires auth and a default off flag for the report package route', function () {
+    $this->getJson('/api/report/ixbrl-package')->assertUnauthorized();
+    $this->actingAs($this->user)->getJson('/api/report/ixbrl-package')->assertNotFound();
+    $middleware = \Illuminate\Support\Facades\Route::getRoutes()->getByName('api.report.ixbrl-package')->gatherMiddleware();
+    expect($middleware)->toContain('throttle:2,1,report-xhtml-ixbrl');
+});
+
+it('keeps readiness and snapshot ownership gates on the enabled package route', function () {
+    config(['ixbrl.package_ui_enabled' => true]);
+    $this->actingAs($this->user)->getJson('/api/report/ixbrl-package')->assertStatus(409);
+    fullyReadyReportCharacterization($this->user, $this->e2);
+    $other = User::factory()->create();
+    $otherCharacterization = fullyReadyReportCharacterization($other, $this->e2);
+    guidedReportApiApproveSnapshot($other, $otherCharacterization);
+    $this->getJson('/api/report/ixbrl-package')->assertStatus(409)->assertJsonPath('data.reason_code', 'approved_snapshot_missing');
+});
+
+it('validates the exact ZIP and returns profile evidence only after successful validation', function () {
+    config(['ixbrl.package_ui_enabled' => true]);
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiSetEntityIdentifier($characterization);
+    guidedReportApiFact($characterization, ['fact_id' => 'rf_package_numeric', 'value_type' => 'number', 'value' => ['value' => '123.45'], 'unit' => 'EUR', 'decimals' => 2]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    [$manifest] = guidedReportApiExternalTaxonomyManifestFixture();
+    [$binary, $capture] = guidedReportApiArelleFixture(0, 'validation successful');
+    config(['services.report.external_taxonomy_manifest_path' => $manifest, 'services.report.arelle_command' => [PHP_BINARY, '-n', $binary]]);
+    $response = $this->actingAs($this->user)->get('/api/report/ixbrl-package')->assertOk()->assertHeader('Content-Type', 'application/zip');
+    $args = json_decode(file_get_contents($capture), true)['argv'];
+    expect($args[array_search('--file', $args, true) + 1])->toEndWith('/candidate.zip');
+    $path = tempnam(sys_get_temp_dir(), 'i4s-api-package-');
+    file_put_contents($path, $response->getContent());
+    $zip = new ZipArchive;
+    try {
+        expect($zip->open($path))->toBeTrue();
+        $evidence = json_decode($zip->getFromName('candidate/evidence.json'), true);
+        expect($evidence['taxonomy_profile']['id'])->toBe('esrs_set1_2023-12-22');
+        expect($evidence['candidate_validation']['filing_ready'])->toBeFalse();
+        expect($zip->getFromName('candidate/reports/candidate.xhtml'))->toContain('2025-07-01', '2026-06-30');
+        $zip->close();
+    } finally { @unlink($path); }
+});
+
+it('blocks a package when full validation reports an error', function () {
+    config(['ixbrl.package_ui_enabled' => true]);
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiSetEntityIdentifier($characterization);
+    guidedReportApiFact($characterization, ['fact_id' => 'rf_package_invalid', 'value_type' => 'number', 'value' => ['value' => '123.45'], 'unit' => 'EUR', 'decimals' => 2]);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    [$manifest] = guidedReportApiExternalTaxonomyManifestFixture();
+    [$binary] = guidedReportApiArelleFixture(3, 'error: missing mandatory disclosure');
+    config(['services.report.external_taxonomy_manifest_path' => $manifest, 'services.report.arelle_command' => [PHP_BINARY, '-n', $binary]]);
+    $this->actingAs($this->user)->getJson('/api/report/ixbrl-package')->assertStatus(409)->assertJsonPath('data.reason_code', 'xhtml_ixbrl_arelle_validation_failed');
+});
+
+it('rejects the provisional taxonomy before trying to load Set 1 package bytes', function () {
+    config(['ixbrl.package_ui_enabled' => true, 'ixbrl.taxonomy_profile' => 'esrs_2026_draft_2026-08-30']);
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2);
+    guidedReportApiApproveSnapshot($this->user, $characterization);
+    $this->actingAs($this->user)->getJson('/api/report/ixbrl-package')->assertStatus(409)->assertJsonPath('data.reason_code', 'xhtml_ixbrl_taxonomy_profile_disabled');
+});

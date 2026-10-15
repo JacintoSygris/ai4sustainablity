@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Bus;
 
 class CharacterizationRecorder
 {
-    private const LEI_SCHEME = 'https://standards.iso.org/iso/17442';
+    private const LEI_SCHEME = 'http://standards.iso.org/iso/17442';
 
     public function __construct(private readonly CharacterizationStateTransaction $stateTransactions) {}
 
@@ -71,6 +71,14 @@ class CharacterizationRecorder
         ] as $field) {
             if (array_key_exists($field, $companyProfilePayload)) {
                 $formData['company_profile'][$field] = $companyProfilePayload[$field];
+            }
+        }
+
+        if (config('ixbrl.package_ui_enabled')) {
+            foreach (['reporting_period_start', 'reporting_period_end'] as $field) {
+                if (array_key_exists($field, $companyProfilePayload)) {
+                    $formData['company_profile'][$field] = $companyProfilePayload[$field];
+                }
             }
         }
 

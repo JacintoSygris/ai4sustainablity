@@ -165,3 +165,112 @@ function reportSnapshotUnitFact(Characterization $characterization, array $overr
         'blocking_reasons' => [],
     ], $overrides));
 }
+
+it('creates deterministic v2 manifests and ignores JSON whitespace and object key order', function () {
+    $paths = \Tests\Support\ReportScopeFixture::assets($this->topic);
+    $c = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    reportSnapshotUnitFact($c);
+    $builder = app(ReportSnapshotBuilder::class);
+    $s = $builder->create($c);
+    expect($s->snapshot_json['schema_version'])->toBe('report_snapshot_v2');
+    foreach ($paths as $path) {
+        $decoded = json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        krsort($decoded);
+        file_put_contents($path, str_replace("\n", "\r\n", json_encode($decoded, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)));
+    }
+    expect($builder->createOrFind($c)['created'])->toBeFalse()
+        ->and($builder->buildCanonicalState($c)['snapshot_hash'])->toBe($s->snapshot_hash);
+    $builder->assertFrozenSnapshotIntegrity($s);
+});
+
+it('rejects missing or corrupt scope assets with a sanitized typed failure', function (string $asset, string $bytes) {
+    $paths = \Tests\Support\ReportScopeFixture::assets($this->topic);
+    $c = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    file_put_contents($paths[$asset], $bytes);
+    expect(fn () => app(ReportSnapshotBuilder::class)->create($c))->toThrow(\App\Services\Report\ReportScopeException::class, 'scope_assets_unavailable');
+})->with([['corpus', '{broken'], ['mapping', '{}'], ['mapping', '{broken'], ['corpus', '{"datapoints":[]}']]);
+
+it('rejects both manifest copies when tampered and preserves v1 hashes across activation', function () {
+    $paths = \Tests\Support\ReportScopeFixture::assets($this->topic);
+    config(['report_scope.enabled' => false]);
+    $c = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    reportSnapshotUnitFact($c);
+    $builder = app(ReportSnapshotBuilder::class);
+    $v1 = $builder->create($c);
+    $bytes = json_encode($v1->snapshot_json, JSON_THROW_ON_ERROR);
+    config(['report_scope.enabled' => true]);
+    expect(app(ReportStalenessDetector::class)->refreshState($v1)['reasons'])->toContain('scope_identity_missing');
+    $builder->assertFrozenSnapshotIntegrity($v1->fresh());
+    expect(json_encode($v1->fresh()->snapshot_json, JSON_THROW_ON_ERROR))->toBe($bytes);
+    $v2 = $builder->create($c);
+    foreach (['source_manifest', 'snapshot_json'] as $column) {
+        $copy = $v2->replicate();
+        $payload = $copy->$column;
+        if ($column === 'source_manifest') $payload['scope']['corpus_sha256'] = str_repeat('0', 64);
+        else $payload['source_manifest']['scope']['corpus_sha256'] = str_repeat('0', 64);
+        $copy->$column = $payload;
+        expect(fn () => $builder->assertFrozenSnapshotIntegrity($copy))->toThrow(DomainException::class);
+    }
+    config(['services.esrs_datapoints.matter_dr_mapping_path' => $paths['mapping'].'.missing']);
+    expect(fn () => $builder->create($c))->toThrow(\App\Services\Report\ReportScopeException::class, 'scope_assets_unavailable');
+});
+
+it('preserves canonical decoded JSON object identity numeric types and list order', function () {
+    $hash = \App\Services\Report\ReportScopeAssets::hash(...);
+    expect($hash(json_decode('{"b":[],"a":{"y":1,"x":1.0}}')))->toBe($hash(json_decode('{"a":{"x":1.0,"y":1},"b":[]}')));
+    expect($hash(json_decode('{"a":1.0}')))->not->toBe($hash(json_decode('{"a":1}')));
+    expect($hash(json_decode('{"a":{}}')))->not->toBe($hash(json_decode('{"a":[]}')));
+    expect($hash([1, 2]))->not->toBe($hash([2, 1]));
+});
+
+require_once __DIR__.'/../../Support/xbrl-runtime-fixture.php';
+
+it('gates scope and runtime evidence independently when creating snapshots', function (bool $scopeEnabled, bool $runtimeEnabled) {
+    if ($scopeEnabled) \Tests\Support\ReportScopeFixture::assets($this->topic);
+    config(['report_scope.enabled' => $scopeEnabled, 'xbrl_suggestions.runtime_enabled' => $runtimeEnabled]);
+    $company = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    xbrlRuntimeReviewedFixture($company);
+    $builder = app(ReportSnapshotBuilder::class);
+    $snapshot = $builder->create($company);
+
+    expect($snapshot->snapshot_json['schema_version'])->toBe($scopeEnabled ? 'report_snapshot_v2' : 'report_snapshot_v1')
+        ->and(array_key_exists('scope', $snapshot->source_manifest))->toBe($scopeEnabled)
+        ->and(array_key_exists('xbrl_identifications', $snapshot->source_manifest))->toBe($runtimeEnabled)
+        ->and($builder->createOrFind($company)['created'])->toBeFalse();
+    $builder->assertFrozenSnapshotIntegrity($snapshot);
+})->with([
+    'both off' => [false, false],
+    'scope only' => [true, false],
+    'runtime only' => [false, true],
+    'both on' => [true, true],
+]);
+
+it('freezes identification inputs results and reviews independently of live flags and later decisions', function (bool $scopeEnabled) {
+    $paths = $scopeEnabled ? \Tests\Support\ReportScopeFixture::assets($this->topic) : [];
+    config(['report_scope.enabled' => $scopeEnabled, 'xbrl_suggestions.runtime_enabled' => true]);
+    $company = reportSnapshotUnitCharacterization($this->user, $this->topic);
+    $run = xbrlRuntimeReviewedFixture($company);
+    $builder = app(ReportSnapshotBuilder::class);
+    $snapshot = $builder->create($company);
+    $frozen = $snapshot->source_manifest['xbrl_identifications'];
+    expect($frozen['records'][0]['input_json'])->toBe($run->input_json)
+        ->and($frozen['records'][0]['response_json'])->toBe($run->response_json);
+    \App\Models\XbrlIdentificationReview::create(['run_id' => $run->id, 'candidate_qname' => $run->response_json['candidates'][0]['qname'],
+        'decision' => 'rejected', 'reason' => 'Synthetic later decision.', 'reviewer_id' => $this->user->id, 'created_at' => now('UTC'), 'sequence' => 2]);
+    expect($builder->create($company)->snapshot_hash)->not->toBe($snapshot->snapshot_hash);
+    config(['report_scope.enabled' => false, 'xbrl_suggestions.runtime_enabled' => false, 'xbrl_suggestions.runtime_manifest_path' => '/invalid-now']);
+    $builder->assertFrozenSnapshotIntegrity($snapshot->fresh());
+    expect($snapshot->fresh()->source_manifest['xbrl_identifications'])->toBe($frozen);
+    expect(app(ReportStalenessDetector::class)->detect($snapshot->fresh())['is_stale'])->toBeFalse();
+    if ($scopeEnabled) {
+        \Tests\Support\ReportScopeFixture::edit($paths['corpus'], function (array $corpus): array {
+            $corpus['source']['name'] = 'Changed synthetic corpus';
+            return $corpus;
+        });
+        expect(app(ReportStalenessDetector::class)->detect($snapshot->fresh())['reasons'])->toContain('ig3_corpus_changed');
+    }
+    $payload = $snapshot->snapshot_json;
+    $payload['source_manifest']['xbrl_identifications']['records'][0]['input_json']['indicator']['description'] = 'tampered';
+    $snapshot->forceFill(['snapshot_json' => $payload]);
+    expect(fn () => $builder->assertFrozenSnapshotIntegrity($snapshot))->toThrow(DomainException::class);
+})->with(['runtime only' => [false], 'scope and runtime' => [true]]);

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 interface DashboardHeaderProps {
+  learningAdmin?: boolean
   user: {
     name: string | null
     email: string
@@ -41,7 +42,7 @@ function readCookie(name: string): string | null {
   return decodeURIComponent(encoded.slice(name.length + 1))
 }
 
-export function DashboardHeader({ user }: DashboardHeaderProps) {
+export function DashboardHeader({ user, learningAdmin = false }: DashboardHeaderProps) {
   const { locale } = useLocale()
   const tr = (message: string) => ui(locale, message)
   const router = useRouter()
@@ -130,6 +131,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <DropdownMenuItem asChild>
                 <Link href="/settings">{tr("Configuración")}</Link>
               </DropdownMenuItem>
+              {learningAdmin && <DropdownMenuItem asChild><Link href="/admin/learning">{tr("Administración del aprendizaje")}</Link></DropdownMenuItem>}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="text-destructive">
                 {tr(loggingOut ? "Cerrando sesión..." : "Cerrar sesión")}

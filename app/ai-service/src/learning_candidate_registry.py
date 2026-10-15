@@ -27,6 +27,7 @@ _LAZY_IMPORTS = {
     'LearningDataset': ('learning_case_features', 'LearningDataset'),
     'train_candidate': ('learning_case_training', 'train_candidate'),
     'DatasetSplit': ('learning_case_training', 'DatasetSplit'),
+    'ProductionCandidateRegistry': ('learning_production_registry', 'ProductionCandidateRegistry'),
 }
 
 def __getattr__(name):
@@ -424,3 +425,6 @@ class LocalCandidateRegistry:
             raise
         except Exception as exc:
             raise RegistryError('registry.exact_load_failed') from exc
+
+# Operational composition is lazily exposed as a separate namespace above.
+# Historical synthetic admission must not import operational dependencies.

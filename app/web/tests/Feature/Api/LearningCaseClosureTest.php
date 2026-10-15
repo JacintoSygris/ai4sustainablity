@@ -27,7 +27,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
     foreach (['learning_case_closure','learning_source_clock','learning_p6_base_source_clock','learning_p8_source_clock','learning_p9_source_clock','learning_p5_live_capture','learning_p6_prepared_request','learning_p6_job_parent_fence','learning_p6_interpretation_context'] as $flag) { config(['services.'.$flag.'.enabled' => true]); }
     config(['services.characterization.api.model_profile' => 't06_close_synthetic', 'services.characterization.prediction_mapping_path' => $mappingPath]);
-    Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
+    if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
         $t->foreignId('characterization_id')->primary()->constrained('characterizations')->cascadeOnDelete();
         $t->unsignedBigInteger('generation'); $t->unsignedBigInteger('revision'); $t->string('epoch',64); $t->string('digest',64);
     });

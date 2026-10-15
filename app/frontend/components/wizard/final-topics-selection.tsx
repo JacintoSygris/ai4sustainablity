@@ -1,5 +1,16 @@
 "use client"
 
+import { applyNlpTopicDraft, currentNlpDraft } from "@/lib/dma-nlp-state.mjs"
+
+import { SectorComparison } from "@/components/wizard/sector-comparison"
+import { useSectorComparison } from "@/lib/use-sector-comparison"
+
+import { learningInvitation } from "@/lib/learning-copy.mjs"
+
+import { ConceptRelations } from "@/components/wizard/concept-relations"
+import { completeStudyStep } from "@/lib/usability-study.mjs"
+import { useStudyError } from "@/lib/use-study-error"
+
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
 
 import { ui, formatUi } from "@/lib/i18n/messages.mjs"
@@ -58,6 +69,10 @@ import {
   topicSubtitle,
   topicTitle,
 } from "@/lib/materiality-confirmation-state.mjs"
+import { iroReviewPayload, replaceIroReview, restoreIroDraft, recoverIroDraft, resolveIroRecovery } from "@/lib/iro-traceability.mjs"
+import type { LaravelIroCandidate, LaravelIroReview } from "@/lib/laravel-api"
+import { DmaImportPanel } from "@/components/wizard/dma-import-panel"
+import { applyDmaSuggestion, dmaReferencesFromDraft } from "@/lib/dma-import-state.mjs"
 import { TopicSignalAssistant } from "@/components/wizard/topic-signal-assistant"
 import {
   buildMaterialityConfirmationDraft,
@@ -73,7 +88,7 @@ type GuidedAnswers = Record<string, any> // validated via build
 
 type Mode = "direct" | "guided"
 
-export function FinalTopicsSelection() {
+export function FinalTopicsSelection({ learningInvitationEnabled = false }: { learningInvitationEnabled?: boolean }) {
   const { locale } = useLocale()
   const tr = (message: string) => ui(locale, message)
   const recoveryStorage = useOptionalStorage("recovery")
@@ -86,6 +101,7 @@ export function FinalTopicsSelection() {
   const [showOnlySelected, setShowOnlySelected] = useState(false)
   const [csrfToken, setCsrfToken] = useState<string>()
   const [confirmation, setConfirmation] = useState<LaravelMaterialityConfirmation | null>(null)
+  const sectorComparison = useSectorComparison(confirmation)
   const [catalogTopics, setCatalogTopics] = useState<LaravelEsrsTopic[]>([])
   const [selectedTopics, setSelectedTopics] = useState<Set<number>>(new Set())
   const [reviewedTopics, setReviewedTopics] = useState<Set<number>>(new Set())
@@ -94,12 +110,23 @@ export function FinalTopicsSelection() {
   const [changeNotes, setChangeNotes] = useState<ChangeNotes>({})
   const [e1Explanation, setE1Explanation] = useState("")
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(4, errorMessage)
   const [conflictedDraftRaw, setConflictedDraftRaw] = useState<string | null>(null)
 
   // F3 two-mode + guided state
   const [mode, setMode] = useState<Mode>("direct")
   const [hasUserChosenMode, setHasUserChosenMode] = useState(false)
   const [guidedDrafts, setGuidedDrafts] = useState<GuidedAnswers>({}) // topicId -> guided answer (live from assistant)
+  const [iroReviews, setIroReviews] = useState<Record<string, Partial<LaravelIroReview> & { confirmed?: boolean }>>({})
+  const [iroCandidates, setIroCandidates] = useState<Record<string, LaravelIroCandidate[]>>({})
+  const [nlpDraft, setNlpDraft] = useState<{ nlpRefs: string[]; inferredTopics: Record<string, number[]>;
+    nlpSources: Record<string, { importId: number; iroId: string; sourceTopicId: number; topicId: number }> }>(
+    { nlpRefs: [], inferredTopics: {}, nlpSources: {} })
+  const [dmaImportRefs, setDmaImportRefs] = useState<Record<string, number>>({})
+  const activeNlpDraft = currentNlpDraft(nlpDraft, dmaImportRefs)
+  const nlpRefs = activeNlpDraft.nlpRefs
+  const nlpInferredTopics = activeNlpDraft.inferredTopics
+  useEffect(() => { setNlpDraft(current => currentNlpDraft(current, dmaImportRefs)) }, [dmaImportRefs])
   const [dimensions, setDimensions] = useState<Dimensions>({})
   const [inlineAssistantFor, setInlineAssistantFor] = useState<number | null>(null)
   const [previewEstimate, setPreviewEstimate] = useState<LaravelMaterialityConfirmation["preview"] | null>(null)
@@ -158,10 +185,10 @@ export function FinalTopicsSelection() {
       requestId,
     })
 
-    return JSON.stringify(attachLearningTopicDraftState(draft, {
+    return JSON.stringify({ ...attachLearningTopicDraftState(draft, {
       reviewedTopicIds: reviewedTopics,
       reviewedUniverse,
-    }))
+    }), ...(confirmation.dma_import_enabled ? { dma_import_refs: dmaImportRefs } : {}), ...(confirmation.iro_traceability_enabled ? { iro_reviews_draft: iroReviews } : {}) })
   }
 
   useEffect(() => {
@@ -189,6 +216,7 @@ export function FinalTopicsSelection() {
         const conf = confirmationResponse.data
         setCsrfToken(sessionResponse.data.csrf_token)
         setConfirmation(conf)
+        setNlpDraft({ nlpRefs: [], inferredTopics: {}, nlpSources: {} })
         setCatalogTopics(sortTopics(topicsResponse.data))
         if (conf?.preview) {
           setPreviewEstimate(conf.preview)
@@ -201,6 +229,7 @@ export function FinalTopicsSelection() {
           const initialMode: Mode = admReg ? "direct" : "guided"
           let localDraft = null
           let localLearningState = null
+          let localDmaRefs = null
           try {
             const draftKey = getDraftKey(conf.characterization_id)
             const quarantinedKey = conflictDraftKey(conf.characterization_id)
@@ -228,11 +257,14 @@ export function FinalTopicsSelection() {
                 }
                 recoveryStorage.removeItem(draftKey)
               } else {
+                localDmaRefs = { ...conf.confirmation.dma_import_refs, ...dmaReferencesFromDraft(draftRaw) }
                 latestDraftRaw.current = draftRaw
               }
             }
           } catch {}
 
+          setIroReviews(restoreIroDraft(latestDraftRaw.current, Boolean(localDraft), conf.iro_reviews ?? []))
+          setDmaImportRefs(localDmaRefs ?? conf.confirmation.dma_import_refs ?? {})
           setSelectedTopics(new Set(localDraft?.selected_topic_ids ?? conf.confirmed_topic_ids))
           const serverReviewedTopicIds = conf.confirmation.reviewed_topic_ids ?? conf.p6_topic_ids
           const learningHydration = resolveLearningTopicHydration({
@@ -249,10 +281,8 @@ export function FinalTopicsSelection() {
           setChangeNotes(localDraft?.change_notes ?? conf.confirmation.change_reason_notes ?? {})
           setE1Explanation(localDraft?.e1_explanation ?? conf.confirmation.e1_not_material_explanation ?? "")
           setGuidedDrafts(localDraft?.guided_answers ?? conf.confirmation.guided_answers ?? {})
-          setDimensions({
-            ...(conf.confirmation.dimensions ?? {}),
-            ...(localDraft?.dimensions ?? {}),
-          })
+          // A validated draft is a full replacement, including deliberate removals.
+          setDimensions(localDraft?.dimensions ?? conf.confirmation.dimensions ?? {})
           const restoredMode = (localDraft?.mode as Mode | undefined)
             ?? conf.confirmation.universe_attestation?.mode
             ?? initialMode
@@ -309,11 +339,11 @@ export function FinalTopicsSelection() {
         reviewedTopicIds: reviewedTopics,
         reviewedUniverse,
       })
-      const draftRaw = JSON.stringify(draft)
+      const draftRaw = JSON.stringify({ ...draft, ...(confirmation.dma_import_enabled ? { dma_import_refs: dmaImportRefs } : {}), ...(confirmation.iro_traceability_enabled ? { iro_reviews_draft: iroReviews } : {}) })
       latestDraftRaw.current = draftRaw
       recoveryStorage.setItem(key, draftRaw)
     } catch {}
-  }, [changeNotes, changeReasons, confirmation, dimensions, e1Explanation, guidedDrafts, mode, reviewedTopics, reviewedUniverse, selectedTopics])
+  }, [changeNotes, changeReasons, confirmation, dmaImportRefs, iroReviews, dimensions, e1Explanation, guidedDrafts, mode, reviewedTopics, reviewedUniverse, selectedTopics])
 
   const p6TopicIds = useMemo(() => new Set(confirmation?.p6_topic_ids ?? []), [confirmation])
   const changedTopicIdList = useMemo(
@@ -376,6 +406,7 @@ export function FinalTopicsSelection() {
           || previewToken.selection_key !== topicSelectionKey(candidateIds)
         ) return
         if (res?.data?.preview) {
+          setIroCandidates(res.data.iro_candidates ?? {})
           setPreviewEstimate(res.data.preview)
           setPreviewSelectionKey(previewToken.selection_key)
         }
@@ -436,6 +467,14 @@ export function FinalTopicsSelection() {
       recoveredReviewedTopicIds: priorLearningState?.reviewed_topic_ids ?? [],
     })
     markDraftChanged()
+    const recoveredDmaRefs = confirmation.dma_import_enabled
+      ? { ...confirmation.confirmation.dma_import_refs, ...dmaImportRefs, ...dmaReferencesFromDraft(conflictedDraftRaw) }
+      : null
+    if (recoveredDmaRefs) setDmaImportRefs(recoveredDmaRefs)
+    const recoveredIros = confirmation.iro_traceability_enabled ? recoverIroDraft(conflictedDraftRaw, iroReviews) : null
+    if (recoveredIros) setIroReviews(recoveredIros)
+    const recoveredWithDma = { ...recoveredDraft, ...(recoveredDmaRefs ? { dma_import_refs: recoveredDmaRefs } : {}),
+      ...(recoveredIros ? { iro_reviews_draft: recoveredIros } : {}) }
     setSelectedTopics(new Set(recoveredDraft.selected_topic_ids))
     setChangeReasons(recoveredDraft.change_reasons)
     setChangeNotes(recoveredDraft.change_notes)
@@ -449,12 +488,12 @@ export function FinalTopicsSelection() {
     try {
       recoveryStorage.setItem(
         getDraftKey(confirmation.characterization_id),
-        JSON.stringify(recoveredDraft),
+        JSON.stringify(recoveredWithDma),
       )
-      recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id))
+      if (!recoveredIros) recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id))
     } catch {}
-    setConflictedDraftRaw(null)
-    latestDraftRaw.current = JSON.stringify(recoveredDraft)
+    if (!recoveredIros) setConflictedDraftRaw(null)
+    latestDraftRaw.current = JSON.stringify(recoveredWithDma)
     draftReadyFor.current = confirmation.characterization_id
   }
 
@@ -645,7 +684,10 @@ export function FinalTopicsSelection() {
         dimensions: mergeMaterialityDimensions(dimensions, guidedDrafts),
         guidedAnswers: guidedDrafts,
         }),
+        ...(confirmation.iro_traceability_enabled ? { iro_reviews: iroReviewPayload(iroReviews, dmaImportRefs) as LaravelIroReview[] } : {}),
+        ...(confirmation.dma_nlp_enabled ? { dma_nlp_refs: nlpRefs } : {}),
         expected_revision: confirmation.confirmation.revision,
+        ...(confirmation.dma_import_enabled ? { dma_import_refs: dmaImportRefs } : {}),
       }
 
       const response = await updateLaravelMaterialityConfirmation(payload, { csrfToken })
@@ -664,6 +706,8 @@ export function FinalTopicsSelection() {
         recoveryStorage.removeItem(getDraftKey(confirmation.characterization_id))
         recoveryStorage.removeItem(conflictDraftKey(confirmation.characterization_id))
       } catch {}
+
+      completeStudyStep(4)
 
       router.push("/wizard/step-5")
       router.refresh()
@@ -688,6 +732,15 @@ export function FinalTopicsSelection() {
         setErrorMessage(systemCopy("La selección final ha cambiado en otra pestaña. Actualiza el paso antes de volver a guardar."))
         reload()
         return
+      }
+      if (confirmation.iro_traceability_enabled) {
+        if (error instanceof Error && error.message === "iro_review_required") {
+          setErrorMessage(systemCopy("Revisa y confirma cada IRO antes de guardar.")); return
+        }
+        if (error instanceof LaravelApiError && error.status === 422) {
+          const errors = (error.payload as { errors?: Record<string, string[]> })?.errors
+          if (errors) { setErrorMessage(Object.entries(errors).map(([field, messages]) => `${field}: ${messages.join(' ')}`).join(' · ')); return }
+        }
       }
       setErrorMessage(systemCopy("La plataforma no ha podido guardar la selección final."))
     } finally {
@@ -782,6 +835,50 @@ export function FinalTopicsSelection() {
       ) : (
         <>
           <fieldset disabled={saving} className="contents">
+          {confirmation.dma_import_enabled && <DmaImportPanel key={confirmation.characterization_id}
+            nlp={confirmation.dma_nlp_enabled && confirmation.dma_nlp_context ? {
+              context: confirmation.dma_nlp_context, revision: confirmation.confirmation.revision,
+              inferredTopics: nlpInferredTopics, selectedTopics,
+              onAccepted: (run, candidate, sourceTopicId) => {
+                if (saveInFlight.current) return
+                const draft = { reviewedTopicIds: new Set<number>() }
+                const next = applyNlpTopicDraft(draft, run, candidate, sourceTopicId)
+                if (next === draft) return
+                // An async review may finish after another IRO was edited. Merge each
+                // update into current state; the projection above retires replaced links.
+                markDraftChanged()
+                setReviewedTopics(current => new Set([...current, ...next.reviewedTopicIds]))
+                setDmaImportRefs(current => ({ ...current, [sourceTopicId]: run.import_id }))
+                setNlpDraft(current => applyNlpTopicDraft({ ...current, reviewedTopicIds: new Set<number>() }, run, candidate, sourceTopicId))
+                setReviewedUniverse(false)
+              },
+            } : undefined}
+            iroContext={confirmation.iro_traceability_enabled ? {
+              reviews: iroReviews, candidates: iroCandidates, evidence: confirmation.iro_evidence ?? [], references: dmaImportRefs,
+              onResolve: (iroId, useAlternative) => {
+                markDraftChanged()
+                const resolved = resolveIroRecovery(iroReviews[iroId], useAlternative)
+                setIroReviews(current => ({ ...current, [iroId]: resolved }))
+                setDmaImportRefs(current => ({ ...current, [resolved.topic_id]: resolved.import_id }))
+              },
+              onReview: (review, topicId, confirmed) => {
+                markDraftChanged()
+                setDmaImportRefs(current => ({ ...current, [topicId]: review.import_id! }))
+                setReviewedTopics(current => new Set([...current, topicId]))
+                setIroReviews(current => replaceIroReview(current, { ...review, topic_id: topicId }, confirmed))
+              },
+            } : undefined}
+            characterizationId={confirmation.characterization_id} csrfToken={csrfToken} disabled={saving}
+            topicName={(id) => { const topic = catalogTopics.find(topic => topic.id === id); return topic ? topicTitle(topic, locale) : String(id) }}
+            onApply={(record, suggestion) => {
+              if (saveInFlight.current || !catalogTopics.some(topic => topic.id === suggestion.topic_id)) return
+              const next = applyDmaSuggestion({ selectedTopicIds: selectedTopics, reviewedTopicIds: reviewedTopics,
+                changeReasons, guidedAnswers: guidedDrafts, dimensions, dmaImportRefs, iroReviews }, suggestion, record.id)
+              markDraftChanged()
+              setSelectedTopics(next.selectedTopicIds); setReviewedTopics(next.reviewedTopicIds)
+              setChangeReasons(next.changeReasons); setGuidedDrafts(next.guidedAnswers); setDimensions(next.dimensions)
+              setIroReviews(next.iroReviews); setDmaImportRefs(next.dmaImportRefs); setReviewedUniverse(false); setMode("direct"); setHasUserChosenMode(true)
+            }} />}
           {/* 1. Mode chooser (skippable later via tabs) */}
           {showModeChooser ? (
             <div className="grid gap-3 md:grid-cols-2">
@@ -857,6 +954,8 @@ export function FinalTopicsSelection() {
                             <span className="font-medium">{topicTitle(topic, locale)}</span>
                             {hist ? <span className="text-xs text-muted-foreground">{tr("En el paso 2 lo marcaste '")}{({ accepted: tr("Aceptar"), unsure: tr("Duda"), rejected: tr("Rechazar") } as Record<string, string>)[hist.decision] ?? tr("Sin revisar")}'{hist.note ? ` — ${hist.note}` : ""}</span> : null}
                           </div>
+                          <ConceptRelations kind="topics" items={confirmation.topics?.find((item) => item.id === pid)?.often_reported_with} locale={locale} />
+                          <SectorComparison {...sectorComparison} topicId={pid} locale={locale} />
                           <div className="mt-2">
                             <Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>{tr("Ayúdame a decidir")}</Button>
                           </div>
@@ -893,6 +992,7 @@ export function FinalTopicsSelection() {
                         <Checkbox aria-label={formatUi(locale, "Añadir {0}", [topicTitle(topic, locale)])} checked={false} onCheckedChange={() => toggleTopic(pid)} />
                         <div>
                           <Badge variant="destructive">{tr("Retirado")}</Badge> {topicTitle(topic, locale)}
+                          <SectorComparison {...sectorComparison} topicId={pid} locale={locale} />
                           <div className="mt-1"><Button size="sm" variant="outline" onClick={() => openAssistantFor(pid)}>{tr("Ayúdame a decidir")}</Button></div>
                           {inlineAssistantFor === pid && <div className="mt-2"><TopicSignalAssistant topic={topic} exposicionDefault={(exposicionDefaults[String(pid)] as any) || "normal"} onResult={(a) => applyAssistantResult(pid, a)} /></div>}
                         </div>
@@ -911,10 +1011,26 @@ export function FinalTopicsSelection() {
                   {Array.from(selectedTopics).filter((id) => !p6TopicIds.has(id)).map((id) => {
                     const t = catalogTopics.find((x) => x.id === id)
                     if (!t) return null
-                    return <div key={id} className="text-sm border rounded p-2 mb-1 flex justify-between"><span>{t.esrs_code} {topicTitle(t, locale)}</span><Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Quitar")}</Button></div>
+                    return (
+                      <div key={id} className="text-sm border rounded p-2 mb-1 flex justify-between gap-3">
+                        <div>
+                          <span>{t.esrs_code} {topicTitle(t, locale)}</span>
+                          <ConceptRelations kind="topics" items={confirmation.topics?.find((item) => item.id === id)?.often_reported_with} locale={locale} />
+                          <SectorComparison {...sectorComparison} topicId={id} locale={locale} />
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => toggleTopic(id)}>{tr("Quitar")}</Button>
+                      </div>
+                    )
                   })}
                 </div>
               </div>
+
+              {confirmation.sector_comparison_enabled && filteredTopics.filter((topic) => !p6TopicIds.has(topic.id) && !selectedTopics.has(topic.id)).map((topic) => (
+                <div key={topic.id} className="rounded border p-2 text-sm">
+                  <span>{topic.esrs_code} {topicTitle(topic, locale)}</span>
+                  <SectorComparison {...sectorComparison} topicId={topic.id} locale={locale} />
+                </div>
+              ))}
 
               {/* search / add affordance for direct */}
               <div className="flex items-center gap-2">
@@ -934,6 +1050,8 @@ export function FinalTopicsSelection() {
               <div className="space-y-3">
                 {guidedTopics.map((topic) => (
                   <div key={topic.id} className="border rounded p-3">
+                    <ConceptRelations kind="topics" items={confirmation.topics?.find((item) => item.id === topic.id)?.often_reported_with} locale={locale} />
+                    <SectorComparison {...sectorComparison} topicId={topic.id} locale={locale} />
                     <TopicSignalAssistant
                       topic={topic}
                       exposicionDefault={(exposicionDefaults[String(topic.id)] as any) || "normal"}
@@ -943,6 +1061,13 @@ export function FinalTopicsSelection() {
                   </div>
                 ))}
               </div>
+
+              {confirmation.sector_comparison_enabled && catalogTopics.filter((topic) => !reviewedTopics.has(topic.id)).map((topic) => (
+                <div key={topic.id} className="rounded border p-2 text-sm">
+                  <span>{topic.esrs_code} {topicTitle(topic, locale)}</span>
+                  <SectorComparison {...sectorComparison} topicId={topic.id} locale={locale} />
+                </div>
+              ))}
 
               {/* closing question + catalog add for guided */}
               <Card>
@@ -1047,6 +1172,7 @@ export function FinalTopicsSelection() {
           {/* 7. Confirm + decision sheet CTA */}
           <div className="flex items-center justify-between border-t pt-4">
             <div>
+              {learningInvitationEnabled && confirmation.is_confirmed && !confirmation.is_stale && <p className="rounded border p-3 text-sm">{tr(learningInvitation)} <a className="underline" href="/profile#learning-consent">{tr("Gestionar consentimiento de aprendizaje")}</a></p>}
               {confirmation.is_confirmed ? (
                 <LocalizedDownload variant="outline" href={laravelApiUrl("/materiality-confirmation/decision-sheet")} target="_blank" rel="noopener noreferrer">
                   {" "}{tr("Descargar hoja de decisión (para tu gestoría o auditoría)")}{" "}</LocalizedDownload>

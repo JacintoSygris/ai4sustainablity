@@ -13,6 +13,10 @@ class HtmlReportRenderer
             throw new DomainException('HtmlReportRenderer requires report_ir_v1.');
         }
 
+        if (ReportDisplayProjection::coherent($ir)) {
+            return (new ReportPresentationDocument)->build($ir, $locale)->saveHTML();
+        }
+
         $display = new ReportDisplayProjection($locale);
         $narrative = $display->narrative($ir);
         $claimsById = $this->claimsById($ir);
@@ -47,6 +51,14 @@ class HtmlReportRenderer
         $html[] = '</div>';
         $html[] = '</header>';
 
+        $iroLines = IroContextPresentation::lines($ir['iro_context_v1'] ?? [], $display->locale);
+        if ($iroLines !== []) {
+            $html[] = '<h2>'.$this->text(array_shift($iroLines)).'</h2>';
+            foreach ($iroLines as $line) {
+                $html[] = '<p>'.$this->text($line).'</p>';
+            }
+        }
+
         foreach ($ir['chapters'] ?? [] as $chapter) {
             if (! is_array($chapter)) {
                 continue;
@@ -71,7 +83,9 @@ class HtmlReportRenderer
                 $sectionTitle = $isFactual
                     ? $display->sectionTitle($section['dr_key'] ?? null)
                     : ($section['dr_key'] ?? 'Sección');
-                $html[] = '<h3>'.$this->text($sectionTitle).'</h3>';
+                if (! $isFactual || ($chapter['block_key'] ?? null) !== 'e1_not_material_explanation') {
+                    $html[] = '<h3>'.$this->text($sectionTitle).'</h3>';
+                }
 
                 if (! $isFactual) {
                     foreach ($section['cross_ref_sentences'] ?? [] as $sentence) {
@@ -151,6 +165,16 @@ class HtmlReportRenderer
     {
         $html = [];
         $html[] = '<section>';
+        if ($isFactual && ($block['datapoint_id'] ?? null) === 'e1_not_material_explanation') {
+            foreach ($block['assertions'] ?? [] as $explanation) {
+                if ($this->hasText($explanation)) {
+                    $html[] = '<p>'.$this->text($explanation).'</p>';
+                }
+            }
+            $html[] = '</section>';
+
+            return implode("\n", $html);
+        }
         $blockTitle = $isFactual
             ? $display->claimLabel(
                 $block['datapoint_id'] ?? null,

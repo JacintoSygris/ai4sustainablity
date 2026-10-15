@@ -12,7 +12,17 @@ COPY requirements.public.txt ./requirements.public.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.public.txt
 
+# Includes the optional DMA text runtime. Mount its external, hash-pinned JSON
+# package (with catalogues/) and set I4S_DMA_NLP_MODEL_DIR only when enabled.
 COPY public_runtime ./src
+# Optional learning hooks: inactive unless learning is configured. Kept with the
+# serving package so the learning code hash matches a native installation.
+COPY src/learning_activation.py src/learning_activation_cli.py src/learning_production_cli.py src/learning_production_registry.py src/learning_production_runtime.py src/feedback_bandit.py src/feedback_bandit_registry.py src/wp13_feedback_bridge.py src/wp13_feedback_training.py ./src/
+COPY src/learning_gate_metrics.py src/learning_serving_adapter.py src/esrs_standard.py ./src/
+# Byte-identical copy of the shared API contract, outside this build context.
+# Preserve its location as a sibling of the service root for code_hashes().
+COPY learning-gate-metrics-v1.schema.json /contracts/api/learning-gate-metrics-v1.schema.json
+COPY src/train/__init__.py src/train/masked_multilabel.py ./src/train/
 COPY public_model_app.py ./public_model_app.py
 COPY model-artifacts/gpt41 ./trained_classifier/new_format/gpt41
 ENV PYTHONPATH=/app/src

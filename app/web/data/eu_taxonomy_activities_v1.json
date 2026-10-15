@@ -1,0 +1,518 @@
+{
+  "schema_version": "eu_taxonomy_activities_v1",
+  "verified_on": "2026-10-08",
+  "complete": false,
+  "coverage_note": "Verified subset only. Annex heading counts are extracted from the pinned texts, not a completeness claim. No match does not mean ineligible. Later amendments are not assessed.",
+  "coverage": [
+    {
+      "celex": "32021R2139",
+      "annex": "I",
+      "included_count": 3,
+      "source_heading_count": 101,
+      "complete": false
+    },
+    {
+      "celex": "32021R2139",
+      "annex": "II",
+      "included_count": 3,
+      "source_heading_count": 105,
+      "complete": false
+    },
+    {
+      "celex": "32023R2486",
+      "annex": "I",
+      "included_count": 2,
+      "source_heading_count": 6,
+      "complete": false
+    },
+    {
+      "celex": "32023R2486",
+      "annex": "II",
+      "included_count": 1,
+      "source_heading_count": 21,
+      "complete": false
+    },
+    {
+      "celex": "32023R2486",
+      "annex": "III",
+      "included_count": 1,
+      "source_heading_count": 6,
+      "complete": false
+    },
+    {
+      "celex": "32023R2486",
+      "annex": "IV",
+      "included_count": 1,
+      "source_heading_count": 2,
+      "complete": false
+    }
+  ],
+  "sources": [
+    {
+      "celex": "02021R2139-20240101",
+      "language": "EN",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101",
+      "sha256": "6a54e48d08cfffbe4aa4f0da2e6bb2a4607e9b8da31f5996dd2a53c53ae47cde"
+    },
+    {
+      "celex": "02021R2139-20240101",
+      "language": "ES",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/HTML/?uri=CELEX:02021R2139-20240101",
+      "sha256": "47ec87a8c0ae291d341d9ad709919dd9b721f5912fcf7f919939e575670e511f"
+    },
+    {
+      "celex": "32023R2486",
+      "language": "EN",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486",
+      "sha256": "0cc53604061bd02da26f5028d9406724aec8f2741b7abcfcddfaaa5a292aeb2d"
+    },
+    {
+      "celex": "32023R2486",
+      "language": "ES",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/HTML/?uri=CELEX:32023R2486",
+      "sha256": "8e2b861ed5d77324614575496faeee03a9a6ef2fd0a171722419388b7c243138"
+    },
+    {
+      "celex": "32023R2485",
+      "language": "EN",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2485",
+      "sha256": "6f2d2d63e26820f0483e609a6df0a1fa2cd44e3ef22428c97936368ca118f508"
+    },
+    {
+      "celex": "32023R2485",
+      "language": "ES",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/HTML/?uri=CELEX:32023R2485",
+      "sha256": "c91b210af957fbabc2bd20cd0405394d5c03f8413574e79e0f6406a99c374f0c"
+    },
+    {
+      "url": "https://www.ine.es/daco/daco42/clasificaciones/cnae25/Correspondencia_CNAE25_CNAE09.xlsx",
+      "sha256": "f9e9fca1285a40564c60a75cf8a89eb0908720a4bb7e052ecd723ea6fc0d7ac1"
+    },
+    {
+      "url": "https://www.ine.es/daco/daco42/clasificaciones/cnae25/Correspondencias_CNAE25_NACE_Rev_2_1.xlsx",
+      "sha256": "a98df5797b70fa422965a6959e713d85f0844839013f7831d4f1903ba5ec3fda"
+    },
+    {
+      "celex": "32006R1893",
+      "language": "EN",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32006R1893",
+      "sha256": "a993291250c2f8ecf46ade140a8f2dae93459ec0ced5404578bf664dea81fea0"
+    }
+  ],
+  "crosswalk": [
+    {
+      "cnae2025_code": "36.00",
+      "p5_code": "E36.0.0",
+      "nace_rev21_code": "E36.00",
+      "nace_rev2_codes": [
+        "E36.00"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "36.00 Water collection, treatment and supply 3600"
+    },
+    {
+      "cnae2025_code": "37.00",
+      "p5_code": "E37.0.0",
+      "nace_rev21_code": "E37.00",
+      "nace_rev2_codes": [
+        "E37.00"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "37.00 Sewerage 3700"
+    },
+    {
+      "cnae2025_code": "38.11",
+      "p5_code": "E38.1.1",
+      "nace_rev21_code": "E38.11",
+      "nace_rev2_codes": [
+        "E38.11"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "38.11 Collection of non-hazardous waste 3811"
+    },
+    {
+      "cnae2025_code": "38.12",
+      "p5_code": "E38.1.2",
+      "nace_rev21_code": "E38.12",
+      "nace_rev2_codes": [
+        "E38.12"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "38.12 Collection of hazardous waste 3812"
+    },
+    {
+      "cnae2025_code": "55.10",
+      "p5_code": "I55.1.0",
+      "nace_rev21_code": "I55.10",
+      "nace_rev2_codes": [
+        "I55.10"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "55.10 Hotels and similar accommodation 5510*"
+    },
+    {
+      "cnae2025_code": "55.20",
+      "p5_code": "I55.2.0",
+      "nace_rev21_code": "I55.20",
+      "nace_rev2_codes": [
+        "I55.20"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "55.20 Holiday and other short-stay accommodation 5510*"
+    },
+    {
+      "cnae2025_code": "55.30",
+      "p5_code": "I55.3.0",
+      "nace_rev21_code": "I55.30",
+      "nace_rev2_codes": [
+        "I55.30"
+      ],
+      "basis": "INE CNAE25→CNAE09 and CNAE25→NACE Rev.2.1; reviewed unchanged classes only",
+      "nace_rev2_structure_evidence": "55.30 Camping grounds, recreational vehicle parks and trailer parks 5520"
+    }
+  ],
+  "activities": [
+    {
+      "id": "32021R2139-I-5.1",
+      "activity_number": "5.1",
+      "name": {
+        "en": "Construction, extension and operation of water collection, treatment and supply systems",
+        "es": "Construcción, ampliación y explotación de sistemas de captación, depuración y distribución de agua"
+      },
+      "environmental_objectives": [
+        "climate_change_mitigation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E36.00",
+        "F42.99"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "I",
+        "activity_number": "5.1",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-af805eea-4bd8-4d39-aeaf-4aa3e703f5f6"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E36.00 and F42.99 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E36.00 y F42.99, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32021R2139-I-5.3",
+      "activity_number": "5.3",
+      "name": {
+        "en": "Construction, extension and operation of waste water collection and treatment",
+        "es": "Construcción, ampliación y explotación de sistemas de recogida y tratamiento de aguas residuales"
+      },
+      "environmental_objectives": [
+        "climate_change_mitigation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E37.00",
+        "F42.99"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "I",
+        "activity_number": "5.3",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-1e2e3756-858b-4eb9-bf2b-5a732b0c3584"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E37.00 and F42.99 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E37.00 y F42.99, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32021R2139-I-5.5",
+      "activity_number": "5.5",
+      "name": {
+        "en": "Collection and transport of non-hazardous waste in source segregated fractions",
+        "es": "Recogida y transporte de residuos no peligrosos en fracciones segregadas en origen"
+      },
+      "environmental_objectives": [
+        "climate_change_mitigation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E38.11"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "I",
+        "activity_number": "5.5",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-5d1b0803-3fa8-432b-ab52-6d1a8a560eb2"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with NACE code E38.11 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse al código NACE E38.11, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32021R2139-II-5.1",
+      "activity_number": "5.1",
+      "name": {
+        "en": "Construction, extension and operation of water collection, treatment and supply systems",
+        "es": "Construcción, ampliación y explotación de sistemas de captación, depuración y distribución de agua"
+      },
+      "environmental_objectives": [
+        "climate_change_adaptation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E36.00",
+        "F42.99"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "II",
+        "activity_number": "5.1",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-ea4443c4-3697-44a4-85e0-dc84663ca639"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E36.00 and F42.99 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E36.00 y F42.99, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32021R2139-II-5.3",
+      "activity_number": "5.3",
+      "name": {
+        "en": "Construction, extension and operation of waste water collection and treatment",
+        "es": "Construcción, ampliación y explotación de sistemas de recogida y tratamiento de aguas residuales"
+      },
+      "environmental_objectives": [
+        "climate_change_adaptation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E37.00",
+        "F42.99"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "II",
+        "activity_number": "5.3",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-2d09d56c-2371-426b-938d-87a8af3afc57"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E37.00 and F42.99 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E37.00 y F42.99, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32021R2139-II-5.5",
+      "activity_number": "5.5",
+      "name": {
+        "en": "Collection and transport of non-hazardous waste in source segregated fractions",
+        "es": "Recogida y transporte de residuos no peligrosos en fracciones segregadas en origen"
+      },
+      "environmental_objectives": [
+        "climate_change_adaptation"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E38.11"
+      ],
+      "source": {
+        "celex": "32021R2139",
+        "annex": "II",
+        "activity_number": "5.5",
+        "consolidated_celex": "02021R2139-20240101",
+        "amending_celex": [
+          "32023R2485"
+        ],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02021R2139-20240101#id-c652b84c-8093-4b3b-bcb7-9b18fb314392"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with NACE code E38.11 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse al código NACE E38.11, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32023R2486-I-2.1",
+      "activity_number": "2.1",
+      "name": {
+        "en": "Water supply",
+        "es": "Abastecimiento de agua"
+      },
+      "environmental_objectives": [
+        "water_and_marine_resources"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E36.00",
+        "F42.9"
+      ],
+      "source": {
+        "celex": "32023R2486",
+        "annex": "I",
+        "activity_number": "2.1",
+        "consolidated_celex": null,
+        "amending_celex": [],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486#d1e291-11-1"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E36.00 and F42.9, in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E36.00 y F42.9, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32023R2486-I-2.2",
+      "activity_number": "2.2",
+      "name": {
+        "en": "Urban waste water treatment",
+        "es": "Tratamiento de aguas residuales urbanas"
+      },
+      "environmental_objectives": [
+        "water_and_marine_resources"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E37.00",
+        "F42.9"
+      ],
+      "source": {
+        "celex": "32023R2486",
+        "annex": "I",
+        "activity_number": "2.2",
+        "consolidated_celex": null,
+        "amending_celex": [],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486#d1e481-11-1"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E37.00 and F42.9, in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E37.00 y F42.9, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32023R2486-II-2.3",
+      "activity_number": "2.3",
+      "name": {
+        "en": "Collection and transport of non-hazardous and hazardous waste",
+        "es": "Recogida y transporte de residuos peligrosos y no peligrosos"
+      },
+      "environmental_objectives": [
+        "circular_economy"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E38.11",
+        "E38.12",
+        "F42.9"
+      ],
+      "source": {
+        "celex": "32023R2486",
+        "annex": "II",
+        "activity_number": "2.3",
+        "consolidated_celex": null,
+        "amending_celex": [],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486#d1e1916-27-1"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E38.11, E38.12 and F42.9 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular E38.11, E38.12 y F42.9, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32023R2486-III-2.1",
+      "activity_number": "2.1",
+      "name": {
+        "en": "Collection and transport of hazardous waste",
+        "es": "Recogida y transporte de residuos peligrosos"
+      },
+      "environmental_objectives": [
+        "pollution_prevention_and_control"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "E38.12",
+        "F42.9"
+      ],
+      "source": {
+        "celex": "32023R2486",
+        "annex": "III",
+        "activity_number": "2.1",
+        "consolidated_celex": null,
+        "amending_celex": [],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486#d1e1134-89-1"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular E38.12 and F42.9 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular los códigos E38.12 y F42.9, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    },
+    {
+      "id": "32023R2486-IV-2.1",
+      "activity_number": "2.1",
+      "name": {
+        "en": "Hotels, holiday, camping grounds and similar accommodation",
+        "es": "Hoteles, complejos vacacionales, campings y alojamientos similares"
+      },
+      "environmental_objectives": [
+        "biodiversity_and_ecosystems"
+      ],
+      "contribution_type": "own_performance",
+      "contribution_type_basis": "No enabling or transitional designation in the activity description; this is a catalogue category, not an assessment of the undertaking.",
+      "nace_revision": "2",
+      "nace_codes": [
+        "I55.10",
+        "I55.20",
+        "I55.30"
+      ],
+      "source": {
+        "celex": "32023R2486",
+        "annex": "IV",
+        "activity_number": "2.1",
+        "consolidated_celex": null,
+        "amending_celex": [],
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2486#d1e621-116-1"
+      },
+      "nace_source_text": {
+        "en": "The economic activities in this category could be associated with several NACE codes, in particular I55.10, I55.20 and I55.30 in accordance with the statistical classification of economic activities established by Regulation (EC) No 1893/2006.",
+        "es": "Las actividades económicas de esta categoría podrían asociarse a varios códigos NACE, en particular I55.10, I55.20 y I55.30, de conformidad con la nomenclatura estadística de actividades económicas establecida por el Reglamento (CE) n. o 1893/2006."
+      }
+    }
+  ]
+}

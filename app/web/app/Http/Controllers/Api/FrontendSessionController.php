@@ -15,6 +15,13 @@ class FrontendSessionController extends Controller
         return response()->json([
             'data' => [
                 'authenticated' => true,
+                'learning_admin' => \App\Services\LearningActivationStatus::isAdmin($user),
+                'learning_consent_invitation' => \App\Services\ConsentLearningAuthorizationAuthority::enabled()
+                    && ! app(\App\Services\ConsentLearningAuthorizationAuthority::class)->permits($user),
+                'xbrl_runtime_identification_enabled' => (bool) config('xbrl_suggestions.runtime_enabled', false),
+                'ixbrl_package_enabled' => (bool) config('ixbrl.package_ui_enabled', false),
+                ...(config('usability.enabled') ? ['usability_study_enabled' => true] : []),
+                'eu_taxonomy_eligibility_enabled' => (bool) config('eu_taxonomy.enabled'),
                 'locale' => app()->getLocale(),
                 'csrf_header' => 'X-XSRF-TOKEN',
                 'csrf_token' => csrf_token(),

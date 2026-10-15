@@ -33,4 +33,17 @@ The installation guide is in [app/docs/en-GB/technical/installation-local.md](ap
 - [Technical manual](app/docs/en-GB/technical/index.md)
 - [Integrations](app/docs/en-GB/integrations/authentication.md)
 
-- [Optional learning engine](app/docs/en-GB/learning-engine.md): default disabled; local synthetic technical checks documented, without activation, quality or deployment proof.
+- [Optional learning engine](app/docs/en-GB/learning-engine.md): off locally and in the included composition; on by configuration in deployed environments (`APP_ENV=production|staging` or `LEARNING_DEPLOYED=true`); consent only; manual promotion and rollback in `/admin/learning`; missing prerequisites block it visibly.
+- [Learning gate metrics](app/docs/learning-engine-production.md#métricas-del-control-de-promocion): precision, recall, F1 and company-level intervals in the panel; predeclared improvement and positive preservation; `LEARNING_GATE_METRICS_ENABLED=false` by default (Spanish guide).
+- [DMA import](app/docs/dma-import.md) (Spanish): `DMA_IMPORT_ENABLED`, off by default.
+- [Local IRO text analysis](app/docs/dma-import.md#análisis-local-de-textos-iro) (Spanish): reviewed topic and indicator suggestions; `DMA_NLP_ENABLED=false` in Laravel and `I4S_DMA_NLP_ENABLED=false` in Python; requires reviewed IRO traceability.
+- [IRO context in reports](app/docs/dma-import.md#contexto-iro-en-la-presentación-del-informe) (Spanish): HTML, DOCX and XHTML presentation when included in the approved snapshot; requires an integration that supplies the context.
+- [Concept relations](app/ai-service/docs/concept-relations.md) (Spanish): `CONCEPT_RELATIONS_ENABLED`, off by default.
+- [Informational sector comparison](app/docs/sector-comparison.md) (Spanish): sector support and a low-confidence global fallback during topic review; `SECTOR_COMPARISON_ENABLED=false` in Laravel and `ESRS_SECTOR_COMPARISON_ENABLED=false` in Python.
+- [XBRL concept suggestions](app/ai-service/docs/xbrl-concept-mapping.md) (Spanish): `XBRL_SUGGESTION_OVERLAY_ENABLED`, off by default.
+- [Runtime XBRL identification](app/ai-service/docs/xbrl-concept-mapping.md#identificación-en-ejecución): reviewed candidates and frozen evidence, without automatic tagging; `XBRL_RUNTIME_IDENTIFICATION_ENABLED=false` by default.
+- [iXBRL candidate package](app/docs/ixbrl-candidate-package.md) (Spanish): `IXBRL_PACKAGE_UI_ENABLED`, off by default.
+- [Report scope integrity and presentation](app/docs/report-scope-integrity.md) (Spanish): approvals bound to scope assets and XHTML presentation download; `REPORT_SCOPE_INTEGRITY_ENABLED`, off by default.
+- [EU Taxonomy eligibility](app/docs/eu-taxonomy-eligibility.md) (Spanish): `EU_TAXONOMY_ELIGIBILITY_ENABLED`, off by default.
+- [Usability study](app/docs/usability-study-protocol.md) (Spanish): `USABILITY_STUDY_ENABLED`, off by default.
+- [Local Green Tech measurement](app/ai-service/docs/green-tech-measurement.md) (Spanish): command-line tool; `GREENTECH_MEASUREMENT_ENABLED`, off by default.

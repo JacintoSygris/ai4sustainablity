@@ -1,0 +1,651 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sector-comparison-v1.schema.json",
+  "title": "Sector comparison v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Artifact"
+    },
+    {
+      "$ref": "#/$defs/Request"
+    },
+    {
+      "$ref": "#/$defs/Response"
+    }
+  ],
+  "$defs": {
+    "SectorCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "n_scored": {
+          "maximum": 1000000000,
+          "minimum": 0,
+          "title": "N Scored",
+          "type": "integer"
+        },
+        "n_material": {
+          "maximum": 1000000000,
+          "minimum": 0,
+          "title": "N Material",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "n_scored",
+        "n_material"
+      ],
+      "title": "SectorCounts",
+      "type": "object"
+    },
+    "SectorHashes": {
+      "additionalProperties": false,
+      "properties": {
+        "labels": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Labels",
+          "type": "string"
+        },
+        "masks": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Masks",
+          "type": "string"
+        },
+        "companies": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Companies",
+          "type": "string"
+        },
+        "encoding": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "topic_mapping": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Topic Mapping",
+          "type": "string"
+        }
+      },
+      "required": [
+        "labels",
+        "masks",
+        "companies",
+        "encoding",
+        "topic_mapping"
+      ],
+      "title": "SectorHashes",
+      "type": "object"
+    },
+    "SectorPeriod": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SectorPeriod",
+      "type": "object"
+    },
+    "SectorPopulation": {
+      "additionalProperties": false,
+      "properties": {
+        "population_companies": {
+          "maximum": 1000000000,
+          "minimum": 0,
+          "title": "Population Companies",
+          "type": "integer"
+        },
+        "topics": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SectorCounts"
+          },
+          "title": "Topics",
+          "type": "object",
+          "minProperties": 89,
+          "maxProperties": 89,
+          "propertyNames": {
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "34",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "40",
+              "41",
+              "42",
+              "43",
+              "44",
+              "45",
+              "46",
+              "47",
+              "48",
+              "49",
+              "50",
+              "51",
+              "52",
+              "53",
+              "54",
+              "55",
+              "56",
+              "57",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "67",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "76",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "83",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "89"
+            ]
+          }
+        }
+      },
+      "required": [
+        "population_companies",
+        "topics"
+      ],
+      "title": "SectorPopulation",
+      "type": "object"
+    },
+    "SectorProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "label_kind": {
+          "enum": [
+            "automatic",
+            "human",
+            "mixed",
+            "synthetic"
+          ],
+          "title": "Label Kind",
+          "type": "string"
+        },
+        "source_reference": {
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "title": "Source Reference",
+          "type": "string"
+        },
+        "authorization_reference": {
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "title": "Authorization Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label_kind",
+        "source_reference",
+        "authorization_reference"
+      ],
+      "title": "SectorProvenance",
+      "type": "object"
+    },
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "sector-comparison-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "built_at": {
+          "title": "Built At",
+          "type": "string"
+        },
+        "selection_policy": {
+          "const": "operator-selected-report-per-verified-company",
+          "title": "Selection Policy",
+          "type": "string"
+        },
+        "aggregation_policy": {
+          "const": "known-positive-any-known-negative-all-approved-keys",
+          "title": "Aggregation Policy",
+          "type": "string"
+        },
+        "sector_taxonomy": {
+          "const": "NACE Rev.2.1 / CNAE-2025",
+          "title": "Sector Taxonomy",
+          "type": "string"
+        },
+        "min_support": {
+          "const": 5,
+          "title": "Min Support",
+          "type": "integer"
+        },
+        "hashes": {
+          "$ref": "#/$defs/SectorHashes"
+        },
+        "provenance": {
+          "$ref": "#/$defs/SectorProvenance"
+        },
+        "coverage_period": {
+          "$ref": "#/$defs/SectorPeriod"
+        },
+        "vocabulary": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "28",
+              "29",
+              "30",
+              "31",
+              "32",
+              "33",
+              "34",
+              "35",
+              "36",
+              "37",
+              "38",
+              "39",
+              "40",
+              "41",
+              "42",
+              "43",
+              "44",
+              "45",
+              "46",
+              "47",
+              "48",
+              "49",
+              "50",
+              "51",
+              "52",
+              "53",
+              "54",
+              "55",
+              "56",
+              "57",
+              "58",
+              "59",
+              "60",
+              "61",
+              "62",
+              "63",
+              "64",
+              "65",
+              "66",
+              "67",
+              "68",
+              "69",
+              "70",
+              "71",
+              "72",
+              "73",
+              "74",
+              "75",
+              "76",
+              "77",
+              "78",
+              "79",
+              "80",
+              "81",
+              "82",
+              "83",
+              "84",
+              "85",
+              "86",
+              "87",
+              "88",
+              "89"
+            ]
+          },
+          "title": "Vocabulary",
+          "type": "array",
+          "minItems": 89,
+          "maxItems": 89,
+          "uniqueItems": true
+        },
+        "excluded_additional_reports": {
+          "minimum": 0,
+          "title": "Excluded Additional Reports",
+          "type": "integer"
+        },
+        "global_population": {
+          "$ref": "#/$defs/SectorPopulation"
+        },
+        "sections": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SectorPopulation"
+          },
+          "title": "Sections",
+          "type": "object",
+          "minProperties": 22,
+          "maxProperties": 22,
+          "propertyNames": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "T",
+              "U",
+              "V"
+            ]
+          }
+        }
+      },
+      "required": [
+        "version",
+        "built_at",
+        "selection_policy",
+        "aggregation_policy",
+        "sector_taxonomy",
+        "min_support",
+        "hashes",
+        "provenance",
+        "coverage_period",
+        "vocabulary",
+        "excluded_additional_reports",
+        "global_population",
+        "sections"
+      ],
+      "title": "SectorArtifact",
+      "type": "object"
+    },
+    "Request": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "sector-comparison-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "type": "string",
+            "pattern": "^[A-V]$"
+          },
+          "maxItems": 22,
+          "title": "Sections",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "topics": {
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[1-9]|[1-8][0-9])$"
+          },
+          "maxItems": 89,
+          "minItems": 1,
+          "title": "Topics",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "version",
+        "sections",
+        "topics"
+      ],
+      "title": "SectorComparisonRequest",
+      "type": "object"
+    },
+    "SectorSectionComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "section": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-V]$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Section"
+        },
+        "population_companies": {
+          "title": "Population Companies",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "topics": {
+          "items": {
+            "$ref": "#/$defs/SectorTopicComparison"
+          },
+          "title": "Topics",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 89
+        }
+      },
+      "required": [
+        "section",
+        "population_companies",
+        "topics"
+      ],
+      "title": "SectorSectionComparison",
+      "type": "object"
+    },
+    "SectorTopicComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "topic_id": {
+          "title": "Topic Id",
+          "type": "string",
+          "pattern": "^(?:[1-9]|[1-8][0-9])$"
+        },
+        "source": {
+          "enum": [
+            "sector",
+            "global_fallback",
+            "insufficient_data"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "low_confidence": {
+          "title": "Low Confidence",
+          "type": "boolean"
+        },
+        "proportion": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Proportion"
+        },
+        "sector": {
+          "$ref": "#/$defs/SectorCounts"
+        },
+        "global_counts": {
+          "$ref": "#/$defs/SectorCounts"
+        }
+      },
+      "required": [
+        "topic_id",
+        "source",
+        "low_confidence",
+        "proportion",
+        "sector",
+        "global_counts"
+      ],
+      "title": "SectorTopicComparison",
+      "type": "object"
+    },
+    "Response": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "sector-comparison-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "built_at": {
+          "title": "Built At",
+          "type": "string"
+        },
+        "hashes": {
+          "$ref": "#/$defs/SectorHashes"
+        },
+        "provenance": {
+          "$ref": "#/$defs/SectorProvenance"
+        },
+        "coverage_period": {
+          "$ref": "#/$defs/SectorPeriod"
+        },
+        "sector_taxonomy": {
+          "const": "NACE Rev.2.1 / CNAE-2025",
+          "title": "Sector Taxonomy",
+          "type": "string"
+        },
+        "min_support": {
+          "const": 5,
+          "title": "Min Support",
+          "type": "integer"
+        },
+        "global_population_companies": {
+          "title": "Global Population Companies",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "comparisons": {
+          "items": {
+            "$ref": "#/$defs/SectorSectionComparison"
+          },
+          "title": "Comparisons",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 22
+        }
+      },
+      "required": [
+        "version",
+        "artifact_sha256",
+        "built_at",
+        "hashes",
+        "provenance",
+        "coverage_period",
+        "sector_taxonomy",
+        "min_support",
+        "global_population_companies",
+        "comparisons"
+      ],
+      "title": "SectorComparisonResponse",
+      "type": "object"
+    }
+  },
+  "description": "Strict structural schema. Implementations additionally validate subset counts, complete vocabulary, date order, approved-map hashes, unique response topics/sections and exact source/proportion semantics."
+}

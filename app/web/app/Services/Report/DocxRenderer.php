@@ -4,6 +4,7 @@ namespace App\Services\Report;
 
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use RuntimeException;
 use ZipArchive;
 
@@ -27,8 +28,23 @@ class DocxRenderer
 
     public function render(array $ir, string $locale = 'es'): string
     {
+        // PhpWord escapes titles and all text runs. Our injected SDT/custom XML
+        // has its own XML escaping and receives raw values, so it escapes once.
+        $previousEscaping = Settings::isOutputEscapingEnabled();
+        Settings::setOutputEscapingEnabled(true);
+        try {
+            return $this->renderEscaped($ir, $locale);
+        } finally {
+            Settings::setOutputEscapingEnabled($previousEscaping);
+        }
+    }
+
+    private function renderEscaped(array $ir, string $locale): string
+    {
+        if (ReportDisplayProjection::coherent($ir)) return $this->renderCoherent($ir, $locale);
         $display = new ReportDisplayProjection($locale);
         $narrative = $display->narrative($ir);
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
         $doc = new PhpWord();
         $this->configureStyles($doc);
         $doc->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language($display->locale === 'en' ? 'en-GB' : 'es-ES'));
@@ -68,6 +84,14 @@ class DocxRenderer
             $this->renderOmissionSection($section, $narrative['omission_section'] ?? null, false, $display);
         }
 
+        $iroLines = IroContextPresentation::lines($ir['iro_context_v1'] ?? [], $display->locale);
+        if ($iroLines !== []) {
+            $section->addTitle(array_shift($iroLines), 2);
+            foreach ($iroLines as $line) {
+                $section->addText($line);
+            }
+        }
+
         $slotMap = [];
         foreach (array_values($ir['chapters'] ?? []) as $chapter) {
             $chapterTitle = $isFactual
@@ -83,7 +107,9 @@ class DocxRenderer
                 $sectionTitle = $isFactual
                     ? $display->sectionTitle($sec['dr_key'] ?? null)
                     : $sec['dr_key'];
-                $section->addTitle($sectionTitle, 3);
+                if (! $isFactual || ($chapter['block_key'] ?? null) !== 'e1_not_material_explanation') {
+                    $section->addTitle($sectionTitle, 3);
+                }
 
                 if (! $isFactual) {
                     foreach ($sec['cross_ref_sentences'] ?? [] as $sentence) {
@@ -92,7 +118,11 @@ class DocxRenderer
                 }
 
                 foreach ($sec['blocks'] ?? [] as $block) {
-                    if ($isFactual) {
+                    if ($isFactual && ($block['datapoint_id'] ?? null) === 'e1_not_material_explanation') {
+                        foreach ($block['assertions'] ?? [] as $explanation) {
+                            $section->addText($explanation);
+                        }
+                    } elseif ($isFactual) {
                         $section->addText(
                             $display->claimLabel(
                             $block['datapoint_id'] ?? null,
@@ -150,6 +180,11 @@ class DocxRenderer
             $this->renderOmissionSection($section, $narrative['omission_section'], true, $display);
         }
 
+        return $this->serializeDocument($doc, $slotMap);
+    }
+
+    private function serializeDocument(PhpWord $doc, array $slotMap): string
+    {
         $tmp = tempnam(sys_get_temp_dir(), 'p10docx');
         if ($tmp === false) {
             throw new RuntimeException('Unable to allocate a temporary file for DOCX rendering.');
@@ -168,6 +203,37 @@ class DocxRenderer
         } finally {
             @unlink($tmp);
         }
+    }
+
+    private function renderCoherent(array $ir, string $locale): string
+    {
+        $display = new ReportDisplayProjection($locale);
+        $events = $display->ordered($ir);
+        $doc = new PhpWord;
+        $this->configureStyles($doc);
+        $doc->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language($display->locale === 'en' ? 'en-GB' : 'es-ES'));
+        $section = $doc->addSection();
+        $slotMap = [];
+        foreach ($events as $index => $event) {
+            if ($event['kind'] === 'close' || ($event['text'] ?? null) === null) continue;
+            if ($event['kind'] === 'title' || $event['kind'] === 'open') {
+                $level = $event['kind'] === 'title' ? 1 : $event['level'];
+                if ($level <= 3) $section->addTitle($event['text'], $level);
+                else $section->addText($event['text'], ['bold' => true], ['keepNext' => true]);
+            } elseif ($event['kind'] === 'value') {
+                $claim = $event['claim'];
+                $nodeId = $event['slot']['node_id'] ?? 'approved_value_'.$index;
+                if (isset($slotMap[$nodeId])) $nodeId .= '__occurrence_'.$index;
+                $section->addTextRun()->addText($this->slotToken($nodeId));
+                $slotMap[$nodeId] = [
+                    'datapoint_id' => $claim['datapoint_id'], 'xbrl_concept' => $event['slot']['xbrl_concept'] ?? '',
+                    'claim_id' => $claim['claim_id'], 'fact_id' => $claim['fact_id'], 'display_value' => $event['text'],
+                ];
+            } else {
+                $section->addText($event['text']);
+            }
+        }
+        return $this->serializeDocument($doc, $slotMap);
     }
 
     private function configureStyles(PhpWord $doc): void

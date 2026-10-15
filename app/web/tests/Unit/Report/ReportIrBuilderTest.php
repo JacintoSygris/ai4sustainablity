@@ -537,3 +537,153 @@ function reportIrBuilderFrozenFact(Characterization $characterization, array $ov
         'blocking_reasons' => [],
     ], $overrides));
 }
+
+it('does not infer E1 exclusion from drifting live P6 ids without frozen evidence', function () {
+    $e1 = EsrsTopic::where('esrs_code', 'E1')->firstOrFail();
+    $characterization = reportReadyCharacterization($this->user, $this->e2);
+    $formData = $characterization->form_data;
+    unset($formData['materiality_confirmation']['p6_snapshot']);
+    unset($formData['materiality_confirmation']['e1_not_material_explanation']);
+    $characterization->update(['form_data' => $formData, 'esrs_topic_ids' => [$e1->id, $this->e2->id]]);
+
+    $ir = app(ReportIrBuilder::class)->build($characterization->fresh());
+    expect(collect($ir['chapters'])->pluck('block_key'))->not->toContain('e1_not_material_explanation');
+});
+
+it('does not render a stale E1 exclusion explanation when E1 is material', function () {
+    $e1 = EsrsTopic::where('esrs_code', 'E1')->firstOrFail();
+    $characterization = reportReadyCharacterization($this->user, $this->e2);
+    $formData = $characterization->form_data;
+    $formData['materiality_confirmation']['confirmed_topic_ids'][] = $e1->id;
+    $formData['materiality_confirmation']['e1_not_material_explanation'] = 'Synthetic old explanation';
+    $characterization->update(['form_data' => $formData]);
+
+    $ir = app(ReportIrBuilder::class)->build($characterization->fresh());
+    expect(collect($ir['chapters'])->pluck('block_key'))->not->toContain('e1_not_material_explanation');
+});
+
+it('freezes reviewed concepts through approval decision changes and report exports', function (bool $acceptBeforeApproval) {
+    $directory = sys_get_temp_dir().'/xbrl-snapshot-'.bin2hex(random_bytes(8));
+    mkdir($directory, 0700);
+    config([
+        'xbrl_suggestions.overlay_enabled' => true,
+        'xbrl_suggestions.overlay_path' => $directory.'/decisions.json',
+    ]);
+    try {
+        // Synthetic review fixture bound to the integrated map, including context metadata.
+        $suggestions = json_decode(file_get_contents(config('xbrl_suggestions.suggestions_path')), true, flags: JSON_THROW_ON_ERROR);
+        $suggestions['source']['concept_map_sha256'] = hash_file('sha256', base_path('data/atomizer_xbrl_concepts_v1.json'));
+        file_put_contents($directory.'/suggestions.json', json_encode($suggestions, JSON_THROW_ON_ERROR));
+        config(['xbrl_suggestions.suggestions_path' => $directory.'/suggestions.json']);
+        $characterization = reportReadyCharacterization($this->user, $this->e2);
+        $corpus = app(\App\Services\EsrsDatapointCorpusBuilder::class)->build($characterization);
+        $inScope = app(\App\Services\Report\ReportContentScope::class)->datapointIds($corpus);
+        $repository = new \App\Services\Report\XbrlConceptSuggestionRepository();
+        $candidate = collect($repository->suggestions())->first(fn ($row) => in_array($row['datapoint_id'], $inScope, true));
+        expect($candidate)->not->toBeNull();
+        $form = $characterization->form_data;
+        $form['company_profile']['entity_identifier'] = 'TEST0000000000000075';
+        $form['company_profile']['entity_identifier_scheme'] = 'http://standards.iso.org/iso/17442';
+        $form['company_profile']['reporting_period_start'] = '2025-07-01';
+        $form['company_profile']['reporting_period_end'] = '2026-06-30';
+        $form['esrs_datapoint_responses']['responses'][$candidate['datapoint_id']] = ['status' => 'completed', 'value' => 'Synthetic fixture'];
+        $characterization->update(['form_data' => $form]);
+        reportIrBuilderFrozenFact($characterization, [
+            'datapoint_id' => $candidate['datapoint_id'], 'value_type' => 'number',
+            'value' => ['value' => '123'], 'unit' => 'pure', 'decimals' => 0, 'language' => null,
+        ]);
+        if ($acceptBeforeApproval) {
+            $repository->record($candidate['id'], 'accepted', 'reviewer');
+        }
+        $snapshot = app(ReportSnapshotBuilder::class)->create($characterization->fresh());
+        ReportApproval::create([
+            'report_snapshot_id' => $snapshot->id, 'user_id' => $this->user->id,
+            'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
+            'preparer_user_id' => $this->user->id, 'reviewer_user_id' => $this->user->id,
+            'approver_user_id' => $this->user->id, 'single_person_declaration' => true,
+            'snapshot_hash' => $snapshot->snapshot_hash, 'approved_at' => now(),
+        ]);
+        $builder = app(ReportIrBuilder::class);
+        $before = $builder->buildFromApprovedSnapshot($snapshot->fresh());
+        $html = app(HtmlReportRenderer::class)->render($before);
+        $repository->record($candidate['id'], $acceptBeforeApproval ? 'rejected' : 'accepted', 'reviewer');
+        $after = $builder->buildFromApprovedSnapshot($snapshot->fresh());
+        expect($after)->toBe($before);
+        expect(app(HtmlReportRenderer::class)->render($after))->toBe($html);
+        expect(app(\App\Services\Report\ReportStalenessDetector::class)->detect($snapshot)['is_stale'])->toBeFalse();
+        $slot = collect($after['chapters'])->flatMap(fn ($c) => $c['sections'])
+            ->flatMap(fn ($s) => $s['blocks'])->firstWhere('datapoint_id', $candidate['datapoint_id'])['slots'][0];
+        expect($slot['xbrl_concept'])->toBe($acceptBeforeApproval ? $candidate['concept_id'] : null);
+        // Synthetic numeric metadata; external taxonomy qualification is a separate check.
+        $this->mock(\App\Services\Report\TaxonomyConceptMetadata::class)
+            ->shouldReceive('load')->andReturn([
+                $candidate['concept_id'] => [
+                    'type' => '{http://www.xbrl.org/2003/instance}integerItemType',
+                    'period_type' => 'duration', 'abstract' => false,
+                ],
+            ]);
+        $renderer = app(\App\Services\Report\XhtmlIxbrlCandidateRenderer::class);
+        $profile = app(\App\Services\Report\ReportingProfileRepository::class)->load($snapshot->profile_id);
+        $manifest = ['taxonomy_entrypoint' => $profile->taxonomy()['entrypoint']];
+        if ($acceptBeforeApproval) {
+            $xhtml = $renderer->render($before, $profile, $manifest);
+            expect($renderer->render($after, $profile, $manifest))->toBe($xhtml);
+            expect($xhtml)->toContain('name="'.$candidate['concept_id'].'"');
+        } else {
+            expect(fn () => $renderer->render($after, $profile, $manifest))
+                ->toThrow(\App\Services\Report\XhtmlIxbrlCandidateException::class, 'xhtml_ixbrl_concept_unavailable');
+        }
+        // Flag rollback or damaged live decisions cannot rewrite an approval.
+        config(['xbrl_suggestions.overlay_enabled' => false]);
+        expect($builder->buildFromApprovedSnapshot($snapshot->fresh()))->toBe($before);
+        config(['xbrl_suggestions.overlay_enabled' => true]);
+        file_put_contents($directory.'/decisions.json', 'invalid');
+        expect(app(\App\Services\Report\ReportStalenessDetector::class)->detect($snapshot)['is_stale'])->toBeFalse();
+        expect($builder->buildFromApprovedSnapshot($snapshot->fresh()))->toBe($before);
+        $payload = $snapshot->snapshot_json;
+        $payload['source_manifest']['xbrl_mapping']['concepts'][$candidate['datapoint_id']]['concept_id'] = 'esrs:TamperedConcept';
+        $snapshot->update(['snapshot_json' => $payload]);
+        expect(fn () => $builder->buildFromApprovedSnapshot($snapshot->fresh()))->toThrow(DomainException::class);
+    } finally {
+        foreach (glob($directory.'/*') as $file) { unlink($file); }
+        rmdir($directory);
+    }
+})->with(['approve then accept' => [false], 'approve then reject' => [true]]);
+
+it('keeps legacy approvals on the static map when the overlay is later enabled', function () {
+    config(['xbrl_suggestions.overlay_enabled' => false]);
+    $characterization = reportReadyCharacterization($this->user, $this->e2);
+    reportIrBuilderFrozenFact($characterization);
+    $snapshot = app(ReportSnapshotBuilder::class)->create($characterization);
+    ReportApproval::create([
+        'report_snapshot_id' => $snapshot->id, 'user_id' => $this->user->id,
+        'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED,
+        'preparer_user_id' => $this->user->id, 'reviewer_user_id' => $this->user->id,
+        'approver_user_id' => $this->user->id, 'single_person_declaration' => true,
+        'snapshot_hash' => $snapshot->snapshot_hash, 'approved_at' => now(),
+    ]);
+    $before = app(ReportIrBuilder::class)->buildFromApprovedSnapshot($snapshot);
+    config(['xbrl_suggestions.overlay_enabled' => true, 'xbrl_suggestions.overlay_path' => '/missing/ignored-decisions.json']);
+    expect(app(ReportIrBuilder::class)->buildFromApprovedSnapshot($snapshot))->toBe($before);
+    expect($before)->not->toHaveKey('xbrl_mapping');
+});
+
+require_once __DIR__.'/../../Support/xbrl-runtime-fixture.php';
+
+it('exports frozen runtime identification evidence without changing fact claims or mappings', function () {
+    $company = reportReadyCharacterization($this->user, $this->e2);
+    $builder = app(ReportIrBuilder::class);
+    $before = $builder->build($company);
+    xbrlRuntimeReviewedFixture($company);
+    config(['xbrl_suggestions.runtime_enabled' => true]);
+    $snapshot = app(ReportSnapshotBuilder::class)->create($company);
+    ReportApproval::create(['report_snapshot_id' => $snapshot->id, 'user_id' => $this->user->id,
+        'role_mode' => ReportApproval::ROLE_MODE_SINGLE_PERSON_DECLARED, 'preparer_user_id' => $this->user->id,
+        'reviewer_user_id' => $this->user->id, 'approver_user_id' => $this->user->id,
+        'single_person_declaration' => true, 'snapshot_hash' => $snapshot->snapshot_hash, 'approved_at' => now()]);
+    config(['xbrl_suggestions.runtime_enabled' => false, 'xbrl_suggestions.runtime_manifest_path' => '/invalid']);
+    $ir = $builder->buildFromApprovedSnapshot($snapshot->fresh());
+    $bundle = app(\App\Services\Report\EvidenceBundleBuilder::class)->build($ir);
+    expect($bundle['xbrl_identifications'])->toBe($snapshot->source_manifest['xbrl_identifications'])
+        ->and($ir['claims'])->toBe([])->and($builder->build($company))->toBe($before);
+});

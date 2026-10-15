@@ -33,7 +33,7 @@ beforeEach(function () {
     foreach (['learning_source_clock', 'learning_p6_base_source_clock', 'learning_p8_source_clock', 'learning_p9_source_clock'] as $flag) {
         config(['services.'.$flag.'.enabled' => true]);
     }
-    Schema::create('learning_p9_source_revisions', function (Blueprint $table) {
+    if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions', function (Blueprint $table) {
         $table->foreignId('characterization_id')->primary()->constrained('characterizations')->cascadeOnDelete();
         $table->unsignedBigInteger('generation'); $table->unsignedBigInteger('revision');
         $table->string('epoch', 64); $table->string('digest', 64);

@@ -1594,6 +1594,224 @@
           }
         }
       }
+    },
+    "/api/report/ixbrl-package": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Download a provisional iXBRL Report Package",
+        "description": "Default-off IXBRL_PACKAGE_UI_ENABLED. Laravel session ownership, complete workflow, fresh approved snapshot, explicit fiscal dates, LEI, external taxonomy and successful full offline Arelle validation are required. Rate limited to 2 requests per minute, shared with the XHTML candidate. Never an official ESEF/ESAP filing. The operator selects IXBRL_TAXONOMY_PROFILE; no user-provided snapshot or profile id is accepted. With scope integrity enabled or a v2 snapshot, partial tagging retains the complete visible presentation; evidence lists tagged/untagged claim IDs and reasons. Zero taggable claims returns 409 xhtml_ixbrl_no_taggable_claims and next_step /api/report/xhtml. Scope reason codes: scope_identity_missing, ig3_corpus_changed, ar16_dr_mapping_changed, report_scope_changed, scope_assets_unavailable.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ZIP Report Package 1.0, one XHTML candidate and evidence; no taxonomy bytes.",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "X-Report-Publication-State": {
+                "schema": {
+                  "type": "string",
+                  "const": "validated_candidate"
+                }
+              },
+              "X-Taxonomy-Profile": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Feature disabled."
+          },
+          "409": {
+            "$ref": "#/components/responses/IxbrlCandidateBlockedOrEmailUnverified"
+          },
+          "429": {
+            "description": "Shared candidate validation rate limit exceeded."
+          }
+        }
+      }
+    },
+    "/api/report/xhtml": {
+      "get": {
+        "operationId": "downloadReportXhtmlPresentation",
+        "summary": "Download the current approved complete ESRS presentation as XHTML",
+        "description": "Requires REPORT_SCOPE_INTEGRITY_ENABLED (default false). Laravel owns session, verified-user access and snapshot ownership. No client owner, path or scope input. Fresh v2 approval, workflow/content readiness and final scope check required. Does not require taxonomy or Arelle and never claims validation. Limited to 10 requests/minute.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Presentation-only XHTML attachment",
+            "headers": {
+              "X-Report-Publication-State": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "presentation_only"
+                  ]
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/xhtml+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Verification required"
+          },
+          "404": {
+            "description": "Feature disabled"
+          },
+          "409": {
+            "$ref": "#/components/responses/ReportScopeBlockedOrEmailUnverified"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/report/xhtml-ixbrl-candidate": {
+      "get": {
+        "operationId": "downloadReportXhtmlIxbrlCandidate",
+        "summary": "Download a validated candidate with selective numeric tagging",
+        "description": "Existing taxonomy and Arelle gates remain mandatory. Limited to 2 requests/minute in report-xhtml-ixbrl. Coherent v2 candidates include tagged/untagged claim IDs and stable exclusion reasons in metadata. Zero taggable claims returns 409 xhtml_ixbrl_no_taggable_claims with next_step /api/report/xhtml.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arelle-validated candidate attachment, never filing-ready",
+            "headers": {
+              "X-Report-Publication-State": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "validated_candidate"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/xhtml+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Verification required"
+          },
+          "409": {
+            "$ref": "#/components/responses/IxbrlCandidateBlockedOrEmailUnverified"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/characterizations/{characterization}/sector-comparison": {
+      "get": {
+        "tags": [
+          "Characterization"
+        ],
+        "summary": "Read informational sector comparison for an owned characterization",
+        "description": "Disabled by default (404). No query parameters or body accepted. Laravel derives NACE Rev.2.1 section from stored nace_code and queries all served AR16 topics; sends only codes and topics to private Python. Does not persist or select topics. 30 requests/minute per user; stale sector inputs return 409. Response is private, no-store.",
+        "security": [
+          {
+            "laravelSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "characterization",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999999999999
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated statistics with separate sector/global denominators",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorComparisonEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Laravel session required"
+          },
+          "404": {
+            "description": "Disabled, invalid ID or not owned"
+          },
+          "409": {
+            "$ref": "#/components/responses/SectorComparisonConflictOrEmailUnverified"
+          },
+          "422": {
+            "description": "Browser parameters rejected"
+          },
+          "429": {
+            "description": "Read rate exceeded"
+          },
+          "503": {
+            "description": "Comparison unavailable; upstream details withheld"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1664,6 +1882,57 @@
               "oneOf": [
                 {
                   "$ref": "#/components/schemas/LearningCaseConflictBody"
+                },
+                {
+                  "$ref": "#/components/schemas/EmailUnverifiedBody"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "IxbrlCandidateBlockedOrEmailUnverified": {
+        "description": "Candidate readiness/approval/taxonomy/validation blocked, or verified-email middleware rejection.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/IxbrlCandidateBlockedBody"
+                },
+                {
+                  "$ref": "#/components/schemas/EmailUnverifiedBody"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ReportScopeBlockedOrEmailUnverified": {
+        "description": "Scope/readiness/approval conflict, or email verification required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ReportScopeBlocked"
+                },
+                {
+                  "$ref": "#/components/schemas/EmailUnverifiedBody"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "SectorComparisonConflictOrEmailUnverified": {
+        "description": "Sector inputs changed during the read, or email verification is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SectorComparisonInputsChangedBody"
                 },
                 {
                   "$ref": "#/components/schemas/EmailUnverifiedBody"
@@ -2332,6 +2601,14 @@
           },
           "status_label": {
             "type": "string"
+          },
+          "ixbrl_package_enabled": {
+            "type": "boolean",
+            "description": "Default false. Server-owned opt-in availability; does not bypass snapshot or validation gates."
+          },
+          "report_scope_integrity_enabled": {
+            "type": "boolean",
+            "description": "Default false. Complete XHTML presentation and report snapshot v2 scope integrity capability."
           }
         },
         "additionalProperties": true
@@ -2785,6 +3062,14 @@
               "full",
               "scoping_only"
             ]
+          },
+          "ixbrl_package_enabled": {
+            "type": "boolean",
+            "description": "Default false. Server-owned opt-in availability; does not bypass snapshot or validation gates."
+          },
+          "report_scope_integrity_enabled": {
+            "type": "boolean",
+            "description": "Default false. Complete XHTML presentation and report snapshot v2 scope integrity capability."
           }
         },
         "additionalProperties": true
@@ -3811,6 +4096,22 @@
               "mixed",
               "not_sure"
             ]
+          },
+          "reporting_period_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Optional explicit fiscal date, accepted only with IXBRL_PACKAGE_UI_ENABLED. Both dates required together; end on or after start."
+          },
+          "reporting_period_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Optional explicit fiscal date, accepted only with IXBRL_PACKAGE_UI_ENABLED. Both dates required together; end on or after start."
           }
         },
         "additionalProperties": true
@@ -4073,6 +4374,16 @@
           },
           "document_evidence": {
             "$ref": "#/components/schemas/MaterialityDocumentEvidence"
+          },
+          "sector_comparison_enabled": {
+            "type": "boolean",
+            "const": true,
+            "description": "Present only when the disabled-by-default Laravel flag is enabled; never runs Python in this GET."
+          },
+          "sector_comparison_input_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Present only with capability; identifies the sector inputs for stale-response checks."
           }
         },
         "additionalProperties": false
@@ -4714,6 +5025,16 @@
                 "fuerte"
               ]
             }
+          },
+          "sector_comparison_enabled": {
+            "type": "boolean",
+            "const": true,
+            "description": "Present only when the disabled-by-default Laravel flag is enabled; never runs Python in this GET."
+          },
+          "sector_comparison_input_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Present only with capability; identifies the sector inputs for stale-response checks."
           }
         },
         "additionalProperties": false
@@ -4771,6 +5092,43 @@
           },
           "subtopic": {
             "$ref": "#/components/schemas/LocalizedText"
+          },
+          "often_reported_with": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Optional informational silver-label associations, present only with CONCEPT_RELATIONS_ENABLED. Does not determine materiality. Empty when unavailable. Label follows the Laravel session locale.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "esrs_code",
+                "label",
+                "lift",
+                "confidence"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "esrs_code": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "lift": {
+                  "type": "number",
+                  "exclusiveMinimum": 1
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
           }
         },
         "additionalProperties": false
@@ -6520,6 +6878,27 @@
           },
           "applicability": {
             "$ref": "#/components/schemas/EsrsDatapointApplicability"
+          },
+          "related_datapoints": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Optional informational cluster siblings in the current P9 scope, present only with CONCEPT_RELATIONS_ENABLED. Empty when unavailable; never affects applicability or authority digests. Label follows the Laravel session locale.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "label"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "additionalProperties": false
@@ -8272,6 +8651,410 @@
           }
         },
         "additionalProperties": false
+      },
+      "IxbrlCandidateBlockedBody": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "xhtml_ixbrl_candidate_blocked"
+                ]
+              },
+              "reason_code": {
+                "type": "string",
+                "maxLength": 128
+              },
+              "status": {
+                "type": "string"
+              },
+              "next_step": {
+                "type": "string",
+                "enum": [
+                  "/api/report/xhtml"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportScopeBlocked": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "reason_code": {
+                "type": "string",
+                "enum": [
+                  "scope_identity_missing",
+                  "ig3_corpus_changed",
+                  "ar16_dr_mapping_changed",
+                  "report_scope_changed",
+                  "scope_assets_unavailable",
+                  "approved_snapshot_invalid",
+                  "approved_snapshot_stale",
+                  "approved_snapshot_missing",
+                  "no_claimable_report_content",
+                  "completed_datapoint_facts_missing",
+                  "xhtml_ixbrl_no_taggable_claims"
+                ]
+              },
+              "status": {
+                "type": "string"
+              },
+              "next_step": {
+                "type": "string",
+                "enum": [
+                  "/api/report/xhtml"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "ReportScopeStaleReason": {
+        "type": "string",
+        "enum": [
+          "scope_identity_missing",
+          "ig3_corpus_changed",
+          "ar16_dr_mapping_changed",
+          "report_scope_changed",
+          "scope_assets_unavailable",
+          "approved_snapshot_invalid",
+          "characterization_changed",
+          "reporting_facts_changed",
+          "reporting_profile_changed"
+        ]
+      },
+      "SectorHashes": {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Labels",
+            "type": "string"
+          },
+          "masks": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Masks",
+            "type": "string"
+          },
+          "companies": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Companies",
+            "type": "string"
+          },
+          "encoding": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Encoding",
+            "type": "string"
+          },
+          "topic_mapping": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Topic Mapping",
+            "type": "string"
+          }
+        },
+        "required": [
+          "labels",
+          "masks",
+          "companies",
+          "encoding",
+          "topic_mapping"
+        ],
+        "title": "SectorHashes",
+        "type": "object"
+      },
+      "SectorProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "label_kind": {
+            "enum": [
+              "automatic",
+              "human",
+              "mixed",
+              "synthetic"
+            ],
+            "title": "Label Kind",
+            "type": "string"
+          },
+          "source_reference": {
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "authorization_reference": {
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Authorization Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label_kind",
+          "source_reference",
+          "authorization_reference"
+        ],
+        "title": "SectorProvenance",
+        "type": "object"
+      },
+      "SectorPeriod": {
+        "additionalProperties": false,
+        "properties": {
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "end": {
+            "title": "End",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "SectorPeriod",
+        "type": "object"
+      },
+      "SectorCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "n_scored": {
+            "maximum": 1000000000,
+            "minimum": 0,
+            "title": "N Scored",
+            "type": "integer"
+          },
+          "n_material": {
+            "maximum": 1000000000,
+            "minimum": 0,
+            "title": "N Material",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "n_scored",
+          "n_material"
+        ],
+        "title": "SectorCounts",
+        "type": "object"
+      },
+      "SectorTopicComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "topic_id": {
+            "title": "Topic Id",
+            "type": "string",
+            "pattern": "^(?:[1-9]|[1-8][0-9])$"
+          },
+          "source": {
+            "enum": [
+              "sector",
+              "global_fallback",
+              "insufficient_data"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "low_confidence": {
+            "title": "Low Confidence",
+            "type": "boolean"
+          },
+          "proportion": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proportion"
+          },
+          "sector": {
+            "$ref": "#/components/schemas/SectorCounts"
+          },
+          "global_counts": {
+            "$ref": "#/components/schemas/SectorCounts"
+          }
+        },
+        "required": [
+          "topic_id",
+          "source",
+          "low_confidence",
+          "proportion",
+          "sector",
+          "global_counts"
+        ],
+        "title": "SectorTopicComparison",
+        "type": "object"
+      },
+      "SectorSectionComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-V]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "population_companies": {
+            "title": "Population Companies",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/SectorTopicComparison"
+            },
+            "title": "Topics",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 89
+          }
+        },
+        "required": [
+          "section",
+          "population_companies",
+          "topics"
+        ],
+        "title": "SectorSectionComparison",
+        "type": "object"
+      },
+      "SectorComparisonState": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "const": "sector-comparison-v1",
+            "title": "Version",
+            "type": "string"
+          },
+          "artifact_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Artifact Sha256",
+            "type": "string"
+          },
+          "built_at": {
+            "title": "Built At",
+            "type": "string"
+          },
+          "hashes": {
+            "$ref": "#/components/schemas/SectorHashes"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/SectorProvenance"
+          },
+          "coverage_period": {
+            "$ref": "#/components/schemas/SectorPeriod"
+          },
+          "sector_taxonomy": {
+            "const": "NACE Rev.2.1 / CNAE-2025",
+            "title": "Sector Taxonomy",
+            "type": "string"
+          },
+          "min_support": {
+            "const": 5,
+            "title": "Min Support",
+            "type": "integer"
+          },
+          "global_population_companies": {
+            "title": "Global Population Companies",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "comparisons": {
+            "items": {
+              "$ref": "#/components/schemas/SectorSectionComparison"
+            },
+            "title": "Comparisons",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 22
+          },
+          "characterization_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "input_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "version",
+          "artifact_sha256",
+          "built_at",
+          "hashes",
+          "provenance",
+          "coverage_period",
+          "sector_taxonomy",
+          "min_support",
+          "global_population_companies",
+          "comparisons",
+          "characterization_id",
+          "input_fingerprint"
+        ],
+        "title": "SectorComparisonResponse",
+        "type": "object"
+      },
+      "SectorComparisonEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SectorComparisonState"
+          }
+        }
+      },
+      "SectorComparisonInputsChangedBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "sector_comparison_inputs_changed"
+          }
+        }
       }
     }
   }

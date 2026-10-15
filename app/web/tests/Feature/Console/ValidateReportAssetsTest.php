@@ -124,3 +124,16 @@ it('fails if the reporting profile references a versioned taxonomy zip', functio
     expect(file_get_contents($path))->toBe($original);
     expect(file_get_contents($shaPath))->toBe($originalSha);
 });
+
+it('binds the optional concept hints to the release asset checksum', function () {
+    $path = base_path('data/esrs_concept_relations_v1.json.sha256');
+    $original = file_get_contents($path);
+    try {
+        file_put_contents($path, str_repeat('0', 64));
+        $this->artisan('report:validate-assets')
+            ->expectsOutputToContain('checksum_mismatch:data/esrs_concept_relations_v1.json')
+            ->assertExitCode(1);
+    } finally {
+        file_put_contents($path, $original);
+    }
+});

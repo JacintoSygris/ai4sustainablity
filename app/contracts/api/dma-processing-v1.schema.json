@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ia4s:dma-processing-v1",
+  "$defs": {
+    "DmaIro": {
+      "additionalProperties": false,
+      "properties": {
+        "iro_id": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Iro Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "source_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "iro_id",
+        "description",
+        "source_sha256"
+      ],
+      "title": "DmaIro",
+      "type": "object"
+    },
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "spans": {
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Spans",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "score",
+        "spans"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "DmaResult": {
+      "additionalProperties": false,
+      "properties": {
+        "model_version": {
+          "const": "dma-processing-v1",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "model_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Model Sha256",
+          "type": "string"
+        },
+        "catalogue_version": {
+          "const": "ig3-2025-06-ar16-v1",
+          "title": "Catalogue Version",
+          "type": "string"
+        },
+        "catalogue_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Catalogue Sha256",
+          "type": "string"
+        },
+        "iro_id": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Iro Id",
+          "type": "string"
+        },
+        "description_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Description Sha256",
+          "type": "string"
+        },
+        "levels": {
+          "$ref": "#/$defs/Levels"
+        }
+      },
+      "required": [
+        "model_version",
+        "model_sha256",
+        "catalogue_version",
+        "catalogue_sha256",
+        "iro_id",
+        "description_sha256",
+        "levels"
+      ],
+      "title": "DmaResult",
+      "type": "object"
+    },
+    "Level": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/Candidate"
+          },
+          "maxItems": 3,
+          "title": "Candidates",
+          "type": "array"
+        },
+        "abstention": {
+          "anyOf": [
+            {
+              "enum": [
+                "insufficient_evidence",
+                "ambiguous",
+                "unsupported_language"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Abstention"
+        }
+      },
+      "required": [
+        "candidates",
+        "abstention"
+      ],
+      "title": "Level",
+      "type": "object"
+    },
+    "Levels": {
+      "additionalProperties": false,
+      "properties": {
+        "topic": {
+          "$ref": "#/$defs/Level"
+        },
+        "dr": {
+          "$ref": "#/$defs/Level"
+        },
+        "datapoint": {
+          "$ref": "#/$defs/Level"
+        }
+      },
+      "required": [
+        "topic",
+        "dr",
+        "datapoint"
+      ],
+      "title": "Levels",
+      "type": "object"
+    },
+    "Span": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "maximum": 1999,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "maximum": 2000,
+          "minimum": 1,
+          "title": "End",
+          "type": "integer"
+        },
+        "quote": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "catalogue_ref": {
+          "maxLength": 250,
+          "minLength": 1,
+          "title": "Catalogue Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "quote",
+        "catalogue_ref"
+      ],
+      "title": "Span",
+      "type": "object"
+    },
+    "request": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "dma-processing-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "locale": {
+          "enum": [
+            "es",
+            "en"
+          ],
+          "title": "Locale",
+          "type": "string"
+        },
+        "iros": {
+          "items": {
+            "$ref": "#/$defs/DmaIro"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Iros",
+          "type": "array"
+        }
+      },
+      "required": [
+        "version",
+        "locale",
+        "iros"
+      ],
+      "title": "DmaProcessingRequest",
+      "type": "object"
+    },
+    "response": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "dma-processing-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "model_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Model Sha256",
+          "type": "string"
+        },
+        "catalogue_version": {
+          "const": "ig3-2025-06-ar16-v1",
+          "title": "Catalogue Version",
+          "type": "string"
+        },
+        "catalogue_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Catalogue Sha256",
+          "type": "string"
+        },
+        "iros": {
+          "items": {
+            "$ref": "#/$defs/DmaResult"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Iros",
+          "type": "array"
+        }
+      },
+      "required": [
+        "version",
+        "model_sha256",
+        "catalogue_version",
+        "catalogue_sha256",
+        "iros"
+      ],
+      "title": "DmaProcessingResponse",
+      "type": "object"
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    }
+  ]
+}

@@ -121,6 +121,11 @@ class AssignLearningCompany extends Command
 
                 return $membership;
             }, 3);
+            if ($action === 'revoke' && $subjectType === 'account') {
+                // Invalidate immediately; periodic renewal also rechecks the binding.
+                $lease = config('learning_engine.root').'/authority.json';
+                if (is_file($lease)) { @unlink($lease); }
+            }
         } catch (\Throwable $exception) {
             $this->error('learning_company_assignment_failed:'.$this->safeErrorCode($exception));
 

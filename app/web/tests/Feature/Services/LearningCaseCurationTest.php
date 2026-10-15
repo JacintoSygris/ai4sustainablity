@@ -27,7 +27,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
     foreach (['learning_case_closure','learning_source_clock','learning_p6_base_source_clock','learning_p8_source_clock','learning_p9_source_clock','learning_p5_live_capture','learning_p6_prepared_request','learning_p6_job_parent_fence','learning_p6_interpretation_context'] as $flag) { config(['services.'.$flag.'.enabled' => true]); }
     config(['services.characterization.api.model_profile' => 't06_close_synthetic', 'services.characterization.prediction_mapping_path' => base_path('artifacts/learning-tests').'/03-t06-close-mapping.json']);
-    Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
+    if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
         $t->foreignId('characterization_id')->primary()->constrained('characterizations')->cascadeOnDelete();
         $t->unsignedBigInteger('generation'); $t->unsignedBigInteger('revision'); $t->string('epoch',64); $t->string('digest',64);
     });
@@ -244,7 +244,7 @@ it('T07b real Laravel export Python command and import retain author bytes with 
             $f['closure']->close($f['u']->id,t07CurationInput($f)); $e=t07CurationExporter($f);
             $f['ledger']->grant($f['u']->id,$f['g']->id,'synthetic:curation',0,hash('sha256','curation-grant'));
             $packet=$e->exportForAccount($f['u']->id,$e->referenceForAccount($f['u']->id));
-            $native=new Symfony\Component\Process\Process([base_path('../ai-service/.venv-learning/'.(PHP_OS_FAMILY === 'Windows' ? 'Scripts/python.exe' : 'bin/python')),'-B','-c',
+            $native=new Symfony\Component\Process\Process([config('learning_engine.synthetic_python'),'-B','-c',
                 'import json,sys; from learning_case_curation_adapter import annotation_command; v=json.load(sys.stdin); print(json.dumps(annotation_command(v["export"],v["input"]),separators=(",",":")))'],base_path('../ai-service/src'));
             $input=json_encode(['schema_version'=>'learning-case-curation-input-v1','expected_annotation_revision'=>0,'command_id'=>hash('sha256','annotation-roundtrip'),'topic_labels'=>[['topic_id'=>'1','value'=>0,'observed_mask'=>1]],'note'=>'SYNTHETIC_FREE_NOTE']);
             $native->setInput(json_encode(['export'=>$packet['jsonl'],'input'=>$input]));$native->setTimeout(10);$native->run();

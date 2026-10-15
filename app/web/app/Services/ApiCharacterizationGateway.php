@@ -35,30 +35,16 @@ class ApiCharacterizationGateway implements PreparedCharacterizationGateway
         'R' => ['Healthcare'],
     ];
 
-    private const NEW_FORMAT_REGIONS_BY_P5_REGION = [
-        'eu' => ['EU'],
-        'north_america' => ['NA'],
-        'latin_america' => ['LATAM'],
-        'asia' => ['APAC'],
-        'middle_east_africa' => ['MENA', 'SSA'],
-        'oceania' => ['APAC'],
-    ];
-
-    private const NEW_FORMAT_PRODUCTS_BY_PRODUCT_SERVICE_TYPE = [
-        'physical_product_manufacturing' => ['C'],
-        'physical_product_retail' => ['G'],
-        'professional_services' => ['M'],
-        'technical_services' => ['F', 'M'],
-        'software_digital_services' => ['J'],
-        'construction_installations' => ['F'],
-        'logistics_transport_storage' => ['H'],
-        'finance_insurance' => ['K'],
-        'energy_utilities' => ['D'],
-        'agrifood' => ['A', 'C'],
-        'health_life_sciences' => ['R'],
-        'education_training' => ['P'],
-        'hospitality_tourism' => ['I'],
-    ];
+    /** Deployment-local copy of app/contracts/mappings; byte equality is tested. */
+    private function featureEncoding(): array
+    {
+        return json_decode(
+            file_get_contents(base_path('data/p5-gpt41-feature-encoding-v1.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+    }
 
     public function __construct(private readonly CharacterizationPredictionMapper $mapper) {}
 
@@ -332,6 +318,27 @@ class ApiCharacterizationGateway implements PreparedCharacterizationGateway
             $payload['model_profile'] = $modelProfile;
         }
 
+        if (ConsentLearningAuthorizationAuthority::enabled()) {
+            $payload['learning_shadow_authorized'] = $characterization->user !== null
+                && app(ConsentLearningAuthorizationAuthority::class)->permits($characterization->user);
+            if ($payload['learning_shadow_authorized']) {
+                $payload['learning_shadow_subject'] = $characterization->user->learning_subject;
+            }
+        }
+
+        return $payload;
+    }
+
+    /** Same encoding as serving; no names, LEI, notes or free-form juridic form. */
+    public function learningPayload(Characterization $characterization): array
+    {
+        $copy = clone $characterization;
+        $form = $copy->form_data;
+        Arr::set($form, 'company_profile.company_name', 'pseudonymous');
+        Arr::forget($form, 'company_profile.juridic_form');
+        $copy->forceFill(['form_data' => $form]);
+        $payload = $this->predictionPayload($copy);
+        unset($payload['learning_shadow_authorized'], $payload['learning_shadow_subject']);
         return $payload;
     }
 
@@ -403,6 +410,12 @@ class ApiCharacterizationGateway implements PreparedCharacterizationGateway
 
         $section = strtoupper(substr($naceCode, 0, 1));
 
+        // CNAE-2025 already uses the training taxonomy. Keep legacy labels only
+        // for the legacy model; hierarchy experiments retain their own contract.
+        if (is_string($modelProfile) && str_starts_with($modelProfile, 'new_format_732_v1_')) {
+            return preg_match('/^[A-V]$/', $section) === 1 ? [$section] : [];
+        }
+
         if (array_key_exists($section, self::PYTHON_SECTOR_LABELS_BY_NACE_SECTION)) {
             return self::PYTHON_SECTOR_LABELS_BY_NACE_SECTION[$section];
         }
@@ -421,13 +434,14 @@ class ApiCharacterizationGateway implements PreparedCharacterizationGateway
             return [];
         }
 
+        $regionMapping = $this->featureEncoding()['regions_by_p5_region'];
         $mapped = [];
         foreach ($regions as $region) {
             if (! is_string($region) || blank($region)) {
                 continue;
             }
 
-            foreach (self::NEW_FORMAT_REGIONS_BY_P5_REGION[$region] ?? [strtoupper($region)] as $code) {
+            foreach ($regionMapping[$region] ?? [strtoupper($region)] as $code) {
                 $mapped[] = $code;
             }
         }
@@ -451,18 +465,11 @@ class ApiCharacterizationGateway implements PreparedCharacterizationGateway
             }
         }
 
-        $mapped = [];
-
-        if (is_string($productServiceType) && filled($productServiceType)) {
-            $mapped = self::NEW_FORMAT_PRODUCTS_BY_PRODUCT_SERVICE_TYPE[$productServiceType] ?? [];
+        if (! is_string($productServiceType)) {
+            return [];
         }
 
-        if ($mapped === []) {
-            $section = $this->naceSection($characterization);
-            $mapped = $section !== null ? [$section] : [];
-        }
-
-        return $this->uniqueValues($mapped);
+        return $this->featureEncoding()['products_by_p5_type'][$productServiceType] ?? [];
     }
 
     /**

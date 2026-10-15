@@ -34,6 +34,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'password_reset_generation',
         'remember_token',
+        'learning_subject',
+        'learning_consent_at',
+        'learning_consent_version',
+        'learning_synthetic',
     ];
 
     /**
@@ -47,6 +51,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'auth_version' => 'integer',
+            'learning_consent_at' => 'datetime',
+            'learning_synthetic' => 'boolean',
         ];
     }
 

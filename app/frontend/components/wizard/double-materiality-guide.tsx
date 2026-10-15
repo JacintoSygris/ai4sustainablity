@@ -1,5 +1,8 @@
 "use client"
 
+import { completeStudyStep } from "@/lib/usability-study.mjs"
+import { useStudyError } from "@/lib/use-study-error"
+
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
 
 import { useLocale } from "@/components/locale-provider"
@@ -45,6 +48,7 @@ export function DoubleMaterialityGuide() {
   const [savingChecklist, setSavingChecklist] = useState(false)
   const [savingActa, setSavingActa] = useState(false)
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(3, errorMessage)
   const [openSteps, setOpenSteps] = useState<string[]>([])
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined)
 
@@ -329,7 +333,7 @@ export function DoubleMaterialityGuide() {
           <p className="text-xs text-amber-600">{" "}{tr("Puedes continuar sin acta: tu hoja de decisión quedará marcada como 'sin análisis registrado'.")}{" "}</p>
         ) : null}
         <Button
-          onClick={() => router.push("/wizard/step-4")}
+          onClick={() => { completeStudyStep(3); router.push("/wizard/step-4") }}
           className="bg-primary hover:bg-primary/90"
           disabled={!canContinue}
         >{" "}{tr("Volver a la selección final de temas")}{" "}</Button>

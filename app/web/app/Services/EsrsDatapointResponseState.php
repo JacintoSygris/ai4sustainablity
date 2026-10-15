@@ -118,6 +118,11 @@ final class EsrsDatapointResponseState
         // The builder captured the accepted normalized mapping exactly once.
         // Never reread a mutable file or recursively include the published token.
         unset($corpus['learning_authority_digest']);
+        // Advisory NLP evidence is not questionnaire/learning authority. Keep P8,
+        // normative blocks, A2 context and all catalogue integrity inputs sealed.
+        unset($corpus['dma_nlp_enabled'], $corpus['dma_nlp_p8_revision'], $corpus['dma_nlp_imports']);
+        unset($corpus['iro_context_v1']['dma_nlp'], $corpus['iro_context_v1']['dma_nlp_history'],
+            $corpus['iro_context_v1']['dma_nlp_topic_evidence']);
         return hash('sha256', json_encode(['namespace' => 'p9-workspace-v1', 'corpus' => $corpus], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
@@ -186,6 +191,16 @@ final class EsrsDatapointResponseState
         $allowedDatapointLookup = array_flip($allowedDatapointIds);
         $orphanedResponses = array_diff_key($responses, $allowedDatapointLookup);
         $currentResponses = array_intersect_key($responses, $allowedDatapointLookup);
+        $pending = isset($corpus['p9_authority_digest']) && $responses !== []
+            && ($stored['p9_authority_digest'] ?? null) !== $corpus['p9_authority_digest'];
+        if ($pending) {
+            foreach ($currentResponses as &$response) {
+                $response['previous_status'] = $response['status'];
+                $response['status'] = 'draft';
+            }
+            unset($response);
+        }
+
 
         return [
             'characterization_id' => $characterization->id,
@@ -193,6 +208,7 @@ final class EsrsDatapointResponseState
             'revision' => $this->revision($characterization),
             'updated_at' => Arr::get($stored, 'updated_at'),
             'responses' => $currentResponses,
+            ...(isset($corpus['p9_authority_digest']) ? ['p9_authority_digest' => $corpus['p9_authority_digest'], 'authority_review_required' => $pending] : []),
             'source_digest' => hash('sha256', json_encode($stored, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
             'learning_authority_digest' => $this->learningAuthorityDigest($corpus),
             'learning_feedback' => $this->currentFeedback($stored, $corpus),
@@ -209,7 +225,7 @@ final class EsrsDatapointResponseState
      * policy as the P9 response endpoint.
      *
      * @param  array<string, mixed>  $corpus
-     * @return array<string, int|float|string>
+     * @return array<string, int|float|string|bool>
      */
     public function reportSummary(Characterization $characterization, array $corpus): array
     {
@@ -225,6 +241,7 @@ final class EsrsDatapointResponseState
             'completion_ratio' => $summary['completion_ratio'],
             'completion_status' => $summary['completion_status'],
             'orphaned_response_count' => $state['orphaned']['count'],
+            'authority_review_required' => (bool) ($state['authority_review_required'] ?? false),
         ];
     }
 

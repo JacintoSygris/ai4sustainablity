@@ -15,7 +15,7 @@ test("privacy page exists with production legal identity, GDPR rights and local 
   const source = read(path)
 
   assert.doesNotMatch(source, /Borrador pendiente de revisión legal|Última actualización: pendiente de publicación|\[PENDIENTE:/)
-  assert.match(source, /26\/09\/2026/)
+  assert.match(source, /08\/10\/2026/)
   assert.match(source, /CAMBRIDGE BUSINESS INITIATIVES, S\.L\./)
   assert.match(source, /B85512895/)
   assert.match(source, /C\/Teide 4/)
@@ -219,4 +219,7 @@ test("P10 report surface shows a prominent scope disclaimer", () => {
   assert.match(source, /No es un servicio de aseguramiento/)
   assert.match(source, /Taxonomía de la UE/)
   assert.match(source, /candidato XHTML\/iXBRL no se ofrece como descarga/)
+  assert.match(source, /ixbrl_package_enabled === true && readiness.workflow_complete && readiness.report_content_ready/)
+  assert.match(source, /readiness\.report_content_ready && taxonomyStatus\?\.availability\.state === "verified" \?/, "the iXBRL candidate is offered only while the external taxonomy is verified")
+  assert.match(source, /Candidato iXBRL provisional \(no es una presentación ESEF\/ESAP oficial\)/)
 })

@@ -58,6 +58,12 @@ htmlcov/
 venv/
 ai-service/.venv/
 ai-service/venv/
+ai-service/.venv-learning/
+
+# Local learning, evaluation and test outputs (never committed)
+ai-service/artifacts/
+web/artifacts/
+ai-service/docs/concept-relations-run-*.json
 
 # Local credentials and keys
 *.key

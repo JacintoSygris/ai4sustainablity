@@ -22,6 +22,13 @@
     </source>
     <php>
         <ini name="memory_limit" value="1G"/>
+        <env name="LEARNING_DEPLOYED" value="false"/>
+        <env name="LEARNING_ENGINE_ENABLED" value="false"/>
+        <env name="LEARNING_ENGINE_SERVING_ENABLED" value="false"/>
+        <env name="LEARNING_ENGINE_AUTHORITY" value="deny"/>
+        <env name="LEARNING_ENGINE_SYNTHETIC_ONLY" value="true"/>
+        <env name="LEARNING_ENGINE_SCHEDULED" value="false"/>
+        <env name="LEARNING_BANDIT_MODE" value="off"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

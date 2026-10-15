@@ -5,6 +5,17 @@ namespace App\Services\Report;
 class GuidanceLibrary
 {
     private static ?array $data = null;
+    private ?array $capturedData = null;
+    private ?string $capturedHash = null;
+
+    public function capture(): self
+    {
+        $copy = new self;
+        $bytes = file_get_contents($this->path());
+        $copy->capturedData = json_decode($bytes, true, flags: JSON_THROW_ON_ERROR);
+        $copy->capturedHash = hash('sha256', $bytes);
+        return $copy;
+    }
 
     private const AUTHORITATIVE_TIERS = ['certified_support_rule', 'reviewed_plain_language'];
 
@@ -34,11 +45,12 @@ class GuidanceLibrary
 
     public function sha256(): string
     {
-        return hash('sha256', file_get_contents($this->path()));
+        return $this->capturedHash ?? hash('sha256', file_get_contents($this->path()));
     }
 
     private function load(): array
     {
+        if ($this->capturedData !== null) { return $this->capturedData; }
         return self::$data ??= json_decode(
             file_get_contents($this->path()),
             true,

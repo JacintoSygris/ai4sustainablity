@@ -1,0 +1,188 @@
+{
+  "shadow": {
+    "esrs": {
+      "esrs_e1_energy": 0,
+      "esrs_e1_climate": 0,
+      "esrs_s1_workers": 0
+    },
+    "model_profile": "new_format_732_v1_fixture",
+    "model_key_count": 3,
+    "mapped_key_count": 0,
+    "feature_metadata": {
+      "derived_fields": {},
+      "defaulted_fields": {},
+      "missing_required_fields": []
+    },
+    "mapping_metadata": {
+      "mapping_status": "external_laravel_mapping",
+      "runtime_activation": "runtime_enabled",
+      "serving_identity": {
+        "profile": "new_format_732_v1_fixture",
+        "artifact_sha256": {
+          "esrs_classifier.pkl": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "policy_sha256": {
+          "feedback_bandit": "33774e87beb6fef864a03bd41cb153417d7ed8aeffc98fe679496dbdcb9cc12a"
+        },
+        "runtime_config": {
+          "score_threshold": 0.95,
+          "policy_active": {
+            "label_thresholds": false,
+            "crc_recall_floor": false,
+            "sector_guard": false,
+            "feedback_bandit": true
+          }
+        },
+        "serving_identity_sha256": "4920c5f1b780812f04a2ee7962e10718cbda1ee18b6788a7a8fd29d6839f20a5"
+      },
+      "new_format_score_threshold": 0.95,
+      "per_label_threshold_count": 0,
+      "raw_positive_key_count": 0,
+      "threshold_positive_key_count": 0,
+      "excluded_non_candidate_key_count": 0,
+      "emitted_positive_key_count": 0,
+      "sector_guard_active": false,
+      "sector_guard_suppressed_count": 0,
+      "sector_guard_suppressed_keys": [],
+      "crc_recall_floor_active": false,
+      "crc_lambda": null,
+      "crc_version": null,
+      "crc_added_key_count": 0,
+      "crc_added_keys": [],
+      "feedback_bandit": {
+        "algorithm": "linucb",
+        "shadow": true,
+        "sequence": 0,
+        "changes": [
+          {
+            "topic": "esrs_e1_energy",
+            "action": 1
+          }
+        ],
+        "decision_id": "synthetic-contract-decision",
+        "basis": {
+          "encoder": "p5-hash-tanh-v1",
+          "context": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.7955508245341965,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.6058868587310341,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "feature_schema_sha256": "cd085b550bc726c53b7d0a9d1664eb812d28307550cd6f7ee3ac38075e25678d",
+          "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "base_scores": {
+            "esrs_e1_energy": 0.91,
+            "esrs_e1_climate": 0.01,
+            "esrs_s1_workers": 0.01
+          }
+        }
+      }
+    },
+    "evidence_refs": []
+  },
+  "active": {
+    "esrs": {
+      "esrs_e1_energy": 1,
+      "esrs_e1_climate": 0,
+      "esrs_s1_workers": 0
+    },
+    "model_profile": "new_format_732_v1_fixture",
+    "model_key_count": 3,
+    "mapped_key_count": 0,
+    "feature_metadata": {
+      "derived_fields": {},
+      "defaulted_fields": {},
+      "missing_required_fields": []
+    },
+    "mapping_metadata": {
+      "mapping_status": "external_laravel_mapping",
+      "runtime_activation": "runtime_enabled",
+      "serving_identity": {
+        "profile": "new_format_732_v1_fixture",
+        "artifact_sha256": {
+          "esrs_classifier.pkl": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "policy_sha256": {
+          "feedback_bandit": "fb879e71ee4d742e70591d1805f34d8946dc8989aafbf9c6bfc9937dabf48b65"
+        },
+        "runtime_config": {
+          "score_threshold": 0.95,
+          "policy_active": {
+            "label_thresholds": false,
+            "crc_recall_floor": false,
+            "sector_guard": false,
+            "feedback_bandit": true
+          }
+        },
+        "serving_identity_sha256": "2ab4b5acb3027f81f623a0561d3b7f246b61a9a49a89be6e1d350504df070feb"
+      },
+      "new_format_score_threshold": 0.95,
+      "per_label_threshold_count": 0,
+      "raw_positive_key_count": 0,
+      "threshold_positive_key_count": 0,
+      "excluded_non_candidate_key_count": 0,
+      "emitted_positive_key_count": 1,
+      "sector_guard_active": false,
+      "sector_guard_suppressed_count": 0,
+      "sector_guard_suppressed_keys": [],
+      "crc_recall_floor_active": false,
+      "crc_lambda": null,
+      "crc_version": null,
+      "crc_added_key_count": 0,
+      "crc_added_keys": [],
+      "feedback_bandit": {
+        "algorithm": "linucb",
+        "shadow": false,
+        "sequence": 0,
+        "changes": [
+          {
+            "topic": "esrs_e1_energy",
+            "action": 1
+          }
+        ],
+        "decision_id": "synthetic-contract-decision",
+        "basis": {
+          "encoder": "p5-hash-tanh-v1",
+          "context": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.7955508245341965,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.6058868587310341,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "feature_schema_sha256": "cd085b550bc726c53b7d0a9d1664eb812d28307550cd6f7ee3ac38075e25678d",
+          "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "base_scores": {
+            "esrs_e1_energy": 0.91,
+            "esrs_e1_climate": 0.01,
+            "esrs_s1_workers": 0.01
+          }
+        }
+      }
+    },
+    "evidence_refs": []
+  }
+}

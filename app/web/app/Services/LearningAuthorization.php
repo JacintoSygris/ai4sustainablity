@@ -56,7 +56,8 @@ final class LearningAuthorization
             $context = [
                 'actor_id' => $actorId, 'group_id' => $groupId, 'membership_id' => $membership->id,
                 'purpose' => $purpose, 'state' => 'available',
-                'provenance' => 'synthetic-only', 'promotion_allowed' => false,
+                'provenance' => $this->authority instanceof ConsentLearningAuthorizationAuthority && ! $actor->learning_synthetic
+                    ? 'consented-feedback' : 'synthetic-only', 'promotion_allowed' => false,
             ];
             if (! is_array($witness) || ! $this->validReferences($currentReferences)) {
                 return null;

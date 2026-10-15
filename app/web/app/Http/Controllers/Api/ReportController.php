@@ -10,6 +10,7 @@ use App\Services\EsrsDatapointCorpusBuilder;
 use App\Services\EsrsDatapointResponseState;
 use App\Services\Report\ReportContentReadiness;
 use App\Services\Report\ReportContentScope;
+use App\Services\Report\ReportScopeException;
 use App\Support\DoubleMaterialityProcessState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -37,6 +38,21 @@ class ReportController extends Controller
         return response()->json([
             'data' => $this->readinessPayload(...$context),
         ]);
+    }
+
+    /** Export gates use machine state, never translated corpus metadata. */
+    public function exportReadiness(Request $request, EsrsDatapointCorpusBuilder $datapoints): ?array
+    {
+        $characterization = $this->currentCharacterization($request);
+        if (! $characterization) return null;
+
+        $corpus = $datapoints->build($characterization);
+        $sections = $this->sections($characterization, $corpus, $this->responseState($characterization, $corpus));
+
+        return [
+            'status' => $this->status($sections),
+            'workflow_complete' => $this->workflowStatus($sections) === 'ready',
+        ];
     }
 
     public function draft(Request $request, EsrsDatapointCorpusBuilder $datapoints)
@@ -122,7 +138,13 @@ class ReportController extends Controller
             return null;
         }
 
-        $corpus = (new \App\Support\EsrsDisplayCatalogue)->project($datapoints->build($characterization), app()->getLocale());
+        $corpus = $datapoints->build($characterization);
+        try {
+            $corpus = (new \App\Support\EsrsDisplayCatalogue)->project($corpus, app()->getLocale());
+        } catch (\LogicException|\TypeError) {
+            // Catalogue errors may contain source metadata. Never expose it.
+            throw new ReportScopeException('approved_snapshot_invalid');
+        }
         $responseState = $this->responseState($characterization, $corpus);
         $sections = $this->sections($characterization, $corpus, $responseState);
 
@@ -155,6 +177,8 @@ class ReportController extends Controller
             'workflow_complete' => $workflowStatus === 'ready',
             'report_content_status' => $reportContentStatus,
             'report_content_ready' => $reportContentStatus === 'ready',
+            'report_scope_integrity_enabled' => (bool) config('report_scope.enabled', false),
+            'ixbrl_package_enabled' => (bool) config('ixbrl.package_ui_enabled', false),
             'sections' => $sections,
             'downloads' => $this->downloads($sections),
             'next_actions' => $this->nextActions($sections),
@@ -191,6 +215,8 @@ class ReportController extends Controller
             'workflow_complete' => $workflowStatus === 'ready',
             'report_content_status' => $reportContentStatus,
             'report_content_ready' => $reportContentStatus === 'ready',
+            'report_scope_integrity_enabled' => (bool) config('report_scope.enabled', false),
+            'ixbrl_package_enabled' => (bool) config('ixbrl.package_ui_enabled', false),
             'company' => $this->company($characterization),
             'materiality' => $this->materiality($characterization),
             'datapoints' => $this->datapoints($characterization, $corpus, $responseState),
@@ -238,8 +264,13 @@ class ReportController extends Controller
                     'next_actions' => $readiness['next_actions'],
                 ],
                 'materiality' => $draft['materiality'],
+                ...(Arr::get($characterization->form_data ?? [], 'materiality_confirmation.dma_import_evidence', []) !== []
+                    ? ['dma_import_evidence' => Arr::get($characterization->form_data, 'materiality_confirmation.dma_import_evidence')] : []),
                 'datapoints' => $draft['datapoints'],
                 'limitations' => $draft['limitations'],
+                ...(config('eu_taxonomy.enabled') ? [
+                    'eu_taxonomy_eligibility' => app(\App\Services\EuTaxonomyEligibility::class)->evidence($characterization),
+                ] : []),
             ],
             'traceability' => [
                 'source_endpoints' => [

@@ -23,7 +23,7 @@ class ReportSnapshotBuilder
      * @param Collection<int, ReportingFact>|iterable<int, ReportingFact>|null $facts
      * @return array<string, mixed>
      */
-    public function buildCanonicalState(Characterization $characterization, iterable|null $facts = null): array
+    public function buildCanonicalState(Characterization $characterization, iterable|null $facts = null, bool $captureXbrl = true, ?bool $captureScope = null, int $generation = 0, bool $captureP9 = true): array
     {
         $profile = $this->profiles->load(ReportingFact::PROFILE_ID);
         $canonicalCharacterization = $this->canonicalCharacterization($characterization);
@@ -48,8 +48,39 @@ class ReportSnapshotBuilder
             ],
         ];
 
+        $captureScope ??= (bool) config('report_scope.enabled', false);
+        $captureP9 = $captureP9 && \App\Services\Dma\P8Authority::enabled();
+        $corpus = null;
+        if ($captureScope) {
+            $assets = ReportScopeAssets::capture();
+            $corpusBuilder = app(\App\Services\EsrsDatapointCorpusBuilder::class);
+            $corpus = $captureP9
+                ? $corpusBuilder->buildCaptured($characterization, $assets)
+                : $corpusBuilder->buildPreview($characterization, $assets);
+            $sourceManifest['scope'] = $assets->manifest($corpus, $generation);
+        }
+        if ($captureP9) {
+            // Both manifests describe the same captured corpus and normalized map.
+            $corpus ??= app(\App\Services\EsrsDatapointCorpusBuilder::class)->build($characterization);
+            if (app(\App\Services\EsrsDatapointResponseState::class)->state($characterization, $corpus)['authority_review_required']) {
+                \App\Services\Dma\P8Authority::reject('iro_review_required');
+            }
+            $sourceManifest['p9_context_v1'] = [
+                'schema_version' => 'p9_context_v1', 'corpus' => $corpus,
+                'sha256' => \App\Services\Dma\P8Authority::hash($corpus),
+            ];
+        }
+
+        if ($captureXbrl && (bool) config('xbrl_suggestions.overlay_enabled', false)) {
+            $sourceManifest['xbrl_mapping'] = (new XbrlConceptMap())->capture()->frozen();
+        }
+
+        if ($captureXbrl && (bool) config('xbrl_suggestions.runtime_enabled', false)) {
+            $sourceManifest['xbrl_identifications'] = app(XbrlRuntimeIdentificationService::class)->freezeEvidence($characterization);
+        }
+
         $frozenState = [
-            'schema_version' => self::SNAPSHOT_SCHEMA_VERSION,
+            'schema_version' => $captureScope ? 'report_snapshot_v2' : self::SNAPSHOT_SCHEMA_VERSION,
             'profile' => [
                 'profile_id' => $profile->profileId(),
                 'profile_hash' => $profile->hash(),
@@ -77,7 +108,7 @@ class ReportSnapshotBuilder
         $expectedKeys = ['characterization', 'facts', 'profile', 'schema_version', 'snapshot_hash', 'source_manifest'];
         $actualKeys = array_keys($payload);
         sort($actualKeys);
-        if ($actualKeys !== $expectedKeys || ($payload['schema_version'] ?? null) !== self::SNAPSHOT_SCHEMA_VERSION) {
+        if ($actualKeys !== $expectedKeys || ! in_array($payload['schema_version'] ?? null, [self::SNAPSHOT_SCHEMA_VERSION, 'report_snapshot_v2'], true)) {
             throw new DomainException('report_snapshot_payload_schema_mismatch');
         }
 
@@ -136,13 +167,39 @@ class ReportSnapshotBuilder
                 'facts_hash' => $factsHash,
             ],
         ];
+        if ($payload['schema_version'] === 'report_snapshot_v2') {
+            ReportScopeAssets::assertManifest($sourceManifest['scope'] ?? null);
+            $expectedManifest['scope'] = $sourceManifest['scope'];
+        }
+        if (array_key_exists('p9_context_v1', $sourceManifest)) {
+            $context = $sourceManifest['p9_context_v1'];
+            if (! is_array($context) || ($context['schema_version'] ?? null) !== 'p9_context_v1'
+                || ! is_array($context['corpus'] ?? null)
+                || ($context['sha256'] ?? null) !== \App\Services\Dma\P8Authority::hash($context['corpus'])
+                || ($context['corpus']['iro_context_v1']['schema_version'] ?? null) !== 'iro_context_v1'
+                || ! is_string($context['corpus']['p9_authority_digest'] ?? null)) {
+                throw new DomainException('report_snapshot_p9_context_invalid');
+            }
+            $expectedManifest['p9_context_v1'] = $context;
+        }
+        if (array_key_exists('xbrl_mapping', $sourceManifest)) {
+            if (! is_array($sourceManifest['xbrl_mapping'])) {
+                throw new DomainException('report_snapshot_xbrl_mapping_invalid');
+            }
+            XbrlConceptMap::fromFrozen($sourceManifest['xbrl_mapping']);
+            $expectedManifest['xbrl_mapping'] = $sourceManifest['xbrl_mapping'];
+        }
+        if (array_key_exists('xbrl_identifications', $sourceManifest)) {
+            XbrlRuntimeEvidence::validate($sourceManifest['xbrl_identifications'], $snapshot->characterization_id);
+            $expectedManifest['xbrl_identifications'] = $sourceManifest['xbrl_identifications'];
+        }
         if ($this->canonicalJson($sourceManifest) !== $this->canonicalJson($expectedManifest)
             || $this->canonicalJson($snapshot->source_manifest) !== $this->canonicalJson($expectedManifest)) {
             throw new DomainException('report_snapshot_source_manifest_mismatch');
         }
 
         $expectedSnapshotHash = $this->hashCanonical([
-            'schema_version' => self::SNAPSHOT_SCHEMA_VERSION,
+            'schema_version' => $payload['schema_version'],
             'profile' => $this->canonicalize($profile),
             'characterization' => $canonicalCharacterization,
             'facts' => $canonicalFacts,
@@ -170,13 +227,23 @@ class ReportSnapshotBuilder
                     ->whereKey($characterization->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+                // Mark affected historical versions before selecting a current identical state.
+                if (config('report_scope.enabled', false)) {
+                    foreach (ReportSnapshot::where('characterization_id', $lockedCharacterization->id)->where('stale_state', ReportSnapshot::STALE_FRESH)->get() as $previous) {
+                        app(ReportStalenessDetector::class)->refreshState($previous);
+                    }
+                }
                 $state = $this->buildCanonicalState($lockedCharacterization);
-                $existing = ReportSnapshot::query()
-                    ->where('snapshot_hash', $state['snapshot_hash'])
-                    ->first();
-
-                if ($existing) {
-                    return ['snapshot' => $existing, 'created' => false];
+                $generation = 0;
+                while ($existing = ReportSnapshot::query()->where('snapshot_hash', $state['snapshot_hash'])->lockForUpdate()->first()) {
+                    if ($existing->stale_state !== ReportSnapshot::STALE_STALE || $state['schema_version'] !== 'report_snapshot_v2') {
+                        return ['snapshot' => $existing, 'created' => false];
+                    }
+                    // Never revive an approval after rollback to identical assets/state.
+                    $state['source_manifest']['scope']['generation'] = ++$generation;
+                    $state['snapshot_hash'] = $this->hashCanonical(array_intersect_key($state, array_flip([
+                        'schema_version', 'profile', 'characterization', 'facts', 'source_manifest',
+                    ])));
                 }
 
                 $snapshot = ReportSnapshot::create([
@@ -209,9 +276,16 @@ class ReportSnapshotBuilder
                     'fact_count' => count($state['facts']),
                 ]);
 
+                if (\App\Services\Dma\P8Authority::enabled()
+                    && $this->buildCanonicalState($lockedCharacterization->fresh(), generation: $generation)['snapshot_hash'] !== $state['snapshot_hash']) {
+                    \App\Services\Dma\P8Authority::reject('p8_confirmation_stale');
+                }
+
                 return ['snapshot' => $snapshot, 'created' => true];
             });
         } catch (QueryException $exception) {
+            // V2 is serialized by the characterization lock; never recover to a stale generation.
+            if (config('report_scope.enabled', false)) throw $exception;
             $liveCharacterization = Characterization::query()->findOrFail($characterization->id);
             $liveState = $this->buildCanonicalState($liveCharacterization);
             $snapshot = ReportSnapshot::query()->where('snapshot_hash', $liveState['snapshot_hash'])->first();

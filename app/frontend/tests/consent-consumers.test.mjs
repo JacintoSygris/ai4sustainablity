@@ -14,14 +14,14 @@ import { connectRealtime } from '../public/consent/realtime.mjs'
 import { wizardStepsForView } from '../lib/wizard-steps-data.mjs'
 
 const pure = {}
-for (const name of ['esrs-datapoints-state', 'materiality-confirmation-state', 'materiality-confirmation-draft', 'materiality-guided-state', 'double-materiality-guide-state', 'materiality-proposal-review', 'p6-document-evidence', 'learning-case-state']) pure[`@/lib/${name}.mjs`] = await import(`../lib/${name}.mjs`)
+for (const name of ['dma-nlp-state', 'esrs-datapoints-state', 'materiality-confirmation-state', 'materiality-confirmation-draft', 'materiality-guided-state', 'double-materiality-guide-state', 'materiality-proposal-review', 'p6-document-evidence', 'learning-case-state']) pure[`@/lib/${name}.mjs`] = await import(`../lib/${name}.mjs`)
 const frontend = new URL('../', import.meta.url)
 class ApiError extends Error { constructor(status) { super('synthetic transport failure'); this.status = status } }
 
 // Execute actual TSX, hooks and pure business helpers. Only network/navigation are replaced.
 // The dispatcher supplies deterministic render/effect scheduling without a browser dependency.
 function consumer(path, exportName, handlers, h, transport = {}) {
-  let cursor = 0, pending = [], captured = {}, tree, rerender = false, selectedLocale = "es"
+  let cursor = 0, pending = [], captured = {}, tree, rerender = false, selectedLocale = "es", currentProps = {}
   const slots = [], effects = [], timers = new Map(); let timerSequence = 0, refreshes = 0
   const dispatcher = {
     useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = typeof initial === 'function' ? initial() : initial
@@ -30,6 +30,7 @@ function consumer(path, exportName, handlers, h, transport = {}) {
     useRef(initial) { const i = cursor++; return slots[i] ??= { current: initial } },
     useMemo(fn) { cursor++; return fn() }, useCallback(fn) { cursor++; return fn },
     useEffect(fn, deps) { const i = cursor++, old = effects[i]; if (!old || deps.some((d, n) => d !== old.deps[n])) { pending.push(() => { old?.off?.(); effects[i] = { deps, off: fn() } }) } },
+    useLayoutEffect(fn, deps) { this.useEffect(fn, deps) },
     useContext(context) { return context._currentValue }, useId() { return `id-${cursor++}` },
   }
   const win = { [Symbol.for('airis.consent.2026-09-26.1')]: h.api, localStorage: h.env.storage(), addEventListener() {}, removeEventListener() {}, matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) }
@@ -68,7 +69,8 @@ function consumer(path, exportName, handlers, h, transport = {}) {
     return exports
   }
   const component = load(`@/${path}`)[exportName]
-  function render(props = {}) {
+  function render(props = currentProps) {
+    currentProps = props
     cursor = 0; rerender = false
     const internal = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE
     const previous = internal.H; internal.H = dispatcher
@@ -248,6 +250,27 @@ test('material topic UI starts collapsed, translates summary and keeps three ind
     actions[index].props.onClick(); assert.equal(selected, value)
   }
   c.dispose()
+})
+
+test('P6 warns about incomplete model encoding in both languages and keeps the topics reviewable', async () => {
+  for (const [status, topics] of [['degraded', [proposalTopic]], ['complete', [proposalTopic]], ['degraded', []]]) {
+    const c = consumer('components/wizard/material-topics-form.tsx', 'MaterialTopicsForm', [], harness(), {
+      getLaravelSession: async () => ({ data: {} }),
+      getLaravelCharacterization: async () => ({ data: { status: 'completed', form_data: {} } }),
+      getLaravelMaterialityProposal: async () => ({ data: {
+        ...completedProposal, proposal_topics: topics, ai: { ...completedProposal.ai,
+          feature_metadata: { derived_fields: { encoding_coverage: { status } } } },
+      } }),
+    })
+    c.render(); await c.settle()
+    const spanish = renderToStaticMarkup(c.render())
+    assert.equal(spanish.includes('El modelo no cubre todos los datos de tu perfil'), status === 'degraded')
+    assert.equal(spanish.includes('Cambio climático'), topics.length > 0)
+    c.setLocale('en')
+    const english = renderToStaticMarkup(c.render())
+    assert.equal(english.includes('The model does not cover all of your profile data'), status === 'degraded')
+    c.dispose()
+  }
 })
 
 test('pending prediction shows honest wait feedback and polling is cancelled on unmount', async () => {
@@ -879,4 +902,257 @@ test('real display helpers localize booleans and unavailable enums without chang
     assert.equal(c.handlers.applicabilityLabel('future_unknown_code', locale), unavailable)
   }
   c.dispose()
+})
+
+
+test('P8 direct reload renders related topics for a saved user-added topic outside P6', async () => {
+  for (const enabled of [false, true]) {
+    const topic = { id: 2, esrs_code: 'E2', theme: { es: 'Contaminación', en: 'Pollution' }, subtopic: { es: 'Aire', en: 'Air' } }
+    const relations = [{ id: 3, esrs_code: 'E3', label: 'Agua relacionada' }]
+    const confirmation = {
+      characterization_id: 7, p6_topic_ids: [1], confirmed_topic_ids: [1, 2], is_confirmed: true,
+      confirmation: { revision: 2, change_reasons: { 2: ['other'] }, guided_answers: {} },
+      adm: { acta_registered: true }, is_stale: false,
+      topics: [{ ...topic, ...(enabled ? { often_reported_with: relations } : {}) }],
+    }
+    const c = consumer('components/wizard/final-topics-selection.tsx', 'FinalTopicsSelection', [], harness(), {
+      getLaravelSession: async () => ({ data: { csrf_token: 'csrf' } }),
+      getLaravelMaterialityConfirmation: async () => ({ data: structuredClone(confirmation) }),
+      getLaravelEsrsTopics: async () => ({ data: [topic] }),
+      previewLaravelMaterialityConfirmation: async () => ({ data: {} }),
+    })
+    try {
+      c.render(); await c.settle()
+      const html = renderToStaticMarkup(c.render())
+      const added = html.slice(html.indexOf('Nuevos (añadidos por ti)'), html.indexOf('Buscar y añadir tema'))
+      assert.match(added, /Aire/)
+      assert.match(added, /Quitar/)
+      if (enabled) {
+        assert.match(added, /Temas que suelen reportarse juntos/)
+        assert.match(added, /E3 · Agua relacionada/)
+        assert.match(added, /no determinan la doble importancia relativa/)
+      } else {
+        assert.doesNotMatch(html, /Temas que suelen reportarse juntos|Agua relacionada/)
+      }
+    } finally { c.dispose() }
+  }
+})
+
+test('sector comparison loads once in real P6 and both P8 modes without changing decisions', async () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../web/tests/Fixtures/sector-comparison-response.json', import.meta.url), 'utf8'))
+  const fingerprint = 'a'.repeat(64)
+  const capability = { sector_comparison_enabled: true, sector_comparison_input_fingerprint: fingerprint }
+  const topic = { ...proposalTopic, id: 1, theme: { es: 'Cambio climático', en: 'Climate change' } }
+  let p6Calls = 0
+  const p6 = consumer('components/wizard/material-topics-form', 'MaterialTopicsForm', ['topicActions'], harness(), {
+    getLaravelSession: async () => ({ data: {} }), getLaravelCharacterization: async () => ({ data: { status: 'completed', form_data: {} } }),
+    getLaravelMaterialityProposal: async () => ({ data: { ...completedProposal, ...capability, characterization_id: 7, proposal_topics: [topic] } }),
+    getLaravelSectorComparison: async id => { p6Calls++; return { data: { ...fixture, characterization_id: id, input_fingerprint: fingerprint } } },
+  })
+  try {
+    p6.render(); await p6.settle()
+    const decisions = structuredClone(p6.handlers.topicActions)
+    assert.match(renderToStaticMarkup(p6.render()), /3 de 5 empresas con evaluación conocida/)
+    p6.setLocale('en'); await p6.settle()
+    assert.match(renderToStaticMarkup(p6.render()), /3 of 5 companies with a known assessment/)
+    assert.equal(p6Calls, 1)
+    assert.deepEqual(p6.handlers.topicActions, decisions)
+  } finally { p6.dispose() }
+  for (const mode of ['direct', 'guided']) {
+    let calls = 0
+    const p8 = consumer('components/wizard/final-topics-selection', 'FinalTopicsSelection', ['chooseMode', 'selectedTopics'], harness(), {
+      getLaravelSession: async () => ({ data: {} }),
+      getLaravelMaterialityConfirmation: async () => ({ data: { ...capability, characterization_id: 7, p6_topic_ids: [1], confirmed_topic_ids: [1], confirmation: { revision: 4, change_reasons: {}, guided_answers: {} }, adm: {}, is_stale: false } }),
+      getLaravelEsrsTopics: async () => ({ data: [topic, { ...topic, id: 2, esrs_code: 'E2' }] }),
+      previewLaravelMaterialityConfirmation: async () => ({ data: {} }),
+      getLaravelSectorComparison: async id => { calls++; return { data: { ...fixture, characterization_id: id, input_fingerprint: fingerprint } } },
+    })
+    try {
+      p8.render(); await p8.settle(); p8.handlers.chooseMode(mode); await p8.settle()
+      const selections = [...p8.handlers.selectedTopics]
+      const es = renderToStaticMarkup(p8.render())
+      assert.match(es, /3 de 5 empresas con evaluación conocida/)
+      assert.match(es, /Referencia global de baja confianza/) // Topic 2 is outside P6.
+      p8.setLocale('en'); await p8.settle()
+      assert.match(renderToStaticMarkup(p8.render()), /Low-confidence global reference/)
+      assert.equal(calls, 1)
+      assert.deepEqual([...p8.handlers.selectedTopics], selections)
+    } finally { p8.dispose() }
+  }
+})
+
+
+for (const order of ['review-then-accept', 'accept-then-review']) {
+  test(`actual P8 replacement preserves B and its save payload: ${order}`, async () => {
+    const saves = []
+    const row = (iro_id, import_id) => ({ iro_id, import_id, topic_id: 26, decision: 'material',
+      type: 'impact', dimension: 'impact', locations: ['own_operations'], groups: ['external'],
+      description: 'Synthetic radioactive waste IRO', group: 'Synthetic stakeholders', channel: 'Synthetic consultation',
+      reason: null, focus_datapoint_ids: ['E5-5_16'] })
+    const a = row('a'.repeat(64), 1), b = row('b'.repeat(64), 2)
+    const confirmation = { characterization_id: 7, p6_topic_ids: [27], confirmed_topic_ids: [27],
+      confirmation: { revision: 1, change_reasons: {}, guided_answers: {}, dma_import_refs: { 26: 1 } },
+      adm: { acta_registered: true }, is_stale: false, iro_reviews: [a],
+      dma_import_enabled: true, iro_traceability_enabled: true, dma_nlp_enabled: true, dma_nlp_context: 'd'.repeat(64) }
+    const c = consumer('components/wizard/final-topics-selection', 'FinalTopicsSelection',
+      ['handleSave', 'nlpRefs', 'nlpInferredTopics', 'dmaImportRefs', 'selectedTopics'], harness(), {
+        getLaravelSession: async () => ({ data: { csrf_token: 'csrf' } }),
+        getLaravelMaterialityConfirmation: async () => ({ data: structuredClone(confirmation) }),
+        getLaravelEsrsTopics: async () => ({ data: [26, 27].map(id => ({ id, esrs_code: 'E5', theme: { es: 'Recursos', en: 'Resources' } })) }),
+        previewLaravelMaterialityConfirmation: async () => ({ data: {} }),
+        updateLaravelMaterialityConfirmation: async payload => { saves.push(JSON.parse(JSON.stringify(payload))); return { data: confirmation } },
+      })
+    const panel = () => elements(c.render(), node => node.type?.name === 'DmaImportPanel')[0].props
+    const accept = (review, runId, candidateId) => panel().nlp.onAccepted(
+      { id: runId, import_id: review.import_id, stage: 'p8' },
+      { level: 'topic', id: '27', iro_id: review.iro_id, candidate_id: candidateId, decision: 'accepted' }, 26)
+    try {
+      c.render(); await c.settle()
+      accept(a, 10, 'a'); await c.settle()
+      assert.deepEqual([...c.handlers.nlpRefs], ['10|a'])
+      const reviewB = () => panel().iroContext.onReview(b, 26, true)
+      for (const act of order === 'review-then-accept' ? [reviewB, () => accept(b, 20, 'b')] : [() => accept(b, 20, 'b'), reviewB]) {
+        act(); await c.settle()
+      }
+      assert.deepEqual([...c.handlers.nlpRefs], ['20|b'])
+      assert.equal(c.handlers.nlpInferredTopics[a.iro_id], undefined)
+      assert.deepEqual([...c.handlers.nlpInferredTopics[b.iro_id]], [27])
+      assert.deepEqual([...c.handlers.selectedTopics], [27], 'acceptance does not decide materiality')
+      assert.equal(c.handlers.dmaImportRefs[26], 2)
+      assert.equal(c.handlers.dmaImportRefs[27], undefined, 'inferred topics use separate NLP evidence')
+      assert.deepEqual(pure['@/lib/dma-nlp-state.mjs'].nlpIroCandidates(b, c.handlers.nlpInferredTopics,
+        c.handlers.selectedTopics, { 27: [{ id: 'E5-5_16' }] }), [{ id: 'E5-5_16' }])
+      await c.handlers.handleSave(); await c.settle()
+      assert.equal(saves.length, 1)
+      assert.deepEqual(saves[0].dma_nlp_refs, ['20|b'])
+      assert.deepEqual(saves[0].dma_import_refs, { 26: 2 })
+      assert.deepEqual(saves[0].iro_reviews.map(review => [review.iro_id, review.import_id, review.focus_datapoint_ids]),
+        [[b.iro_id, 2, ['E5-5_16']]])
+      assert.deepEqual(saves[0].confirmed_topic_ids, [27])
+    } finally { c.dispose() }
+  })
+}
+
+for (const refreshCallback of [false, true]) {
+  test(`pending P8 acceptance preserves intervening IRO and NLP reviews (refresh callback: ${refreshCallback})`, async () => {
+    const saves = [], context = 'd'.repeat(64)
+    const row = (letter, import_id, topic_id) => ({ iro_id: letter.repeat(64), import_id, topic_id,
+      decision: 'material', type: 'impact', dimension: 'impact', locations: ['own_operations'],
+      groups: ['external'], description: 'Synthetic IRO', focus_datapoint_ids: ['E5-5_16'] })
+    const a = row('a', 1, 26), b = row('b', 2, 26), other = row('c', 2, 11)
+    const confirmation = { characterization_id: 7, p6_topic_ids: [27], confirmed_topic_ids: [27],
+      confirmation: { revision: 1, change_reasons: {}, guided_answers: {}, dma_import_refs: { 26: 1 } },
+      adm: { acta_registered: true }, is_stale: false, iro_reviews: [a],
+      dma_import_enabled: true, iro_traceability_enabled: true, dma_nlp_enabled: true, dma_nlp_context: context }
+    const c = consumer('components/wizard/final-topics-selection', 'FinalTopicsSelection',
+      ['handleSave', 'nlpRefs', 'nlpInferredTopics', 'dmaImportRefs', 'selectedTopics', 'reviewedTopics'], harness(), {
+        getLaravelSession: async () => ({ data: { csrf_token: 'csrf' } }),
+        getLaravelMaterialityConfirmation: async () => ({ data: structuredClone(confirmation) }),
+        getLaravelEsrsTopics: async () => ({ data: [11, 26, 27].map(id => ({ id, esrs_code: 'E5', theme: { es: 'Recursos', en: 'Resources' } })) }),
+        previewLaravelMaterialityConfirmation: async () => ({ data: {} }),
+        updateLaravelMaterialityConfirmation: async payload => { saves.push(JSON.parse(JSON.stringify(payload))); return { data: confirmation } },
+      })
+    const panel = () => elements(c.render(), node => node.type?.name === 'DmaImportPanel')[0].props
+    const candidate = review => ({ level: 'topic', id: '27', iro_id: review.iro_id,
+      candidate_id: review.iro_id[0], decision: 'accepted' })
+    const run = { id: 20, import_id: 2, stage: 'p8', context_digest: context,
+      candidates: [{ ...candidate(b), decision: null }], result: { iros: [] } }
+    let resolveReview
+    const nlp = consumer('components/wizard/dma-nlp-panel', 'DmaNlpPanel', ['perform'], harness(), {
+      analyseLaravelDma: async () => ({ data: run }),
+      reviewLaravelDma: () => new Promise(resolve => { resolveReview = resolve }),
+    })
+    const props = onAccepted => ({ enabled: true, characterizationId: 7, record: { id: 2, iro_rows: [b, other] },
+      stage: 'p8', context, revision: 1, onAccepted: (acceptedRun, accepted) => onAccepted(acceptedRun, accepted, 26) })
+    try {
+      c.render(); await c.settle()
+      panel().nlp.onAccepted({ id: 10, import_id: 1, stage: 'p8' }, candidate(a), 26); await c.settle()
+      nlp.render(props(panel().nlp.onAccepted)); await nlp.settle()
+      await nlp.handlers.perform(); await nlp.settle()
+      const pending = nlp.handlers.perform(run.candidates[0], 'accepted')
+      assert.equal(typeof resolveReview, 'function')
+      panel().iroContext.onReview(other, 11, true); await c.settle()
+      assert.deepEqual({ ...c.handlers.dmaImportRefs }, { 11: 2, 26: 1 })
+      panel().nlp.onAccepted({ id: 30, import_id: 2, stage: 'p8' }, candidate(other), 11); await c.settle()
+      if (refreshCallback) nlp.render(props(panel().nlp.onAccepted))
+      resolveReview({ data: run }); await pending; await nlp.settle(); await c.settle()
+      assert.deepEqual({ ...c.handlers.dmaImportRefs }, { 11: 2, 26: 2 })
+      assert.deepEqual([...c.handlers.nlpRefs].sort(), ['20|b', '30|c'])
+      assert.equal(c.handlers.nlpInferredTopics[a.iro_id], undefined)
+      assert.deepEqual([...c.handlers.nlpInferredTopics[b.iro_id]], [27])
+      assert.ok(c.handlers.reviewedTopics.has(11))
+      assert.deepEqual([...c.handlers.selectedTopics], [27], 'materiality stays unchanged')
+      panel().iroContext.onReview(b, 26, true); await c.settle()
+      await c.handlers.handleSave(); await c.settle()
+      assert.equal(saves.length, 1)
+      assert.deepEqual(saves[0].dma_import_refs, { 11: 2, 26: 2 })
+      assert.deepEqual(saves[0].dma_nlp_refs.sort(), ['20|b', '30|c'])
+      assert.deepEqual(saves[0].iro_reviews.map(review => [review.iro_id, review.focus_datapoint_ids]),
+        [[b.iro_id, ['E5-5_16']], [other.iro_id, ['E5-5_16']]])
+    } finally { nlp.dispose(); c.dispose() }
+  })
+}
+
+for (const decision of ['accepted', 'rejected']) {
+  test(`pending NLP ${decision} invokes current sibling callbacks and ignores obsolete authority`, async () => {
+    const calls = [], context = 'd'.repeat(64)
+    const candidate = { candidate_id: 'b', level: 'topic', id: '27', iro_id: 'b'.repeat(64), decision: null }
+    const run = { id: 20, import_id: 2, stage: 'p8', context_digest: context, candidates: [candidate], result: { iros: [] } }
+    let resolveReview
+    const nlp = consumer('components/wizard/dma-nlp-panel', 'DmaNlpPanel', ['perform'], harness(), {
+      analyseLaravelDma: async () => ({ data: run }),
+      reviewLaravelDma: () => new Promise(resolve => { resolveReview = resolve }),
+    })
+    const props = (version, authority = context) => ({ enabled: true, characterizationId: 7,
+      record: { id: 2, iro_rows: [{ iro_id: candidate.iro_id }] }, stage: 'p8', context: authority, revision: 1,
+      onAccepted: () => calls.push(`${version}:accepted`), onReviewed: () => calls.push(`${version}:reviewed`) })
+    try {
+      nlp.render(props('old')); await nlp.settle(); await nlp.handlers.perform(); await nlp.settle()
+      const pending = nlp.handlers.perform(candidate, decision)
+      nlp.render(props('current'))
+      resolveReview({ data: run }); await pending; await nlp.settle()
+      assert.deepEqual(calls, decision === 'accepted' ? ['current:accepted', 'current:reviewed'] : ['current:reviewed'])
+      calls.length = 0
+      const obsolete = nlp.handlers.perform(candidate, decision)
+      nlp.render(props('new-authority', 'e'.repeat(64)))
+      resolveReview({ data: run }); await obsolete; await nlp.settle()
+      assert.deepEqual(calls, [])
+    } finally { nlp.dispose() }
+  })
+}
+
+test('actual P9 review callbacks preserve edits and save authority after acceptance and rejection', async () => {
+  for (const decision of ['accepted', 'rejected']) {
+    const snapshot = p9Workspace()
+    snapshot.data.p9_authority_digest = 'd'.repeat(64)
+    snapshot.response_state.p9_authority_digest = snapshot.data.p9_authority_digest
+    let reviewed = false, resolveWorkspace
+    const saves = []
+    const transport = p9Transport(snapshot, payload => saves.push(payload))
+    const c = consumer('components/wizard/esrs-datapoints-form', 'EsrsDatapointsForm',
+      ['updateDraft', 'handleSave', 'handleNlpReview', 'drafts', 'corpus'], harness(), {
+        ...transport,
+        getLaravelEsrsDatapointWorkspace: async () => {
+          const result = await transport.getLaravelEsrsDatapointWorkspace()
+          if (reviewed) result.data.iro_context_v1 = { cards: [], by_datapoint: {}, dma_nlp: { by_datapoint: {}, shortlist: decision === 'accepted' ? [{ candidate: { id: 'E1-1' } }] : [] } }
+          return reviewed ? new Promise(resolve => { resolveWorkspace = () => resolve(result) }) : result
+        },
+      })
+    c.render(); await c.settle()
+    c.document.getElementById = () => ({ focus() {} })
+    c.handlers.updateDraft('E1-1', { value: 'Unsaved before review' }); await c.settle()
+    reviewed = true
+    const pending = c.handlers.handleNlpReview({}, { level: 'datapoint', id: 'E1-1', decision, in_scope: true }); await c.settle()
+    c.handlers.updateDraft('E1-1', { value: 'Edited while review refresh is pending' }); await c.settle()
+    resolveWorkspace(); await pending; await c.settle()
+    assert.equal(c.handlers.drafts['E1-1'].value, 'Edited while review refresh is pending')
+    assert.equal(c.handlers.corpus.iro_context_v1.dma_nlp.shortlist.length, decision === 'accepted' ? 1 : 0)
+    c.handlers.updateDraft('E1-1', { value: 'Edited after review' }); await c.settle()
+    await c.handlers.handleSave(); await c.settle()
+    assert.equal(saves.length, 1)
+    assert.equal(saves[0].responses[0].value, 'Edited after review')
+    assert.equal(saves[0].learning_feedback.authority_digest, snapshot.data.learning_authority_digest)
+    assert.equal(saves[0].expected_authority_digest, snapshot.data.p9_authority_digest)
+    c.dispose()
+  }
 })

@@ -1,15 +1,23 @@
 import time
 import warnings
 import os
+import importlib
+import logging
 import re
+import hashlib
+import io
+import json
+from functools import lru_cache
 import numpy as np
 import pandas as pd
 import joblib
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from .datatypes import CompanyData, FeatureMetadata, Prediction
 
+LOGGER = logging.getLogger(__name__)
 LIGHTGBM_FEATURE_NAME_WARNING = (
     "X does not have valid feature names, but LGBMClassifier was fitted with feature names"
 )
@@ -73,6 +81,31 @@ LEGACY_SECTOR_LABEL_TO_NACE_SECTION = {
     "healthcare": "R",
 }
 
+# The original GPT-4.1 extraction vocabulary is NACE Rev.2.1. The Rev.2 map
+# above is kept only for numeric hierarchy feature vocabularies.
+GPT41_SECTOR_LABELS = {
+    **LEGACY_SECTOR_LABEL_TO_NACE_SECTION,
+    "technology": "K", "information technology": "K",
+    "financial services": "L", "real estate": "M",
+    "mining": "B", "water and waste": "E",
+    "professional services": "N", "administrative services": "O",
+    "public administration": "P", "education": "Q",
+}
+GPT41_DIVISION_TO_SECTION = {
+    **NACE_DIVISION_TO_SECTION,
+    **{str(d): "J" for d in range(58, 61)},
+    **{str(d): "K" for d in range(61, 64)},
+    **{str(d): "L" for d in range(64, 67)},
+    "68": "M",
+    **{str(d): "N" for d in range(69, 76)},
+    **{str(d): "O" for d in range(77, 83)},
+    "84": "P", "85": "Q",
+    **{str(d): "R" for d in range(86, 89)},
+    **{str(d): "S" for d in range(90, 94)},
+    **{str(d): "T" for d in range(94, 97)},
+    "97": "U", "98": "U", "99": "V",
+}
+
 REGION_ALIASES = {
     "eu": ["EU"],
     "european_union": ["EU"],
@@ -98,6 +131,8 @@ EUROPEAN_COUNTRY_TO_REGION = {
     "germany",
     "italy",
     "netherlands",
+    "united kingdom",
+    "uk",
     "norway",
     "portugal",
     "spain",
@@ -205,10 +240,23 @@ def ensure_profile_runtime_enabled(profile: ModelProfile):
     )
 
 
+_loaded_artifact_sha256: dict[tuple[ModelProfile, str], str] = {}
+
+
+@lru_cache(maxsize=len(MODEL_PROFILES) * 4)
+def _load_joblib_artifact(profile: ModelProfile, filename: str):
+    raw_bytes = profile.artifact_path(filename).read_bytes()
+    loaded = joblib.load(io.BytesIO(raw_bytes))
+    _loaded_artifact_sha256[(profile, filename)] = hashlib.sha256(raw_bytes).hexdigest()
+    return loaded
+
+
+@lru_cache(maxsize=len(MODEL_PROFILES))
 def load_profile_esrs_columns(profile: ModelProfile) -> list[str]:
-    return joblib.load(profile.artifact_path("esrs_columns.pkl"))
+    return _load_joblib_artifact(profile, "esrs_columns.pkl")
 
 
+@lru_cache(maxsize=len(MODEL_PROFILES))
 def load_profile_classifier(profile: ModelProfile):
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -216,7 +264,118 @@ def load_profile_classifier(profile: ModelProfile):
             message="Trying to unpickle estimator .* from version .*",
             category=UserWarning,
         )
-        return joblib.load(profile.artifact_path("esrs_classifier.pkl"))
+        return _load_joblib_artifact(profile, "esrs_classifier.pkl")
+
+
+def clear_model_artifact_cache() -> None:
+    """Clear process-local artifacts for tests and controlled runtime reloads."""
+    load_profile_classifier.cache_clear()
+    load_profile_esrs_columns.cache_clear()
+    _load_joblib_artifact.cache_clear()
+    _loaded_artifact_sha256.clear()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _model_artifact_hashes(profile: ModelProfile) -> dict[str, str]:
+    hashes = {}
+    for filename in profile.required_artifacts:
+        loaded_hash = _loaded_artifact_sha256.get((profile, filename))
+        hashes[filename] = loaded_hash or _sha256_file(profile.artifact_path(filename))
+    return hashes
+
+
+@dataclass(frozen=True)
+class ServingPolicies:
+    # Field order is part of the serving contract shared with the learning
+    # modules. The public runtime ships no per-label thresholds, CRC recall
+    # floor or sector guard: those stay None and are reported as inactive in
+    # the serving identity.
+    score_threshold: float | None
+    label_thresholds: dict[str, float] | None
+    crc_recall_floor: Any | None
+    sector_guard: Any | None
+    sha256: dict[str, str]
+    feedback_bandit: Any | None = None
+
+
+def _optional_learning_module(name: str):
+    """Learning hooks ship in app/ai-service/src; without them the base model is served."""
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError as error:
+        if error.name != name:
+            raise  # A broken learning installation must not be masked.
+        if any(key.startswith("LEARNING_") for key in os.environ) or os.getenv("ESRS_FEEDBACK_BANDIT_PATH"):
+            LOGGER.warning("learning.hooks_unavailable_using_base")
+        return None
+
+
+def load_serving_policies(profile: ModelProfile) -> ServingPolicies:
+    hashes: dict[str, str] = {}
+    score_threshold = new_format_score_threshold() if is_new_format_profile(profile) else None
+
+    # Optional feedback-bandit policy: OFF unless the learning activation
+    # configuration or ESRS_FEEDBACK_BANDIT_PATH selects it. Invalid state
+    # fails closed to OFF inside load_feedback_bandit.
+    feedback_bandit = None
+    feedback = _optional_learning_module("feedback_bandit")
+    activation = _optional_learning_module("learning_activation") if feedback else None
+    if (activation is not None and is_new_format_profile(profile)
+            and (os.getenv(feedback.PATH_ENV, "").strip() or activation.bandit_mode() in ("active", "shadow"))):
+        feedback_bandit = feedback.load_feedback_bandit(
+            profile.name,
+            feature_columns=list(load_profile_feature_columns(profile)),
+            model_sha256=_model_artifact_hashes(profile)["esrs_classifier.pkl"],
+            topics=[k for k in load_profile_esrs_columns(profile) if is_new_format_candidate_key(k)],
+        )
+        if feedback_bandit is not None:
+            hashes["feedback_bandit"] = feedback_bandit.envelope()["sha256"]
+
+    return ServingPolicies(
+        score_threshold=score_threshold,
+        label_thresholds=None,
+        crc_recall_floor=None,
+        sector_guard=None,
+        sha256=hashes,
+        feedback_bandit=feedback_bandit,
+    )
+
+
+def model_serving_identity(profile: ModelProfile, policies: ServingPolicies | None = None) -> dict:
+    """Bind a prediction to immutable model bytes and effective serving policy."""
+    policies = policies or load_serving_policies(profile)
+    artifact_sha256 = _model_artifact_hashes(profile)
+    policy_state = {
+        "label_thresholds": policies.label_thresholds is not None,
+        "crc_recall_floor": policies.crc_recall_floor is not None,
+        "sector_guard": policies.sector_guard is not None,
+    }
+
+    if policies.feedback_bandit is not None:
+        policy_state["feedback_bandit"] = True
+
+    runtime_config = {
+        "score_threshold": policies.score_threshold,
+        "policy_active": policy_state,
+    }
+    canonical = {
+        "profile": profile.name,
+        "artifact_sha256": artifact_sha256,
+        "policy_sha256": policies.sha256,
+        "runtime_config": runtime_config,
+    }
+    serving_hash = hashlib.sha256(
+        json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    return {**canonical, "serving_identity_sha256": serving_hash}
 
 
 def load_profile_feature_columns(profile: ModelProfile, classifier=None) -> list[str]:
@@ -264,6 +423,7 @@ def validate_model_artifacts(model_profile: str | None = None):
     profile = resolve_model_profile(model_profile)
     ensure_profile_runtime_enabled(profile)
     validate_profile_inventory(profile)
+    model_serving_identity(profile)
 
 
 # ----------------------------------------------------------------
@@ -278,19 +438,20 @@ def load_new_format_data(company_data: CompanyData, profile: ModelProfile, class
     row = {column: 0 for column in feature_columns}
     metadata = FeatureMetadata()
 
-    sector_codes = normalize_sector_codes(company_data.sector_list)
+    # Numeric sector/product columns identify Rev.2 hierarchy vocabularies.
+    # Do not reinterpret their training vocabulary as Rev.2.1.
+    hierarchy = any(re.fullmatch(r"sector_\d{2,3}", c) for c in feature_columns)
+    sector_codes = normalize_sector_codes(company_data.sector_list, legacy_nace=hierarchy)
     region_codes = normalize_region_codes(company_data.subsidiaries_regions)
-    product_codes = normalize_sector_codes(company_data.products_services)
+    product_codes = (
+        normalize_sector_codes(company_data.products_services, legacy_nace=True)
+        if hierarchy else unique_ordered([v.strip().upper() for v in company_data.products_services if v.strip()])
+    )
 
     if not region_codes:
         region_codes = default_region_codes(company_data.headquarters_country)
         if region_codes:
             metadata.defaulted_fields["subsidiaries_regions"] = region_codes
-
-    if not product_codes:
-        product_codes = sector_codes
-        if product_codes:
-            metadata.defaulted_fields["products_services"] = product_codes
 
     company_size = company_data.company_size or derive_company_size(company_data.employees_total)
     metadata.derived_fields["company_size"] = company_size
@@ -306,16 +467,31 @@ def load_new_format_data(company_data: CompanyData, profile: ModelProfile, class
     if not product_codes:
         metadata.missing_required_fields.append("products_services")
 
-    sector_feature_codes, sector_basis = feature_codes_for_nace_hierarchy(
-        sector_codes,
-        "sector",
-        row.keys(),
-    )
-    product_feature_codes, product_basis = feature_codes_for_nace_hierarchy(
-        product_codes,
-        "product",
-        row.keys(),
-    )
+    if hierarchy:
+        sector_feature_codes, sector_basis = feature_codes_for_nace_hierarchy(sector_codes, "sector", row.keys())
+        product_feature_codes, product_basis = feature_codes_for_nace_hierarchy(product_codes, "product", row.keys())
+    else:
+        sector_codes = unique_ordered([
+            GPT41_DIVISION_TO_SECTION.get(c[:2], c) if c.isdigit() else c
+            for c in sector_codes
+        ])
+        sector_feature_codes = [c for c in sector_codes if f"sector_{c}" in row]
+        # R exists as a training-data anomaly, but is not an A-L product code.
+        product_feature_codes = [c for c in product_codes if c in "ABCDEFGHIJKL" and len(c) == 1 and f"product_{c}" in row]
+        sector_basis = {
+            "taxonomy": "NACE Rev.2.1", "input_codes": sector_codes,
+            "feature_codes": sector_feature_codes,
+            "unsupported_codes": [c for c in sector_codes if c not in sector_feature_codes],
+            "effective_nace_code": sector_feature_codes[0] if sector_feature_codes else None,
+            "effective_nace_level": "section_1letter" if sector_feature_codes else None,
+            "fallback_used": False,
+        }
+        product_basis = {
+            "taxonomy": "company_data.products_services A-L", "input_codes": product_codes,
+            "feature_codes": product_feature_codes,
+            "unsupported_codes": [c for c in product_codes if c not in product_feature_codes],
+            "fallback_used": False,
+        }
 
     if sector_basis or product_basis:
         metadata.derived_fields["industry_basis"] = {
@@ -346,10 +522,37 @@ def load_new_format_data(company_data: CompanyData, profile: ModelProfile, class
         if column in row:
             row[column] = value
 
+    unsupported = {}
+    for field, codes, supported in (
+        ("sector_list", sector_codes, sector_feature_codes),
+        ("products_services", product_codes, product_feature_codes),
+        ("subsidiaries_regions", region_codes, [c for c in region_codes if f"region_{c}" in row]),
+    ):
+        dropped = [c for c in codes if c not in supported]
+        if dropped:
+            unsupported[field] = dropped
+        if not supported and field not in metadata.missing_required_fields:
+            metadata.missing_required_fields.append(field)
+    # Inspect the fitted encoder, not merely the CSV: some size categories were
+    # absent from the training split and OneHotEncoder would silently ignore them.
+    fitted = classifier if classifier is not None else load_profile_classifier(profile)
+    preprocessor = getattr(fitted, "named_steps", {}).get("preprocessor")
+    if preprocessor is not None:
+        categorical = preprocessor.named_transformers_["cat"].named_steps["onehot"]
+        cat_columns = next(columns for name, _, columns in preprocessor.transformers_ if name == "cat")
+        for column, categories in zip(cat_columns, categorical.categories_):
+            if row[column] not in categories:
+                unsupported[column] = [row[column]]
+    metadata.derived_fields["encoding_coverage"] = {
+        "version": "p5-gpt41-encoding-v1" if not hierarchy else "nace-hierarchy",
+        "status": "degraded" if unsupported or metadata.missing_required_fields else "complete",
+        "unsupported_values": unsupported,
+    }
+
     return pd.DataFrame([row], columns=feature_columns), metadata
 
 
-def normalize_sector_codes(values: list[str] | None) -> list[str]:
+def normalize_sector_codes(values: list[str] | None, *, legacy_nace: bool = False) -> list[str]:
     normalized: list[str] = []
     for value in values or []:
         if not isinstance(value, str):
@@ -373,7 +576,7 @@ def normalize_sector_codes(values: list[str] | None) -> list[str]:
         if division_match:
             normalized.append(division_match.group(1))
             continue
-        mapped = LEGACY_SECTOR_LABEL_TO_NACE_SECTION.get(label.lower())
+        mapped = (LEGACY_SECTOR_LABEL_TO_NACE_SECTION if legacy_nace else GPT41_SECTOR_LABELS).get(label.lower())
         if mapped:
             normalized.append(mapped)
 
@@ -469,13 +672,18 @@ def default_region_codes(headquarters_country: str) -> list[str]:
 
 
 def derive_company_size(employees_total: int) -> str:
-    if employees_total <= 249:
+    if employees_total <= 0:
+        return "NA"
+    if employees_total <= 9:
+        return "MICRO"
+    if employees_total <= 49:
         return "SMALL"
-    if employees_total <= 499:
+    if employees_total <= 249:
         return "MEDIUM"
-    if employees_total <= 4_999:
+    # The extraction prompt overlaps at 5000: use its first matching band.
+    if employees_total <= 5_000:
         return "LARGE"
-    if employees_total <= 49_999:
+    if employees_total <= 20_000:
         return "HUGE"
     return "ULTRA"
 
@@ -497,7 +705,7 @@ def new_format_score_threshold() -> float:
         return DEFAULT_NEW_FORMAT_SCORE_THRESHOLD
 
     value = float(raw_value)
-    if value < 0 or value > 1:
+    if not np.isfinite(value) or value < 0 or value > 1:
         raise ValueError(f"{NEW_FORMAT_SCORE_THRESHOLD_ENV} must be between 0 and 1.")
     return value
 
@@ -624,7 +832,14 @@ def filter_new_format_runtime_predictions(
     raw_predictions,
     scores: list[float],
     score_threshold: float | None = None,
+    label_thresholds: dict[str, float] | None = None,
+    sector_guard=None,
+    company_sectors: list[str] | None = None,
+    crc_floor=None,
 ) -> tuple[list[str], dict]:
+    # Signature and metadata keys are a stable response contract consumed by
+    # Laravel. The public runtime always passes None for label_thresholds,
+    # sector_guard and crc_floor (reported as inactive).
     score_threshold = new_format_score_threshold() if score_threshold is None else score_threshold
     raw_prediction_values = [int(value) for value in raw_predictions]
     raw_positive = [
@@ -635,7 +850,7 @@ def filter_new_format_runtime_predictions(
     threshold_positive = [
         (key, score)
         for key, score in raw_positive
-        if score >= score_threshold
+        if score >= (label_thresholds or {}).get(key, score_threshold)
     ]
     candidate_positive = [
         (key, score)
@@ -644,14 +859,44 @@ def filter_new_format_runtime_predictions(
     ]
     candidate_positive.sort(key=lambda item: (-item[1], item[0]))
 
-    excluded_non_candidate_count = len(threshold_positive) - len(candidate_positive)
+    sector_suppressed: list[str] = []
+    if sector_guard is not None:
+        kept_keys, sector_suppressed = sector_guard.filter_keys(
+            [key for key, _ in candidate_positive], company_sectors or []
+        )
+        kept_set = set(kept_keys)
+        candidate_positive = [item for item in candidate_positive if item[0] in kept_set]
+
+    excluded_non_candidate_count = (
+        len(threshold_positive) - len(candidate_positive) - len(sector_suppressed)
+    )
+
+    crc_added: list[str] = []
+    if crc_floor is not None:
+        score_by_key = dict(zip(esrs_columns, [float(s) for s in scores]))
+        crc_added = crc_floor.augment_keys(
+            emitted_keys=[key for key, _ in candidate_positive],
+            esrs_columns=esrs_columns,
+            scores=scores,
+            candidate_predicate=is_new_format_candidate_key,
+        )
+        candidate_positive.extend((key, score_by_key[key]) for key in crc_added)
 
     metadata = {
         "new_format_score_threshold": score_threshold,
+        "per_label_threshold_count": len(label_thresholds or {}),
         "raw_positive_key_count": len(raw_positive),
         "threshold_positive_key_count": len(threshold_positive),
         "excluded_non_candidate_key_count": excluded_non_candidate_count,
         "emitted_positive_key_count": len(candidate_positive),
+        "sector_guard_active": sector_guard is not None,
+        "sector_guard_suppressed_count": len(sector_suppressed),
+        "sector_guard_suppressed_keys": sector_suppressed,
+        "crc_recall_floor_active": crc_floor is not None,
+        "crc_lambda": crc_floor.lambda_ if crc_floor is not None else None,
+        "crc_version": crc_floor.version if crc_floor is not None else None,
+        "crc_added_key_count": len(crc_added),
+        "crc_added_keys": crc_added,
     }
 
     return [key for key, _score in candidate_positive], metadata
@@ -674,13 +919,17 @@ def topic_industry_basis(industry_basis: dict | None) -> dict:
 
 
 # Predict esrs of a company
-def predict_esrs(company_data: CompanyData):
+def predict_esrs(company_data: CompanyData, *, _learning_bypass: bool = False):
+    # Optional learning hooks live in app/ai-service/src (public_model_app adds
+    # it to sys.path). They are no-ops unless learning is configured.
+    learning_runtime = _optional_learning_module("learning_production_runtime")
     profile = resolve_model_profile(company_data.model_profile)
     ensure_profile_runtime_enabled(profile)
 
     # load company data and ML classifier
     print("Loading company data...")
     clf = load_profile_classifier(profile)
+    policies = load_serving_policies(profile)
     df, feature_metadata = load_new_format_data(company_data, profile, clf)
     esrs_columns = load_profile_esrs_columns(profile)
 
@@ -706,9 +955,11 @@ def predict_esrs(company_data: CompanyData):
         feature_metadata=feature_metadata,
         mapping_metadata={
             "mapping_status": "external_laravel_mapping",
+            "runtime_activation": "runtime_enabled",
         },
         evidence_refs=[],
     )
+    prediction.mapping_metadata["serving_identity"] = model_serving_identity(profile, policies)
     industry_basis = feature_metadata.derived_fields.get("industry_basis")
     if industry_basis:
         prediction.mapping_metadata["industry_basis"] = industry_basis
@@ -718,7 +969,35 @@ def predict_esrs(company_data: CompanyData):
             esrs_columns=esrs_columns,
             raw_predictions=predictions[0],
             scores=scores,
+            score_threshold=policies.score_threshold,
+            label_thresholds=policies.label_thresholds,
+            sector_guard=policies.sector_guard,
+            company_sectors=(industry_basis or {}).get("sector", {}).get("feature_codes", []),
+            crc_floor=policies.crc_recall_floor,
         )
+        if policies.feedback_bandit is not None:
+            from feedback_bandit import ENCODER, digest, encode_context
+            floor = policies.crc_recall_floor
+            context = encode_context(df.iloc[0].to_dict())
+            positive_keys, feedback_metadata = policies.feedback_bandit.apply(
+                positive_keys, esrs_columns, scores, context,
+                threshold=policies.score_threshold,
+                label_thresholds=policies.label_thresholds,
+                candidate_predicate=is_new_format_candidate_key,
+                protected_standards=floor.served_standards(esrs_columns, scores) if floor else (),
+            )
+            # Preserved by Laravel result_data.mapping_metadata.python, only
+            # while the feature is enabled. No P5 text or company identifier.
+            feedback_metadata["basis"] = {
+                "encoder": ENCODER,
+                "context": context,
+                "feature_schema_sha256": digest(list(df.columns)),
+                "model_sha256": policies.feedback_bandit.config["model_sha256"],
+                "base_scores": {k: float(s) for k, s in zip(esrs_columns, scores)
+                                if is_new_format_candidate_key(k)},
+            }
+            filter_metadata["feedback_bandit"] = feedback_metadata
+            filter_metadata["emitted_positive_key_count"] = len(positive_keys)
         positive_key_set = set(positive_keys)
         prediction.esrs.update({
             key: 1 if key in positive_key_set else 0
@@ -730,4 +1009,6 @@ def predict_esrs(company_data: CompanyData):
                 key: topic_industry_basis(industry_basis)
                 for key in positive_keys
             }
-    return prediction
+    if _learning_bypass or learning_runtime is None:
+        return prediction
+    return learning_runtime.apply_learning(company_data, prediction)

@@ -1,5 +1,8 @@
 "use client"
 
+import { completeStudyStep } from "@/lib/usability-study.mjs"
+import { useStudyError } from "@/lib/use-study-error"
+
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
 
 import { ui, formatUi } from "@/lib/i18n/messages.mjs"
@@ -39,6 +42,8 @@ type FormState = {
   companyName: string
   naceCode: string
   headquartersCountry: string
+  reportingPeriodStart: string
+  reportingPeriodEnd: string
   reportingYear: string
   reportingScope: string
   numSubsidiariesCountries: string
@@ -86,6 +91,8 @@ function emptyFormState(): FormState {
     companyName: "",
     naceCode: "",
     headquartersCountry: "Spain",
+    reportingPeriodStart: "",
+    reportingPeriodEnd: "",
     reportingYear: defaultReportingYear(),
     reportingScope: "",
     numSubsidiariesCountries: "0",
@@ -155,6 +162,8 @@ function stateFromCharacterization(characterization: LaravelCharacterization | n
     companyName: companyProfile.company_name ?? "",
     naceCode: characterization.nace_code ?? "",
     headquartersCountry: companyProfile.headquarters_country ?? "Spain",
+    reportingPeriodStart: companyProfile.reporting_period_start ?? "",
+    reportingPeriodEnd: companyProfile.reporting_period_end ?? "",
     reportingYear: companyProfile.reporting_year ? String(companyProfile.reporting_year) : defaultReportingYear(),
     reportingScope: companyProfile.reporting_scope ?? "",
     numSubsidiariesCountries:
@@ -196,7 +205,7 @@ function toInteger(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function buildDraftPayload(formData: FormState) {
+function buildDraftPayload(formData: FormState, ixbrlEnabled = false) {
   return {
     action: "save_draft" as const,
     step: "review" as const,
@@ -205,6 +214,10 @@ function buildDraftPayload(formData: FormState) {
       company_profile: {
         company_name: formData.companyName.trim(),
         headquarters_country: formData.headquartersCountry,
+        ...(ixbrlEnabled ? {
+          reporting_period_start: formData.reportingPeriodStart || null,
+          reporting_period_end: formData.reportingPeriodEnd || null,
+        } : {}),
         reporting_year: toInteger(formData.reportingYear),
         reporting_scope: formData.reportingScope,
         num_subsidiaries_countries: toInteger(formData.numSubsidiariesCountries),
@@ -292,10 +305,12 @@ export function InitialSurveyForm() {
   const [isReadOnly, setIsReadOnly] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(1, errorMessage)
   const [storedFieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [messageLocale, setMessageLocale] = useState<"es" | "en">(locale)
   const fieldErrors = messageLocale === locale ? storedFieldErrors : {}
   const [csrfToken, setCsrfToken] = useState<string>()
+  const [ixbrlEnabled, setIxbrlEnabled] = useState(false)
   const [options, setOptions] = useState<LaravelCharacterizationOptions>(emptyOptions)
   const [presentationLocale, setPresentationLocale] = useState<"es" | "en" | null>(null)
   const [optionLoadState, setOptionLoadState] = useState<"loading" | "ready" | "failed">("loading")
@@ -351,6 +366,7 @@ export function InitialSurveyForm() {
         }
 
         const nextState = stateFromCharacterization(characterizationResponse.data)
+        setIxbrlEnabled(sessionResponse.data.ixbrl_package_enabled === true)
         setCsrfToken(sessionResponse.data.csrf_token)
         setFormData(nextState)
         setIsReadOnly(p5IsComplete(nextState))
@@ -449,8 +465,9 @@ export function InitialSurveyForm() {
     setSaving(true)
 
     try {
-      await saveLaravelCharacterizationDraft(buildDraftPayload(formData), { csrfToken })
+      await saveLaravelCharacterizationDraft(buildDraftPayload(formData, ixbrlEnabled), { csrfToken })
       setIsReadOnly(true)
+      completeStudyStep(1)
       router.push("/wizard/step-2")
     } catch (error) {
       if (error instanceof LaravelApiError && error.status === 401) {
@@ -462,6 +479,10 @@ export function InitialSurveyForm() {
       if (error instanceof LaravelApiError && error.status === 422) {
         const nextFieldErrors: FieldErrors = {}
         const naceMessage = validationMessageFor(error, "nace_code")
+        for (const [field, key] of [["reportingPeriodStart", "reporting_period_start"], ["reportingPeriodEnd", "reporting_period_end"]] as const) {
+          const message = validationMessageFor(error, `form_data.company_profile.${key}`)
+          if (message) nextFieldErrors[field] = message
+        }
         const entityIdentifierMessage = validationMessageFor(error, "form_data.company_profile.entity_identifier")
 
         if (naceMessage) {
@@ -572,6 +593,10 @@ export function InitialSurveyForm() {
                       value={optionLabel(headquartersCountryOptions, formData.headquartersCountry, locale)}
                     />
                     <ReadOnlyField label={tr("Ejercicio del informe")} value={formData.reportingYear} />
+                    {ixbrlEnabled ? <>
+                      <ReadOnlyField label={tr("Inicio del periodo del informe")} value={formData.reportingPeriodStart || "-"} />
+                      <ReadOnlyField label={tr("Fin del periodo del informe")} value={formData.reportingPeriodEnd || "-"} />
+                    </> : null}
                     <ReadOnlyField
                       label={tr("Alcance del informe")}
                       value={optionLabel(reportingScopeOptions, formData.reportingScope, locale)}
@@ -784,6 +809,20 @@ export function InitialSurveyForm() {
                         </Select>
                       </div>
 
+                      {ixbrlEnabled ? (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="reportingPeriodStart">{tr("Inicio del periodo del informe")}</Label>
+                            <Input id="reportingPeriodStart" type="date" value={formData.reportingPeriodStart} onChange={(e) => updateForm({ reportingPeriodStart: e.target.value })} aria-invalid={fieldErrors.reportingPeriodStart ? "true" : undefined} aria-describedby={fieldErrors.reportingPeriodStart ? "reportingPeriodStart-error" : undefined} />
+                            {fieldErrors.reportingPeriodStart ? <p id="reportingPeriodStart-error" className="text-sm text-destructive">{fieldErrors.reportingPeriodStart}</p> : null}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="reportingPeriodEnd">{tr("Fin del periodo del informe")}</Label>
+                            <Input id="reportingPeriodEnd" type="date" value={formData.reportingPeriodEnd} onChange={(e) => updateForm({ reportingPeriodEnd: e.target.value })} aria-invalid={fieldErrors.reportingPeriodEnd ? "true" : undefined} aria-describedby={fieldErrors.reportingPeriodEnd ? "reportingPeriodEnd-error" : undefined} />
+                            {fieldErrors.reportingPeriodEnd ? <p id="reportingPeriodEnd-error" className="text-sm text-destructive">{fieldErrors.reportingPeriodEnd}</p> : null}
+                          </div>
+                        </div>
+                      ) : null}
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="entityIdentifier">{tr("LEI de la entidad (opcional para la caracterización)")}</Label>
                         <Input
@@ -923,7 +962,7 @@ export function InitialSurveyForm() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <Button type="button" onClick={() => router.push("/wizard/step-2")}>
+              <Button type="button" onClick={() => { completeStudyStep(1); router.push("/wizard/step-2") }}>
                 {" "}{tr("Continuar a la propuesta de temas")}{" "}</Button>
             </div>
           ) : (

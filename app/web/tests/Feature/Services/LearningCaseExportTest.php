@@ -27,7 +27,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
     foreach (['learning_case_closure','learning_source_clock','learning_p6_base_source_clock','learning_p8_source_clock','learning_p9_source_clock','learning_p5_live_capture','learning_p6_prepared_request','learning_p6_job_parent_fence','learning_p6_interpretation_context'] as $flag) { config(['services.'.$flag.'.enabled' => true]); }
     config(['services.characterization.api.model_profile' => 't06_close_synthetic', 'services.characterization.prediction_mapping_path' => base_path('artifacts/learning-tests').'/03-t06-close-mapping.json']);
-    Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
+    if (! Schema::hasTable('learning_p9_source_revisions')) Schema::create('learning_p9_source_revisions', function (Blueprint $t) {
         $t->foreignId('characterization_id')->primary()->constrained('characterizations')->cascadeOnDelete();
         $t->unsignedBigInteger('generation'); $t->unsignedBigInteger('revision'); $t->string('epoch',64); $t->string('digest',64);
     });
@@ -623,3 +623,31 @@ it('T09 denial leaves unchanged headers on the full producer path and rejects a 
     expect(fn () => $command->denySourceDrift($token))->toThrow(DomainException::class, 'learning_batch.witness_invalid');
     expect(App\Models\LearningBatch::query()->sole()->getRawOriginal())->toBe($corrupt);
 });
+
+
+it('closes and exports a learning case with a complete Python feedback policy response', function (string $mode) {
+    $f = t07ExportFixture();
+    $responses = json_decode(file_get_contents(base_path('tests/Fixtures/feedback-bandit-python-response.json')), true, 512, JSON_THROW_ON_ERROR);
+    $response = $responses[$mode];
+    config(['services.characterization.api.base_url' => 'http://ai-service.test',
+        'services.characterization.api.token' => null,
+        'services.characterization.api.model_profile' => $response['model_profile']]);
+    Http::fake(['http://ai-service.test/predict' => Http::response($response)]);
+    $gateway = new ApiCharacterizationGateway(CharacterizationPredictionMapper::fromCapturedRaw('{"candidate_topics":[]}'));
+    $result = $gateway->submitPrepared($gateway->prepare($f['row']->fresh()));
+    (new CharacterizationStateTransaction)->runForUser($f['u']->id, function ($row) use ($result) {
+        $row->result_data = $result;
+        $row->save();
+    });
+    $projection = (new App\Services\LearningP6Snapshot)->project($f['row']->fresh());
+    expect($projection['serving_identity']['policy_sha256']['feedback_bandit'])
+        ->toBe($response['mapping_metadata']['serving_identity']['policy_sha256']['feedback_bandit']);
+    $f['closure']->close($f['u']->id, t07ExportInput($f));
+    $export = t07Exporter($f);
+    $packet = $export->exportForAccount($f['u']->id, $export->referenceForAccount($f['u']->id));
+    $stored = LearningCase::query()->sole();
+    $case = json_decode($stored->payload_text, true, 512, JSON_THROW_ON_ERROR);
+    $exported = json_decode($packet['jsonl'], true, 512, JSON_THROW_ON_ERROR);
+    expect($case['p6_snapshot'])->toEqual($projection['p6_snapshot'])
+        ->and($exported['reference']['case_hash'])->toBe($stored->case_hash);
+})->with(['shadow', 'active']);

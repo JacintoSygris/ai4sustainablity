@@ -402,3 +402,94 @@ it('renders factual omissions once as a final appendix after the report body', f
         ->toBeLessThan(strpos($text, 'Anexo: Temas evaluados y no considerados materiales'));
     expect(substr_count($documentXml, 'w:type="page"'))->toBe(2);
 });
+
+it('escapes every PhpWord text path and preserves decoded user text exactly', function (bool $priorEscaping) {
+    $name = 'García & Asociados <S.L.>';
+    $text = 'Texto sintético & <dato> </w:t><w:fldSimple w:instr="INCLUDETEXT https://example.invalid"/> &amp; literal';
+    $ir = [
+        'company' => ['name' => $name, 'reporting_year' => 2026],
+        'disclaimers' => [$text],
+        'chapters' => [[
+            'title' => $text,
+            'floor_prose' => $text,
+            'sections' => [[
+                'dr_key' => $text,
+                'cross_ref_sentences' => [$text],
+                'blocks' => [[
+                    'datapoint_id' => 'test',
+                    'name' => $text,
+                    'assertions' => [$text],
+                    'guidance' => ['text' => $text, 'citations' => [$text]],
+                    'slots' => [['node_id' => 'safe_slot', 'label' => $text, 'xbrl_concept' => 'esrs:Test']],
+                ]],
+            ]],
+        ]],
+    ];
+    $original = \PhpOffice\PhpWord\Settings::isOutputEscapingEnabled();
+    \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled($priorEscaping);
+    try {
+        $bytes = (new DocxRenderer())->render($ir);
+        expect(\PhpOffice\PhpWord\Settings::isOutputEscapingEnabled())->toBe($priorEscaping);
+    } finally {
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled($original);
+    }
+    $xml = docxEntry($bytes, 'word/document.xml');
+    $dom = new DOMDocument();
+    expect($dom->loadXML($xml, LIBXML_NONET))->toBeTrue();
+    $xpath = new DOMXPath($dom);
+    $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+    $runs = [];
+    foreach ($xpath->query('//w:t') as $run) {
+        $runs[] = $run->textContent;
+    }
+    expect(implode(' ', $runs))->toContain($name)->toContain($text);
+    expect($xpath->query('//w:fldSimple')->length)->toBe(0);
+    expect($xml)->toContain('García &amp; Asociados &lt;S.L.&gt;')
+        ->not->toContain('García &amp;amp; Asociados');
+})->with([false, true]);
+
+it('escapes factual SDT values once as well as the company name and E1 narrative', function () {
+    $name = 'García & Asociados <S.L.>';
+    $text = 'Valor sintético & <dato> </w:t><w:fldSimple w:instr="INCLUDETEXT https://example.invalid"/>';
+    $ir = [
+        'schema_version' => 'report_ir_v1',
+        'company' => ['name' => $name, 'reporting_year' => 2026],
+        'disclaimers' => [],
+        'claims' => [[
+            'claim_id' => 'test_claim', 'fact_id' => 'test_fact', 'datapoint_id' => 'BP-1_01',
+            'value_type' => 'text', 'value' => ['text' => $text],
+        ]],
+        'chapters' => [[
+            'block_key' => 'always_required',
+            'sections' => [[
+                'dr_key' => 'BP-1',
+                'blocks' => [[
+                    'datapoint_id' => 'BP-1_01',
+                    'claims' => ['test_claim'],
+                    'slots' => [[
+                        'node_id' => 'test_slot', 'claim_id' => 'test_claim', 'fact_id' => 'test_fact',
+                        'xbrl_concept' => 'esrs:BasisForPreparation',
+                    ]],
+                ]],
+            ]],
+        ], [
+            'block_key' => 'e1_not_material_explanation',
+            'sections' => [[
+                'dr_key' => 'E1',
+                'blocks' => [[
+                    'datapoint_id' => 'e1_not_material_explanation', 'assertions' => [$text], 'slots' => [],
+                ]],
+            ]],
+        ]],
+    ];
+    $bytes = (new DocxRenderer())->render($ir);
+    $xml = docxEntry($bytes, 'word/document.xml');
+    $dom = new DOMDocument();
+    expect($dom->loadXML($xml, LIBXML_NONET))->toBeTrue();
+    $xpath = new DOMXPath($dom);
+    $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+    expect($xpath->query('//w:sdtContent//w:t')->item(0)->textContent)->toBe($text);
+    expect($xpath->query('//w:fldSimple')->length)->toBe(0);
+    expect(docxVisibleText($bytes))->toContain($name)->toContain($text);
+    expect((new DOMDocument())->loadXML(docxEntry($bytes, 'customXml/item1.xml'), LIBXML_NONET))->toBeTrue();
+});

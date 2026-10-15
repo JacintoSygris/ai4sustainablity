@@ -20,7 +20,7 @@ class ArelleXhtmlIxbrlValidator
     /**
      * @param array<string, mixed> $internalManifest
      */
-    public function validate(string $xhtml, ReportingProfile $profile, array $internalManifest): void
+    public function validate(string $xhtml, ReportingProfile $profile, array $internalManifest, bool $reportPackage = false): void
     {
         $command = config('services.report.arelle_command');
         $prefix = is_string($command) ? [$command] : $command;
@@ -53,7 +53,8 @@ class ArelleXhtmlIxbrlValidator
 
         try {
             $tmpDir = $this->temporaryDirectory();
-            $xhtmlPath = $tmpDir.'/candidate.xhtml';
+            $xhtmlPath = $tmpDir.($reportPackage ? '/candidate.zip' : '/candidate.xhtml');
+            $logPath = $tmpDir.'/validation.json';
 
             try {
                 file_put_contents($xhtmlPath, $xhtml, LOCK_EX);
@@ -63,17 +64,25 @@ class ArelleXhtmlIxbrlValidator
                     ...$prefix,
                     ...$this->profileArguments($profile),
                     '--validationExitCode',
+                    '--disablePersistentConfig',
+                    '--xdgConfigHome', $tmpDir,
+                    '--logFile', $logPath,
                     '--packages',
                     $packagePath,
                     '--file',
                     $xhtmlPath,
                 ];
 
+                $cache = config('services.report.arelle_cache_directory');
+                if (is_string($cache) && $cache !== '') {
+                    $args = [...$args, '--cacheDirectory', $cache];
+                }
                 $result = $this->run($args, $tmpDir);
-                if ($result['exit_code'] !== 0 || ! $this->outputIsCleanAndAnalyzable($result['stdout']."\n".$result['stderr'])) {
+                if ($result['exit_code'] !== 0 || ! $this->logIsCleanAndAnalyzable($logPath)) {
                     throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
                 }
             } finally {
+                if (is_file($logPath)) @unlink($logPath);
                 if (is_file($xhtmlPath)) {
                     @unlink($xhtmlPath);
                 }
@@ -111,7 +120,8 @@ class ArelleXhtmlIxbrlValidator
      */
     private function run(array $args, string $tmpDir): array
     {
-        $paths = [$tmpDir.'/stdout.capture', $tmpDir.'/stderr.capture'];
+        // Precreate the structured log so it shares the live aggregate output budget.
+        $paths = [$tmpDir.'/stdout.capture', $tmpDir.'/stderr.capture', $tmpDir.'/validation.json'];
         $captures = [];
         $createdPaths = [];
         $pipes = [];
@@ -136,7 +146,12 @@ class ArelleXhtmlIxbrlValidator
             if (hrtime(true) / 1e9 >= $deadline) {
                 throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
             }
-            $process = @proc_open($args, $descriptor, $pipes, null, null, ['bypass_shell' => true]);
+            $process = @proc_open($args, $descriptor, $pipes, null, [
+                'PATH' => '/usr/local/bin:/usr/bin:/bin',
+                'LANG' => 'C.UTF-8',
+                'TMPDIR' => $tmpDir,
+                'PYTHONDONTWRITEBYTECODE' => '1',
+            ], ['bypass_shell' => true]);
             if (! is_resource($process)) {
                 throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
             }
@@ -178,7 +193,7 @@ class ArelleXhtmlIxbrlValidator
             $process = null;
             $stdout = '';
             $stderr = '';
-            if (hrtime(true) / 1e9 >= $deadline || ! $this->readProcessOutput($paths, $stdout, $stderr)
+            if (hrtime(true) / 1e9 >= $deadline || ! $this->readProcessOutput(array_slice($paths, 0, 2), $stdout, $stderr)
                 || hrtime(true) / 1e9 >= $deadline) {
                 throw new XhtmlIxbrlCandidateException('xhtml_ixbrl_arelle_validation_failed');
             }
@@ -202,7 +217,8 @@ class ArelleXhtmlIxbrlValidator
                     }
                 }
                 foreach ($createdPaths as $path) {
-                    @unlink($path);
+                    // validate() reads the JSON after run() and owns its final cleanup.
+                    if ($path !== $tmpDir.'/validation.json') @unlink($path);
                 }
             }
         }
@@ -244,19 +260,24 @@ class ArelleXhtmlIxbrlValidator
         }
     }
 
-    private function outputIsCleanAndAnalyzable(string $output): bool
+    private function logIsCleanAndAnalyzable(string $path): bool
     {
-        if (trim($output) === '') {
+        if (! is_file($path) || filesize($path) > $this->maxOutputBytes) return false;
+        try {
+            $log = json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR)['log'] ?? null;
+        } catch (\JsonException) {
             return false;
         }
-
-        if (preg_match('/\b(?:error|fatal|invalid|fail(?:ed|ure)?|unsuccessful)\b/i', $output)) {
-            return false;
+        if (! is_array($log) || $log === []) return false;
+        $validated = false;
+        foreach ($log as $entry) {
+            if (! is_array($entry) || ! is_string($entry['level'] ?? null)) return false;
+            if (! in_array(strtolower($entry['level']), ['info', 'warning', 'debug'], true)) return false;
+            $message = $entry['message']['text'] ?? '';
+            if (! is_string($message)) return false;
+            if (($entry['code'] ?? '') === 'info' && preg_match('/\bvalidated in \d+(?:[.,]\d+)? secs?\b/', $message)) $validated = true;
+            if (str_starts_with((string) ($entry['code'] ?? ''), 'formula:') && str_contains(strtolower($message), 'unsatisfied')) return false;
         }
-
-        return (bool) preg_match(
-            '/\b(?:validation\s+(?:successful(?:ly)?|passed)|successfully\s+validated|validated\s+in\s+\d+(?:[.,]\d+)?\s+secs?)\b/i',
-            $output,
-        );
+        return $validated;
     }
 }

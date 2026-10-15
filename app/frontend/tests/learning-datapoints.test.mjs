@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { compactDrafts } from "../lib/esrs-datapoints-state.mjs"
 import * as state from "../lib/esrs-datapoints-state.mjs"
+import * as iroState from "../lib/iro-traceability.mjs"
 import { formatUi } from "../lib/i18n/messages.mjs"
 test("explicit false choices survive draft compact and JSON recovery without becoming completed",()=>{
  const review={relevant:false,selected_to_answer:false,reason_codes:["other"],note:"Synthetic"}
@@ -49,14 +50,15 @@ function actualSource(name) {
 }
 function recoveryHarness() {
  const timers=[], cancelled=[], mirror=new Map(), sent=[]
- const c=vm.createContext({...state,systemCopy,window:{},mounted:true,rows:[],characterizationId:1,csrfToken:"synthetic",pendingRecoveryDrafts:null,
+ const c=vm.createContext({...state,...iroState,systemCopy,window:{},mounted:true,rows:[],characterizationId:1,csrfToken:"synthetic",pendingRecoveryDrafts:null,
+ p9AuthorityRef:{current:undefined},authorityReviewRequired:false,authorityReviewConfirmed:false,
  loadGenerationRef:{current:0},workspaceContextRef:{current:null},recoveryTimerRef:{current:null},autoSaveTimerRef:{current:null},
  learningAuthorityRef:{current:""},draftsRef:{current:{}},dirtyRef:{current:false},editVersionRef:{current:0},saveQueueRef:{current:state.createResponseSaveQueue()},
  recoveryStorage:{getItem:k=>mirror.get(k),setItem:(k,v)=>mirror.set(k,v),removeItem:k=>mirror.delete(k)},preferenceStorage:{getItem:()=>null},
  setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(id){cancelled.push(id)},scheduleAutoSave(){c.scheduled=(c.scheduled??0)+1},
  getLaravelSession:async()=>({data:{csrf_token:"synthetic"}}),getLaravelEsrsDatapointWorkspace:async()=>c.snapshot,
  updateLaravelEsrsDatapointResponses:async payload=>{sent.push(payload);return {data:{revision:3}}},router:{replace(){}},LaravelApiError:class extends Error{}})
- for(const name of ["Corpus","LoadingInitial","ErrorMessage","CsrfToken","CharacterizationId","ServerUpdatedAt","Orphaned","Drafts","ShowIntro","PendingRecoveryDrafts","ShowRecoveryPrompt","RecoveryIsConflict","IsDirty","AutoSaveError"])
+ for(const name of ["AuthorityReviewRequired","AuthorityReviewConfirmed","XbrlRuntimeEnabled","Corpus","LoadingInitial","ErrorMessage","CsrfToken","CharacterizationId","ServerUpdatedAt","Orphaned","Drafts","ShowIntro","PendingRecoveryDrafts","ShowRecoveryPrompt","RecoveryIsConflict","IsDirty","AutoSaveError"])
  c["set"+name]=v=>{c[name[0].toLowerCase()+name.slice(1)]=v}
  // Install only real source declarations; missing new dependencies are never swallowed.
  const tree=ts.createSourceFile("form.tsx",fs.readFileSync(new URL("../components/wizard/esrs-datapoints-form.tsx",import.meta.url),"utf8"),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX)
@@ -143,13 +145,14 @@ function workspace(authority=authorityA) {
 }
 async function loadActual(snapshot) {
  const observed={};const a=workspace(),b=workspace(authorityB)
- const context={...state,systemCopy,mounted:true,window:undefined,setTimeout(){},clearTimeout(){},
+ const context={...state,...iroState,systemCopy,mounted:true,window:undefined,setTimeout(){},clearTimeout(){},
+ p9AuthorityRef:{current:undefined},authorityReviewRequired:false,authorityReviewConfirmed:false,
  loadGenerationRef:{current:0},workspaceContextRef:{current:null},recoveryTimerRef:{current:null},
  saveQueueRef:{current:state.createResponseSaveQueue()},autoSaveTimerRef:{current:null},learningAuthorityRef:{current:""},editVersionRef:{current:0},draftsRef:{current:{}},
  getLaravelSession:async()=>({data:{csrf_token:"synthetic"}}),
  getLaravelEsrsDatapoints:async()=>({data:a.data}),getLaravelEsrsDatapointResponses:async()=>({data:b.response_state}),
  getLaravelEsrsDatapointWorkspace:async()=>snapshot,router:{replace(){}},LaravelApiError:class extends Error{}}
- for(const name of ["setCorpus","setLoadingInitial","setErrorMessage","setCsrfToken","setCharacterizationId","setServerUpdatedAt","setOrphaned","setDrafts","setShowIntro","setShowRecoveryPrompt","setPendingRecoveryDrafts","setRecoveryIsConflict"])context[name]=v=>{observed[name]=v}
+ for(const name of ["setAuthorityReviewRequired","setAuthorityReviewConfirmed","setXbrlRuntimeEnabled","setCorpus","setLoadingInitial","setErrorMessage","setCsrfToken","setCharacterizationId","setServerUpdatedAt","setOrphaned","setDrafts","setShowIntro","setShowRecoveryPrompt","setPendingRecoveryDrafts","setRecoveryIsConflict"])context[name]=v=>{observed[name]=v}
  vm.createContext(context)
  for(const name of ["invalidateWorkspace","clearPendingRecovery","isCurrentRecoveryContext"])vm.runInContext(actualSource(name),context)
  await vm.runInNewContext(actualCallback("loadP9"),context)
@@ -186,7 +189,7 @@ test("validated workspace denies malformed labels, unknown universe and partial 
 test("actual 409 handler invalidates display and reloads, never installs standalone conflict authority",()=>{
  const source=actualCallback("installConflictRecovery").replace(/installConflictRecovery\(\);?\s*$/, "installConflictRecovery({status:409,payload:{code:'datapoint_responses_conflict',data:{revision:3,responses:{},learning_authority_digest:'"+authorityB+"'}}})")
  let reloaded=false,display="A",mirror,notice
- const queue=state.createResponseSaveQueue(2);const context={...state,systemCopy,characterizationId:1,learningAuthorityRef:{current:authorityA},draftsRef:{current:{SHARED:{learning_review:{relevant:false,selected_to_answer:false,note:"Synthetic",reason_codes:[]}}}},saveQueueRef:{current:queue},recoveryStorage:{setItem(k,v){mirror=JSON.parse(v)}},setCorpus(v){display=v},reload(){reloaded=true},setAutoSaveError(value){notice=value}}
+ const queue=state.createResponseSaveQueue(2);const context={...state,...iroState,systemCopy,characterizationId:1,learningAuthorityRef:{current:authorityA},draftsRef:{current:{SHARED:{learning_review:{relevant:false,selected_to_answer:false,note:"Synthetic",reason_codes:[]}}}},saveQueueRef:{current:queue},recoveryStorage:{setItem(k,v){mirror=JSON.parse(v)}},setCorpus(v){display=v},reload(){reloaded=true},setAutoSaveError(value){notice=value}}
  assert.equal(vm.runInNewContext(source,context),true);assert.equal(display,null);assert.equal(context.learningAuthorityRef.current,"");assert.equal(queue.isActive(),false);assert.ok(reloaded);assert.equal(mirror.drafts.SHARED.learning_review.relevant,false)
  assert.equal(formatUi("es",notice.source,notice.values),"Las respuestas cambiaron en otra pestaña. Recarga la versión actualizada para recuperar tus cambios.")
  assert.equal(formatUi("en",notice.source,notice.values),"Responses changed in another tab. Reload the current version to recover your changes.")

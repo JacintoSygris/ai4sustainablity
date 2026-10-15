@@ -1,0 +1,499 @@
+{
+  "synthetic": true,
+  "label_status": "provisional_pending_human_review",
+  "split": "heldout",
+  "cases": [
+    {
+      "id": "orchard_irrigation_es",
+      "family": "orchard_irrigation",
+      "locale": "es",
+      "description": "La finca debe vigilar cuánta agua consume: consumo total de agua durante la campaña.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "orchard_irrigation_en",
+      "family": "orchard_irrigation",
+      "locale": "en",
+      "description": "The orchard must monitor how much water it uses: total water consumption during the season.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "laundry_discharge_es",
+      "family": "laundry_discharge",
+      "locale": "es",
+      "description": "La lavandería cuantifica sus vertidos de agua al finalizar cada ciclo.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "13"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_12"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "laundry_discharge_en",
+      "family": "laundry_discharge",
+      "locale": "en",
+      "description": "The laundry measures its water discharges at the end of each cycle.",
+      "declared_topic": "11",
+      "units": [
+        "water_text_contrast"
+      ],
+      "expected": {
+        "topic": [
+          "13"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_12"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "consumer_repair_es",
+      "family": "consumer_repair",
+      "locale": "es",
+      "description": "Los clientes reclaman mejorar la reparabilidad de nuestros productos para alargar su uso.",
+      "declared_topic": "26",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "26"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "consumer_repair_en",
+      "family": "consumer_repair",
+      "locale": "en",
+      "description": "Customers demand better reparability of our products to extend their use.",
+      "declared_topic": "26",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "26"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "hospital_waste_es",
+      "family": "hospital_waste",
+      "locale": "es",
+      "description": "El hospital necesita conocer cuántos residuos peligrosos produce en total.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_15"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "hospital_waste_en",
+      "family": "hospital_waste",
+      "locale": "en",
+      "description": "The hospital needs to know the total amount of hazardous waste it produces.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_15"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "laboratory_waste_es",
+      "family": "laboratory_waste",
+      "locale": "es",
+      "description": "El laboratorio registra la cantidad de residuos radiactivos que genera cada mes.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_16"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "laboratory_waste_en",
+      "family": "laboratory_waste",
+      "locale": "en",
+      "description": "The laboratory records the amount of radioactive waste it generates every month.",
+      "declared_topic": "27",
+      "units": [
+        "e5_indicator_contrasts"
+      ],
+      "expected": {
+        "topic": [
+          "27"
+        ],
+        "dr": [
+          "E5-5"
+        ],
+        "datapoint": [
+          "E5-5_16"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "warehouse_power_es",
+      "family": "warehouse_power",
+      "locale": "es",
+      "description": "El almacén revisa el consumo de energía total de las operaciones propias.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "warehouse_power_en",
+      "family": "warehouse_power",
+      "locale": "en",
+      "description": "The warehouse reviews the total energy consumption of its own operations.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_01"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "boiler_scope1_es",
+      "family": "boiler_scope1",
+      "locale": "es",
+      "description": "Las calderas originan emisiones de GEI de alcance 1 que debemos cuantificar.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "2"
+        ],
+        "dr": [
+          "E1-6"
+        ],
+        "datapoint": [
+          "E1-6_07"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "boiler_scope1_en",
+      "family": "boiler_scope1",
+      "locale": "en",
+      "description": "The boilers produce Scope 1 greenhouse gas emissions that we need to quantify.",
+      "declared_topic": "3",
+      "units": [
+        "direct_indicator_ranking"
+      ],
+      "expected": {
+        "topic": [
+          "2"
+        ],
+        "dr": [
+          "E1-6"
+        ],
+        "datapoint": [
+          "E1-6_07"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "hydro_generation_es",
+      "family": "hydro_generation",
+      "locale": "es",
+      "description": "La central hidráulica incrementa nuestra producción de energía renovable.",
+      "declared_topic": "3",
+      "units": [
+        "bilingual_text_inference"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_17"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "hydro_generation_en",
+      "family": "hydro_generation",
+      "locale": "en",
+      "description": "The hydro plant increases our renewable energy production.",
+      "declared_topic": "3",
+      "units": [
+        "bilingual_text_inference"
+      ],
+      "expected": {
+        "topic": [
+          "3"
+        ],
+        "dr": [
+          "E1-5"
+        ],
+        "datapoint": [
+          "E1-5_17"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "recovered_water_es",
+      "family": "recovered_water",
+      "locale": "es",
+      "description": "Medimos el agua reciclada y reutilizada por el proceso industrial.",
+      "declared_topic": "11",
+      "units": [
+        "import_provenance"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "recovered_water_en",
+      "family": "recovered_water",
+      "locale": "en",
+      "description": "We measure the water recycled and reused by the industrial process.",
+      "declared_topic": "11",
+      "units": [
+        "import_provenance"
+      ],
+      "expected": {
+        "topic": [
+          "11"
+        ],
+        "dr": [
+          "E3-4"
+        ],
+        "datapoint": [
+          "E3-4_03"
+        ]
+      },
+      "expected_abstention": false
+    },
+    {
+      "id": "chess_es",
+      "family": "chess",
+      "locale": "es",
+      "description": "El alfil avanza por la diagonal del tablero.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "chess_en",
+      "family": "chess",
+      "locale": "en",
+      "description": "The bishop moves along the diagonal of the chessboard.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "negative_hospital_es",
+      "family": "negative_hospital",
+      "locale": "es",
+      "description": "Nunca producimos residuos peligrosos ni residuos radiactivos.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "negative_hospital_en",
+      "family": "negative_hospital",
+      "locale": "en",
+      "description": "We never produce hazardous waste or radioactive waste.",
+      "declared_topic": "27",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "uncertain_office_es",
+      "family": "uncertain_office",
+      "locale": "es",
+      "description": "Tal vez se trate de consumo energético o bien emisiones; es incierto.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    },
+    {
+      "id": "uncertain_office_en",
+      "family": "uncertain_office",
+      "locale": "en",
+      "description": "Perhaps this is energy consumption or emissions; it is uncertain.",
+      "declared_topic": "3",
+      "units": [
+        "abstention"
+      ],
+      "expected": {
+        "topic": [],
+        "dr": [],
+        "datapoint": []
+      },
+      "expected_abstention": true
+    }
+  ]
+}

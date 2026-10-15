@@ -63,7 +63,7 @@ test("P9 text fields and saves use current draft state for scripted input fills"
 
   assert.match(source, /draftsRef\s*=\s*useRef/, "P9 must keep a current drafts ref outside render closures")
   assert.match(source, /draftsRef\.current\s*=\s*next/, "P9 draft updates must refresh the current drafts ref")
-  assert.match(source, /compactDrafts\(draftsRef\.current\)/, "P9 saves must compact the current drafts ref, not stale render state")
+  assert.match(source, /compactDrafts\(draftsRef\.current, authorityReviewRequired && authorityReviewConfirmed\)/, "P9 saves must compact current drafts with explicit authority confirmation")
   assert.match(source, /saveQueueRef/, "P9 saves must be serialized through one queue")
   assert.match(source, /editVersionRef/, "P9 must distinguish the edit version captured by each save")
   assert.match(source, /expected_revision/, "P9 must send the last acknowledged server revision")

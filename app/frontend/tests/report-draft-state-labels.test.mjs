@@ -8,6 +8,7 @@ import {
   isScopingOnly,
   limitationMessage,
   sectionLabel,
+  snapshotDownloadBlockers,
   statusLabel,
   visibleNextActions,
 } from "../lib/report-draft-state.mjs"
@@ -86,4 +87,43 @@ test("report draft action labels use step names instead of humanized API or P-co
   assert.equal(actionLabel("/api/esrs-datapoints/responses"), "Registrar información NEIS (paso 5)")
   assert.equal(actionLabel("/api/report/draft"), "Revisar el resumen (paso 6)")
   assert.equal(actionLabel("/api/custom-endpoint"), "Continuar")
+})
+
+test("scope stale reasons block approvals and downloads even if freshness is inconsistent", async () => {
+  const { snapshotApprovalAllowed, snapshotStaleMessages, xhtmlPresentationAvailable } = await import("../lib/report-draft-state.mjs")
+  const readiness = { report_scope_integrity_enabled: true, workflow_complete: true, report_content_ready: true }
+  for (const reason of ["scope_identity_missing", "ig3_corpus_changed", "ar16_dr_mapping_changed", "report_scope_changed", "scope_assets_unavailable"]) {
+    const snapshot = { stale_state: "fresh", is_approved: true, stale_reasons: [reason] }
+    assert.equal(snapshotApprovalAllowed(snapshot), false)
+    assert.equal(xhtmlPresentationAvailable(readiness, snapshot), false)
+    assert.equal(snapshotDownloadBlockers(snapshot).length, 1)
+    assert.equal(snapshotStaleMessages(snapshot)[0], reason === "scope_identity_missing"
+      ? "Esta versión histórica no permite verificar el alcance aprobado."
+      : "El alcance ha cambiado. Revisa los datos y prepara una nueva versión para aprobarla.")
+  }
+})
+
+test("XHTML requires an explicit capability and current reviewed approval", async () => {
+  const { xhtmlPresentationAvailable } = await import("../lib/report-draft-state.mjs")
+  const snapshot = { stale_state: "fresh", is_approved: true, stale_reasons: [] }
+  const readiness = { workflow_complete: true, report_content_ready: true }
+  assert.equal(xhtmlPresentationAvailable(readiness, snapshot), false)
+  assert.equal(xhtmlPresentationAvailable({ ...readiness, report_scope_integrity_enabled: false }, snapshot), false)
+  assert.equal(xhtmlPresentationAvailable({ ...readiness, report_scope_integrity_enabled: true }, snapshot), true)
+  assert.equal(xhtmlPresentationAvailable({ ...readiness, report_scope_integrity_enabled: true }, { ...snapshot, is_approved: false }), false)
+})
+
+test("scope integrity ES and EN copy resolves without translating user text", async () => {
+  const { ui } = await import("../lib/i18n/messages.mjs")
+  const pairs = [
+    ["Descargar informe NEIS en XHTML", "Download ESRS report as XHTML"],
+    ["El alcance ha cambiado. Revisa los datos y prepara una nueva versión para aprobarla.", "The scope has changed. Review the data and prepare a new version for approval."],
+    ["Esta versión histórica no permite verificar el alcance aprobado.", "The approved scope cannot be verified for this historical version."],
+    ["Presentación completa; etiquetado iXBRL parcial.", "Complete presentation; partial iXBRL tagging."],
+    ["No hay datos numéricos etiquetables. Puedes descargar la presentación XHTML.", "There are no taggable numeric facts. You can download the XHTML presentation."],
+  ]
+  for (const [es, en] of pairs) {
+    assert.equal(ui("es", es), es)
+    assert.equal(ui("en", es), en)
+  }
 })

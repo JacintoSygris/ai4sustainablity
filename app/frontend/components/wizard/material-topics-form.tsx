@@ -1,5 +1,11 @@
 "use client"
 
+import { SectorComparison } from "@/components/wizard/sector-comparison"
+import { useSectorComparison } from "@/lib/use-sector-comparison"
+
+import { completeStudyStep } from "@/lib/usability-study.mjs"
+import { useStudyError } from "@/lib/use-study-error"
+
 import { useSystemMessage, systemCopy } from "@/lib/i18n/use-system-message"
 
 import { ui, formatUi } from "@/lib/i18n/messages.mjs"
@@ -9,7 +15,7 @@ import { topicTitle, topicSubtitle, topicMatches } from "@/lib/materiality-confi
 
 import type React from "react"
 
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, HelpCircle, Loader2, Info, RefreshCw, Search, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -152,10 +158,12 @@ export function MaterialTopicsForm() {
   const [csrfToken, setCsrfToken] = useState<string>()
   const [characterization, setCharacterization] = useState<LaravelCharacterization | null>(null)
   const [proposal, setProposal] = useState<LaravelMaterialityProposal | null>(null)
+  const sectorComparison = useSectorComparison(proposal)
   const [topicActions, setTopicActions] = useState<TopicActions>({})
   const [actionReasons, setActionReasons] = useState<ActionReasons>({})
   const [actionNotes, setActionNotes] = useState<ActionNotes>({})
   const [errorMessage, setErrorMessage] = useSystemMessage(null)
+  useStudyError(2, errorMessage)
   const [saveMessage, setSaveMessage] = useSystemMessage(null)
   const reviewEditVersion = useRef(0)
 
@@ -353,6 +361,7 @@ export function MaterialTopicsForm() {
         return
       }
       if (continueAfterSave) {
+        completeStudyStep(2)
         router.push("/wizard/step-3")
         router.refresh()
       } else {
@@ -404,6 +413,13 @@ export function MaterialTopicsForm() {
         {saveMessage ? (
           <div role="status" className="mb-4 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             {saveMessage}
+          </div>
+        ) : null}
+
+        {!loadingInitial && characterization?.status === "completed" && proposal && !Array.isArray(proposal.ai.feature_metadata?.derived_fields)
+          && (proposal.ai.feature_metadata?.derived_fields.encoding_coverage as { status?: string } | undefined)?.status === "degraded" ? (
+          <div role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {tr("El modelo no cubre todos los datos de tu perfil. La propuesta puede ser menos representativa; revisa también los temas no propuestos antes de confirmar la doble importancia relativa.")}
           </div>
         ) : null}
 
@@ -517,6 +533,7 @@ export function MaterialTopicsForm() {
 
             <div className="space-y-3">
               {filteredTopics.map((topic) => (
+                <Fragment key={topic.id}>
                 <TopicReviewCard
                   locale={locale}
                   key={topic.id}
@@ -532,6 +549,8 @@ export function MaterialTopicsForm() {
                   onReasonChange={(reasonKey, checked) => setTopicReason(topic.id, reasonKey, checked)}
                   onNoteChange={(note) => setTopicNote(topic.id, note)}
                 />
+                <SectorComparison {...sectorComparison} topicId={topic.id} locale={locale} />
+                </Fragment>
               ))}
             </div>
 

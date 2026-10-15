@@ -124,6 +124,10 @@ class CharacterizationRequest extends FormRequest
         $rules['form_data.company_profile.product_service_type'] = [$companyRule, 'string', Rule::in(array_keys($this->productServiceTypeOptions()))];
         $rules['form_data.company_profile.entity_identifier'] = ['sometimes', 'nullable', 'string', 'regex:/\A[A-Z0-9]{20}\z/'];
         $rules['form_data.company_profile.entity_identifier_scheme'] = ['prohibited'];
+        if (config('ixbrl.package_ui_enabled')) {
+            $rules['form_data.company_profile.reporting_period_start'] = ['nullable', 'required_with:form_data.company_profile.reporting_period_end', 'date_format:Y-m-d', 'after_or_equal:2000-01-01'];
+            $rules['form_data.company_profile.reporting_period_end'] = ['nullable', 'required_with:form_data.company_profile.reporting_period_start', 'date_format:Y-m-d', 'after_or_equal:form_data.company_profile.reporting_period_start'];
+        }
 
         $regionRule = $requiresOperations ? 'required' : 'sometimes';
         $valueChainRule = $requiresOperations ? 'required' : 'sometimes';
@@ -168,6 +172,8 @@ class CharacterizationRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'form_data.company_profile.reporting_period_start.*' => __('Indica una fecha de inicio válida y completa ambas fechas del periodo.'),
+            'form_data.company_profile.reporting_period_end.*' => __('Indica una fecha de fin válida, igual o posterior al inicio, y completa ambas fechas del periodo.'),
             'form_data.company_profile.entity_identifier.regex' => __('El LEI debe tener 20 caracteres alfanuméricos.'),
             'form_data.company_profile.entity_identifier_scheme.prohibited' => __('El esquema del LEI lo asigna la plataforma y no debe enviarse desde el navegador.'),
         ];

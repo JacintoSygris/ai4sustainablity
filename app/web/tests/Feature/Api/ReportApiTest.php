@@ -819,6 +819,23 @@ it('generates a self-contained report package and evidence bundle when report in
         ->assertJsonPath('data.traceability.source_endpoints.report_package', '/api/report/package');
 });
 
+it('adds user declared taxonomy evidence only when explicitly enabled', function () {
+    $characterization = fullyReadyReportCharacterization($this->user, $this->e2Topic);
+    config(['eu_taxonomy.enabled' => false]);
+    $this->actingAs($this->user)->getJson('/api/report/evidence-bundle')->assertOk()
+        ->assertJsonMissingPath('data.bundle.eu_taxonomy_eligibility');
+    config(['eu_taxonomy.enabled' => true]);
+    $screen = app(\App\Services\EuTaxonomyEligibility::class)->screen($characterization);
+    $this->putJson('/api/report/eu-taxonomy', [
+        'source_hash' => $screen['source_hash'], 'revision' => 0,
+        'activities' => [['activity_id' => '32023R2486-IV-2.1', 'turnover_share' => null, 'capex_share' => 0, 'opex_share' => 25]],
+    ])->assertOk();
+    $this->getJson('/api/report/evidence-bundle')->assertOk()
+        ->assertJsonPath('data.bundle.eu_taxonomy_eligibility.alignment_assessed', false)
+        ->assertJsonPath('data.bundle.eu_taxonomy_eligibility.confirmed_activities.0.activity_id', '32023R2486-IV-2.1')
+        ->assertJsonPath('data.bundle.eu_taxonomy_eligibility.disclaimer', __('eu_taxonomy.disclaimer'));
+});
+
 function reportBaselineFormData(): array
 {
     return [
