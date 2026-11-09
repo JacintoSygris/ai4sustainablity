@@ -132,12 +132,21 @@ function p5IsComplete(characterization: LaravelCharacterization | null): boolean
 }
 
 function buildSubmitPayload(characterization: LaravelCharacterization) {
+  // El backend asigna `entity_identifier_scheme` al guardar el LEI y lo devuelve en
+  // `form_data`, pero rechaza (422) cualquier envío que lo incluya. Al reenviar el
+  // perfil completo hay que quitarlo o la predicción nunca llega a dispararse.
+  const companyProfile = { ...(characterization.form_data.company_profile ?? {}) }
+  delete companyProfile.entity_identifier_scheme
+
   return {
     action: "submit" as const,
     step: "review" as const,
     nace_code: characterization.nace_code,
     esrs_topic_ids: characterization.esrs_topic_ids ?? [],
-    form_data: characterization.form_data,
+    form_data: {
+      ...characterization.form_data,
+      company_profile: companyProfile,
+    },
   }
 }
 
